@@ -12,11 +12,9 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
- * Fills Hydra's PSR-7/17 seams with nyholm. Registered explicitly by the app's
- * composition root — this is the one place an app names its PSR-7 vendor. An
- * app that prefers another library registers its own provider (binding the
- * PSR-17 factory interfaces and ServerRequestProviderInterface) and never
- * requires this package.
+ * Nyholm service provider
+ *
+ * Fills Hydra's PSR-7/17 seams with nyholm
  */
 final class NyholmServiceProvider extends ServiceProvider
 {
