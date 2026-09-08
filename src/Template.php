@@ -10,18 +10,9 @@ use Stringable;
 use Throwable;
 
 /**
+ * Template
+ *
  * One render in progress: the `$this` a template file sees.
- *
- * Holds the state a single inheritance chain needs — captured sections and the
- * pending layout — so it is isolated per render(). Templates call its methods:
- * extends() to wrap in a layout, start()/stop() to capture a named section,
- * section() to yield one, e() to escape, and partial() to nest another view.
- *
- * Inheritance is resolved by output buffering, not compilation: the child runs
- * first into a buffer, extends() merely records the parent, and the child's
- * leftover output becomes the implicit "content" section. The layout is then
- * rendered with those sections available — the inverse of how it reads, which
- * is exactly what a compiling engine like Twig does under the hood.
  */
 final class Template
 {
@@ -104,14 +95,7 @@ final class Template
     }
 
     /**
-     * Escape a value for safe HTML output. HtmlView instances are already trusted
-     * and pass through untouched; everything else — including any other
-     * Stringable value object — is treated as untrusted and escaped, so
-     * forgetting to mark a value can only ever over-escape, never under-escape.
-     *
-     * That guarantee only covers output routed through e(): these are native
-     * PHP templates, so a bare `<?= $x ?>` bypasses e() and emits raw output.
-     * Escaping is by convention — every dynamic value must go through e().
+     * Escape a value for safe HTML output
      */
     public function e(string|int|float|bool|Stringable|null $value): string
     {
@@ -123,11 +107,7 @@ final class Template
     }
 
     /**
-     * Build an absolute site URL from a root-relative path, for canonical and
-     * Open Graph tags that must be fully qualified. With a base URL of
-     * `https://example.com`, `siteUrl('/blog')` → `https://example.com/blog` and
-     * `siteUrl()` → the bare origin. The path is returned as-is when no base URL
-     * was provided (isolation tests, or an app that doesn't need absolute URLs).
+     * Build an absolute site URL from a root-relative path
      */
     public function siteUrl(string $path = ''): string
     {
@@ -146,8 +126,6 @@ final class Template
      * pass everything it needs explicitly via $data — and it renders as a bare
      * fragment, so a stray extends() inside a partial is ignored rather than
      * wrapping the partial in a full layout.
-     *
-     * @param array<string, mixed> $data
      */
     public function partial(string $template, array $data = []): string
     {
@@ -155,9 +133,7 @@ final class Template
     }
 
     /**
-     * The session's CSRF token (raw), for the layout's meta tag and the
-     * hx-headers attribute that makes every htmx request carry it automatically.
-     * Minted on first call, then stable — see {@see CsrfGuard::token()}.
+     * The session's CSRF token (raw)
      */
     public function csrfToken(): string
     {
@@ -169,10 +145,7 @@ final class Template
     }
 
     /**
-     * A hidden form field carrying the CSRF token, for a plain (non-htmx) form
-     * post. Drop `<?= $this->csrf() ?>` inside any <form>; htmx forms get the
-     * token from the layout's auto-header and don't strictly need it, but it is
-     * harmless to include. The token is hex, so escaping it is belt-and-braces.
+     * A hidden form field carrying the CSRF token
      */
     public function csrf(): string
     {
