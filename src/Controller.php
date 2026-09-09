@@ -8,7 +8,7 @@ use Hydra\Http\Exceptions\HttpException;
 use Hydra\Http\Responder;
 use Hydra\Http\Status;
 use Hydra\View\Contracts\ViewInterface;
-use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ResponseInterface as Response;
 
 /**
  * Base controller
@@ -25,7 +25,7 @@ abstract class Controller
     /**
      * Render a template to an HTML response
      */
-    protected function render(string $template, array $data = [], int|Status $status = Status::Ok, bool $layout = true): ResponseInterface
+    protected function render(string $template, array $data = [], int|Status $status = Status::Ok, bool $layout = true): Response
     {
         return $this->respond->html($this->view->render($template, $data, $layout), $status);
     }
