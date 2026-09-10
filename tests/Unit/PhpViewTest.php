@@ -52,12 +52,36 @@ final class PhpViewTest extends TestCase
 
     private function writeTemplate(string $name, string $contents): void
     {
-        $path = $this->dir . '/' . $name . '.php';
+        $this->writeTo($this->dir, $name, $contents);
+    }
+
+    private function writeTo(string $dir, string $name, string $contents): void
+    {
+        $path = $dir . '/' . $name . '.php';
         $subdir = dirname($path);
         if (!is_dir($subdir)) {
             mkdir($subdir, 0777, true);
         }
         file_put_contents($path, $contents);
+    }
+
+    /**
+     * A second views directory standing in for one a package ships, sitting
+     * beside the base path so both are one level under the scratch root.
+     */
+    private function packageDir(): string
+    {
+        $dir = $this->root . '/package-views';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        return $dir;
+    }
+
+    private function viewWithFallback(): PhpView
+    {
+        return new PhpView($this->dir, fallbacks: [$this->packageDir()]);
     }
 
     public function testIsViewInterface(): void
@@ -160,6 +184,58 @@ final class PhpViewTest extends TestCase
     {
         $this->expectException(RuntimeException::class);
         $this->view->render('does-not-exist');
+    }
+
+    public function testATemplateOnlyAFallbackHasIsStillFound(): void
+    {
+        $view = $this->viewWithFallback();
+        $this->writeTo($this->packageDir(), 'admin/table', 'PACKAGE');
+
+        $this->assertSame('PACKAGE', $view->render('admin/table'));
+    }
+
+    public function testTheBasePathWinsOverAFallback(): void
+    {
+        // The override contract: an application replaces a package's template
+        // by putting a file of the same name in its own views directory.
+        $view = $this->viewWithFallback();
+        $this->writeTo($this->packageDir(), 'admin/table', 'PACKAGE');
+        $this->writeTemplate('admin/table', 'MINE');
+
+        $this->assertSame('MINE', $view->render('admin/table'));
+    }
+
+    public function testAnOverriddenTemplateCanStillReachTheOnesItDidNotOverride(): void
+    {
+        // Each name resolves on its own, so a chain crosses freely between the
+        // two directories — the point of overriding one template and not the rest.
+        $view = $this->viewWithFallback();
+        $this->writeTo($this->packageDir(), 'admin/screen', 'pkg screen');
+        $this->writeTo($this->packageDir(), 'admin/table', '[<?= $this->partial("admin/screen") ?>]');
+        $this->writeTemplate('admin/table', 'MINE: <?= $this->partial("admin/screen") ?>');
+
+        $this->assertSame('MINE: pkg screen', $view->render('admin/table'));
+    }
+
+    public function testATemplateNoDirectoryHasIsReportedAsMissing(): void
+    {
+        $view = $this->viewWithFallback();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('does-not-exist');
+
+        $view->render('does-not-exist');
+    }
+
+    public function testAFallbackDoesNotWidenWhatEachDirectoryContains(): void
+    {
+        // Both directories sit beside secret.php, and neither may be climbed
+        // out of to reach it — a second search path is not a second chance.
+        $view = $this->viewWithFallback();
+
+        $this->expectException(RuntimeException::class);
+
+        $view->render('../secret');
     }
 
     public function testRendersTemplateInASubdirectory(): void

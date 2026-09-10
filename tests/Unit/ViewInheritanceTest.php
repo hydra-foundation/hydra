@@ -165,4 +165,23 @@ final class ViewInheritanceTest extends TestCase
         }
         $this->assertSame($level, ob_get_level(), 'no leaked output buffer');
     }
+
+    public function testSharedDataReachesEveryRenderAndItsPartials(): void
+    {
+        $view = new PhpView($this->dir, shared: ['theme' => 'paper']);
+
+        $this->writeTemplate('shell', '<?= $this->e($theme) ?>|<?= $this->partial("inner") ?>');
+        $this->writeTemplate('inner', '<?= $this->e($theme) ?>');
+
+        $this->assertSame('paper|paper', $view->render('shell'));
+    }
+
+    public function testARendersOwnDataWinsOverTheShared(): void
+    {
+        $view = new PhpView($this->dir, shared: ['theme' => 'paper']);
+
+        $this->writeTemplate('shell', '<?= $this->e($theme) ?>');
+
+        $this->assertSame('graphite', $view->render('shell', ['theme' => 'graphite']));
+    }
 }
