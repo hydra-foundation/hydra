@@ -78,4 +78,9 @@ final class FakeView implements ViewInterface
     {
         return sprintf('view:%s data:%s layout:%d', $template, implode(',', array_keys($data)), (int) $layout);
     }
+
+    public function has(string $template): bool
+    {
+        return true;
+    }
 }
