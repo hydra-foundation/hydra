@@ -17,6 +17,7 @@
                         <h2 class="card-title h5 mb-1">
                             <a class="stretched-link text-decoration-none text-body-emphasis"
                                href="<?= $this->e($module['url']) ?>"
+                               hx-nonce="<?= $this->e($this->cspNonce()) ?>"
                                hx-get="<?= $this->e($module['url']) ?>"
                                hx-target="#admin-frame"
                                hx-push-url="true">

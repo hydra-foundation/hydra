@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\View;
 
 use Hydra\Csrf\CsrfGuard;
+use Hydra\Http\CspNonce;
 use RuntimeException;
 use Stringable;
 use Throwable;
@@ -32,6 +33,7 @@ final class Template
         private readonly bool $wrapLayout = true,
         private readonly ?CsrfGuard $csrf = null,
         private readonly ?string $baseUrl = null,
+        private readonly ?CspNonce $cspNonce = null,
     ) {}
 
     public function resolve(string $template): string
@@ -154,6 +156,21 @@ final class Template
             CsrfGuard::FIELD,
             $this->e($this->csrfToken()),
         );
+    }
+
+    /**
+     * The request's CSP nonce (raw)
+     *
+     * Stamp it on the markup the policy should trust: the script tags the page
+     * ships, and the hx-nonce of every element carrying htmx attributes.
+     */
+    public function cspNonce(): string
+    {
+        if ($this->cspNonce === null) {
+            throw new RuntimeException('CSP is not configured for this view (no CspNonce was provided).');
+        }
+
+        return $this->cspNonce->value();
     }
 
     /**

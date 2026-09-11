@@ -89,6 +89,75 @@ final class ShippedViewsTest extends TestCase
         }
     }
 
+    /**
+     * hx-csp strips the htmx attributes off any element whose hx-nonce does not
+     * match the page's, so a shipped template that forgets one ships a control
+     * that silently stops working under the policy. Every element the package
+     * gives htmx attributes to has to carry the nonce beside them.
+     *
+     * hx-swap-oob is the exception, and only because htmx reads it off the
+     * parsed fragment and removes it before the element is ever initialised —
+     * the gate runs at initialisation, so it never sees the attribute. An
+     * out-of-band element's own contents are initialised after it lands, which
+     * is why anything htmx inside one is still covered here.
+     */
+    public function test_every_htmx_element_a_shipped_template_renders_carries_the_nonce(): void
+    {
+        $elements = $this->htmxElementsInShippedViews();
+
+        $this->assertNotEmpty($elements, 'the element scan found nothing it should have');
+
+        foreach ($elements as [$file, $tag, $attributes]) {
+            if (preg_match('~\bhx-(?!swap-oob)[a-z]~', $attributes) !== 1) {
+                continue;
+            }
+
+            $this->assertStringContainsString(
+                'hx-nonce',
+                $attributes,
+                "<{$tag}> in {$file} takes htmx attributes without an hx-nonce",
+            );
+        }
+    }
+
+    /**
+     * Every opening tag in the shipped templates that carries an hx- attribute,
+     * as [file, tag, attributes]. PHP blocks are blanked first so a `<?=` inside
+     * a tag does not read as the start of another one.
+     *
+     * @return list<array{string, string, string}>
+     */
+    private function htmxElementsInShippedViews(): array
+    {
+        $found = [];
+
+        foreach ($this->filesUnder(AdminServiceProvider::views()) as $file) {
+            $source = (string) file_get_contents($file);
+            $masked = (string) preg_replace_callback(
+                '~<\?(?:php|=).*?\?>~s',
+                static fn (array $m): string => str_repeat(' ', strlen($m[0])),
+                $source,
+            );
+
+            preg_match_all(
+                '~<([a-zA-Z][a-zA-Z0-9]*)((?:[^<>\'"]|"[^"]*"|\'[^\']*\')*?)>~s',
+                $masked,
+                $matches,
+                PREG_OFFSET_CAPTURE,
+            );
+
+            foreach ($matches[2] as $index => [, $offset]) {
+                $attributes = substr($source, $offset, strlen($matches[2][$index][0]));
+
+                if (preg_match('~\bhx-[a-z]~', $attributes) === 1) {
+                    $found[] = [basename($file), $matches[1][$index][0], $attributes];
+                }
+            }
+        }
+
+        return $found;
+    }
+
     /** @return list<string> */
     private function matchesInShippedViews(string $pattern, bool $unique = true): array
     {

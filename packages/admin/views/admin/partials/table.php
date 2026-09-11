@@ -18,6 +18,7 @@
                         <?php if ($field->isSortable()): ?>
                             <a class="text-decoration-none text-body-emphasis"
                                href="<?= $this->e($vm->sortLink($field)) ?>"
+                               hx-nonce="<?= $this->e($this->cspNonce()) ?>"
                                hx-get="<?= $this->e($vm->sortLink($field)) ?>"
                                hx-target="#admin-body"
                                hx-push-url="true">
@@ -48,6 +49,7 @@
                                 <?php if ($vm->showUrl($row) !== null): ?>
                                     <a class="btn btn-sm btn-outline-secondary"
                                        href="<?= $this->e($vm->showUrl($row)) ?>"
+                                       hx-nonce="<?= $this->e($this->cspNonce()) ?>"
                                        hx-get="<?= $this->e($vm->showUrl($row)) ?>"
                                        hx-target="#admin-frame"
                                        hx-push-url="true">View</a>
@@ -55,6 +57,7 @@
                                 <?php if ($vm->editUrl($row) !== null): ?>
                                     <a class="btn btn-sm btn-outline-secondary"
                                        href="<?= $this->e($vm->editUrl($row)) ?>"
+                                       hx-nonce="<?= $this->e($this->cspNonce()) ?>"
                                        hx-get="<?= $this->e($vm->editUrl($row)) ?>"
                                        hx-target="#admin-frame"
                                        hx-push-url="true">Edit</a>
@@ -68,6 +71,7 @@
                                     <form class="btn-group"
                                           method="post"
                                           action="<?= $this->e($vm->deleteUrl($row)) ?>"
+                                          hx-nonce="<?= $this->e($this->cspNonce()) ?>"
                                           hx-post="<?= $this->e($vm->deleteUrl($row)) ?>"
                                           hx-target="#admin-frame"
                                           hx-confirm="<?= $this->e($vm->deletePrompt()) ?>">

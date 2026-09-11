@@ -11,6 +11,7 @@
     <?php if ($vm->editUrl() !== null): ?>
         <a class="btn btn-primary"
            href="<?= $this->e($vm->editUrl()) ?>"
+           hx-nonce="<?= $this->e($this->cspNonce()) ?>"
            hx-get="<?= $this->e($vm->editUrl()) ?>"
            hx-target="#admin-frame"
            hx-push-url="true">Edit</a>
@@ -18,6 +19,7 @@
 
     <a class="btn btn-outline-secondary"
        href="<?= $this->e($vm->listUrl()) ?>"
+       hx-nonce="<?= $this->e($this->cspNonce()) ?>"
        hx-get="<?= $this->e($vm->listUrl()) ?>"
        hx-target="#admin-frame"
        hx-push-url="true">Back</a>
@@ -26,6 +28,7 @@
         <form class="ms-auto"
               method="post"
               action="<?= $this->e($vm->deleteUrl()) ?>"
+              hx-nonce="<?= $this->e($this->cspNonce()) ?>"
               hx-post="<?= $this->e($vm->deleteUrl()) ?>"
               hx-target="#admin-frame"
               hx-confirm="<?= $this->e($vm->deletePrompt()) ?>">

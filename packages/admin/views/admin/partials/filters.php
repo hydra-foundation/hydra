@@ -2,6 +2,7 @@
 <?php /** @var \Hydra\Admin\ViewModels\ListViewModel $vm */ ?>
 <div class="admin-filters d-flex justify-content-between align-items-end gap-3">
 <form class="row g-2 align-items-end"
+      hx-nonce="<?= $this->e($this->cspNonce()) ?>"
       hx-get="<?= $this->e($vm->url()) ?>"
       hx-target="#admin-body"
       hx-include="#admin-sort-state"
@@ -33,6 +34,7 @@
     <?php if ($vm->createUrl() !== null): ?>
         <a class="btn btn-primary text-nowrap"
            href="<?= $this->e($vm->createUrl()) ?>"
+           hx-nonce="<?= $this->e($this->cspNonce()) ?>"
            hx-get="<?= $this->e($vm->createUrl()) ?>"
            hx-target="#admin-frame"
            hx-push-url="true"><?= $this->e($vm->createLabel()) ?></a>

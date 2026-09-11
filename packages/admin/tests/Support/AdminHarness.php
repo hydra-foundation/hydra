@@ -13,6 +13,7 @@ use Hydra\Admin\Navigation;
 use Hydra\Admin\Renderer;
 use Hydra\Core\Security\Signer;
 use Hydra\Csrf\CsrfGuard;
+use Hydra\Http\CspNonce;
 use Hydra\Http\Responder;
 use Hydra\Session\Stores\ArraySessionStore;
 use Hydra\Validation\Validator;
@@ -57,6 +58,7 @@ final class AdminHarness
             dirname(__DIR__) . '/views',
             new CsrfGuard($session, Signer::fromHex(str_repeat('ab', 32))),
             fallbacks: [AdminServiceProvider::views()],
+            cspNonce: new CspNonce,
         );
         $this->renderer = new Renderer($this->responder, $this->view);
         $this->controller = new AdminController(

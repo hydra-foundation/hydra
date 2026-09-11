@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\View;
 
 use Hydra\Csrf\CsrfGuard;
+use Hydra\Http\CspNonce;
 use Hydra\View\Contracts\ViewInterface;
 use RuntimeException;
 
@@ -37,6 +38,7 @@ final class PhpView implements ViewInterface
         private readonly ?string $baseUrl = null,
         array $fallbacks = [],
         private readonly array $shared = [],
+        private readonly ?CspNonce $cspNonce = null,
     ) {
         $this->paths = [$basePath, ...array_values($fallbacks)];
     }
@@ -51,7 +53,7 @@ final class PhpView implements ViewInterface
     {
         $data = [...$this->shared, ...$data];
 
-        return (new Template($this, $data, $layout, $this->csrf, $this->baseUrl))->resolve($template);
+        return (new Template($this, $data, $layout, $this->csrf, $this->baseUrl, $this->cspNonce))->resolve($template);
     }
 
     public function has(string $template): bool

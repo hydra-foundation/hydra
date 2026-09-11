@@ -8,6 +8,7 @@ use Hydra\Core\Security\Signer;
 use Hydra\Csrf\CsrfGuard;
 use Hydra\Session\Stores\ArraySessionStore;
 use Hydra\View\HtmlView;
+use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
 use Hydra\View\Contracts\ViewInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -381,5 +382,35 @@ final class PhpViewTest extends TestCase
 
         $this->assertStringContainsString('name="' . CsrfGuard::FIELD . '"', $out);
         $this->assertStringContainsString('value="' . $guard->token() . '"', $out);
+    }
+
+    public function testCspNonceThrowsWhenNoNonceIsConfigured(): void
+    {
+        $this->writeTemplate('x', '<?= $this->cspNonce() ?>');
+
+        $this->expectException(RuntimeException::class);
+        $this->view->render('x');
+    }
+
+    public function testCspNonceRendersTheRequestsToken(): void
+    {
+        $nonce = new CspNonce;
+        $view = new PhpView($this->dir, cspNonce: $nonce);
+        $this->writeTemplate('x', '<?= $this->cspNonce() ?>');
+
+        $this->assertSame($nonce->value(), $view->render('x'));
+    }
+
+    public function testEveryTemplateInOneRenderSeesTheSameNonce(): void
+    {
+        // The page stamps it in several places and a fragment swapped into that
+        // page has to match; two tokens in one render would block one of them.
+        $view = new PhpView($this->dir, cspNonce: new CspNonce, fallbacks: []);
+        $this->writeTemplate('partial', '<?= $this->cspNonce() ?>');
+        $this->writeTemplate('x', '<?= $this->cspNonce() ?>|<?= $this->partial("partial") ?>');
+
+        [$outer, $inner] = explode('|', $view->render('x'));
+
+        $this->assertSame($outer, $inner);
     }
 }

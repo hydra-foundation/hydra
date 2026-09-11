@@ -7,6 +7,7 @@
       class="col-12 col-xl-6"
       method="post"
       action="<?= $this->e($vm->action()) ?>"
+      hx-nonce="<?= $this->e($this->cspNonce()) ?>"
       hx-post="<?= $this->e($vm->action()) ?>"
       hx-target="#admin-frame"
       hx-swap="innerHTML">
@@ -67,6 +68,7 @@
         <?php endif ?>
         <a class="btn btn-outline-secondary"
            href="<?= $this->e($vm->cancelUrl()) ?>"
+           hx-nonce="<?= $this->e($this->cspNonce()) ?>"
            hx-get="<?= $this->e($vm->cancelUrl()) ?>"
            hx-target="#admin-frame"
            hx-push-url="true">Cancel</a>

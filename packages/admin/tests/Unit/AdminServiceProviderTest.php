@@ -15,6 +15,7 @@ use Hydra\Admin\Tests\Support\ArrayContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\UsersModule;
 use Hydra\Authorization\Contracts\GateInterface;
+use Hydra\Http\CspNonce;
 use Hydra\Http\Responder;
 use Hydra\View\Contracts\ViewInterface;
 use Hydra\View\PhpView;
@@ -94,7 +95,7 @@ final class AdminServiceProviderTest extends TestCase
             ArraySource::class => new ArraySource,
             GateInterface::class => new AdminsOnlyGate(true),
             Responder::class => new Responder($psr17, $psr17),
-            ViewInterface::class => new PhpView(AdminServiceProvider::views()),
+            ViewInterface::class => new PhpView(AdminServiceProvider::views(), cspNonce: new CspNonce),
         ]);
     }
 }

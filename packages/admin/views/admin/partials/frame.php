@@ -15,6 +15,7 @@
                     <?= $this->e($crumb['label']) ?>
                 <?php else: ?>
                     <a href="<?= $this->e($crumb['url']) ?>"
+                       hx-nonce="<?= $this->e($this->cspNonce()) ?>"
                        hx-get="<?= $this->e($crumb['url']) ?>"
                        hx-target="#admin-frame"
                        hx-push-url="true"><?= $this->e($crumb['label']) ?></a>

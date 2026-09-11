@@ -10,6 +10,7 @@ use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Http\Contracts\EmitterInterface;
 use Hydra\Http\Contracts\ErrorRendererInterface;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
+use Hydra\Http\CspNonce;
 use Hydra\Http\Emitter;
 use Hydra\Http\HttpKernel;
 use Hydra\Http\Pipeline;
@@ -39,6 +40,8 @@ final class HttpServiceProvider extends ServiceProvider
     public function register(ContainerInterface $container): void
     {
         $container->singleton(EmitterInterface::class, fn () => new Emitter);
+
+        $container->singleton(CspNonce::class, fn () => new CspNonce);
 
         $container->singleton(Responder::class, function () use ($container) {
             return new Responder(

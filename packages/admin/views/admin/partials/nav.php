@@ -11,6 +11,7 @@
                 <li class="nav-item">
                     <a class="nav-link<?= $item['active'] ? ' active' : '' ?>"
                        href="<?= $this->e($item['url']) ?>"
+                       hx-nonce="<?= $this->e($this->cspNonce()) ?>"
                        hx-get="<?= $this->e($item['url']) ?>"
                        hx-target="#admin-frame"
                        hx-push-url="true">

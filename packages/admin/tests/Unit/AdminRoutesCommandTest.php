@@ -14,6 +14,7 @@ use Hydra\Admin\Tests\Support\EditableUsersModule;
 use Hydra\Admin\Tests\Support\LandingModule;
 use Hydra\Admin\Tests\Support\TypoModule;
 use Hydra\Admin\AdminServiceProvider;
+use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
 use Symfony\Component\Console\Command\Command;
 use PHPUnit\Framework\TestCase;
@@ -116,7 +117,7 @@ final class AdminRoutesCommandTest extends TestCase
     {
         return new CommandTester(new AdminRoutesCommand(
             $this->registry($module),
-            new PhpView(AdminServiceProvider::views()),
+            new PhpView(AdminServiceProvider::views(), cspNonce: new CspNonce),
         ));
     }
 

@@ -9,7 +9,7 @@
 
     <?= $this->partial('admin/partials/nav', ['screen' => $screen, 'oob' => false]) ?>
 
-    <form class="admin-signout" hx-post="/logout">
+    <form class="admin-signout" hx-nonce="<?= $this->e($this->cspNonce()) ?>" hx-post="/logout">
         <button class="btn btn-sm btn-outline-secondary w-100" type="submit">Sign out</button>
     </form>
 </nav>
