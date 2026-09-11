@@ -155,6 +155,27 @@ final class Environment
     }
 
     /**
+     * A comma-separated value as a list, with blank entries dropped. A missing
+     * or empty key is an empty list — "not configured" and "configured to
+     * nothing" are the same answer for every setting shaped like this.
+     *
+     * @return list<string>
+     */
+    public function list(string $key, array $default = []): array
+    {
+        $value = $this->get($key);
+
+        if ($value === null || trim((string) $value) === '') {
+            return array_values($default);
+        }
+
+        return array_values(array_filter(
+            array_map(trim(...), explode(',', (string) $value)),
+            static fn (string $item): bool => $item !== '',
+        ));
+    }
+
+    /**
      * Accepted forms, case-insensitive: `true`/`false`, `1`/`0`, `yes`/`no`,
      * `on`/`off`. A missing key returns $default; any other present value
      * (including an empty string) throws

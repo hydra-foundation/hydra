@@ -15,6 +15,20 @@ use Hydra\Http\Query;
  */
 final readonly class Criteria
 {
+    /**
+     * The furthest page a request may ask for.
+     *
+     * page becomes an OFFSET, and a large one makes the database walk every
+     * row it skips — so an unbounded page number is an unauthenticated way to
+     * turn one cheap request into a full table scan. This is a blast-radius
+     * cap, not a correctness bound: a list with fewer pages still clamps to its
+     * own last page when the total is known.
+     */
+    public const MAX_PAGE = 10_000;
+
+    /** Longer than any real search, and short enough to stay cheap to match. */
+    public const MAX_SEARCH = 128;
+
     public int $page;
     public int $perPage;
     public ?string $sort;
@@ -34,12 +48,15 @@ final readonly class Criteria
         array $filters = [],
         ?string $search = null,
     ) {
-        $this->page = max(1, $page);
+        $this->page = min(max(1, $page), self::MAX_PAGE);
         $this->perPage = max(1, $perPage);
         $this->sort = $sort;
         $this->direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
         $this->filters = $filters;
-        $this->search = $search;
+        // Normalised rather than refused, like page above: a list filter that
+        // errors on a long paste is worse for the reader than one that matches
+        // on as much of it as could ever be useful.
+        $this->search = $search === null ? null : mb_substr($search, 0, self::MAX_SEARCH);
     }
 
     /** The view of a list nobody has asked anything of: the module's own defaults. */
@@ -98,6 +115,27 @@ final readonly class Criteria
     public function offset(): int
     {
         return ($this->page - 1) * $this->perPage;
+    }
+
+    /**
+     * The search term as a LIKE pattern, or null when nothing was searched for.
+     *
+     * The term's own wildcards are escaped first. They are not an injection
+     * risk — the pattern is always bound as a parameter — but they are a cost
+     * one: a bare "%" matches every row, which turns a search box into a way to
+     * ask for a full scan on demand. Escaping is done here rather than in each
+     * source so that no source can forget, and so the SQL stays one shape.
+     *
+     * The escape character is a backslash, which is what MySQL/MariaDB and
+     * SQLite's LIKE use by default.
+     */
+    public function searchPattern(): ?string
+    {
+        if ($this->search === null) {
+            return null;
+        }
+
+        return '%' . addcslashes($this->search, '%_\\') . '%';
     }
 
     /** @return array<string, string> */

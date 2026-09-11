@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Hydra\Http\Tests\Unit;
 
+use Hydra\Http\ClientIpResolver;
 use Hydra\Http\ForceHttpsMiddleware;
 use Hydra\Http\Responder;
+use Hydra\Http\TrustedProxies;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -84,16 +86,60 @@ final class ForceHttpsMiddlewareTest extends TestCase
         $this->assertSame('https://hydra.test/login', $response->getHeaderLine('Location'));
     }
 
-    private function middleware(bool $enabled, bool $trustForwardedProto = false): ForceHttpsMiddleware
+    public function test_the_forwarded_scheme_counts_only_from_a_declared_proxy(): void
     {
-        $factory = new Psr17Factory;
+        $handler = $this->handler();
+        $request = $this->request('http://hydra.test/login', peer: '10.0.0.1')
+            ->withHeader('X-Forwarded-Proto', 'https');
 
-        return new ForceHttpsMiddleware($enabled, new Responder($factory, $factory), $trustForwardedProto);
+        $response = $this->middleware(
+            enabled: true,
+            trustForwardedProto: true,
+            clients: new ClientIpResolver(new TrustedProxies(['10.0.0.0/8'])),
+        )->process($request, $handler);
+
+        $this->assertSame(1, $handler->calls);
+        $this->assertStringContainsString('max-age=', $response->getHeaderLine('Strict-Transport-Security'));
     }
 
-    private function request(string $uri): ServerRequestInterface
+    public function test_the_forwarded_scheme_is_refused_from_a_peer_that_is_not_the_proxy(): void
     {
-        return (new Psr17Factory)->createServerRequest('GET', $uri);
+        // Opting into the header is not the same as opting into anyone who
+        // sends it: a request that skipped the proxy is still plain http.
+        $handler = $this->handler();
+        $request = $this->request('http://hydra.test/login', peer: '198.51.100.7')
+            ->withHeader('X-Forwarded-Proto', 'https');
+
+        $response = $this->middleware(
+            enabled: true,
+            trustForwardedProto: true,
+            clients: new ClientIpResolver(new TrustedProxies(['10.0.0.0/8'])),
+        )->process($request, $handler);
+
+        $this->assertSame(0, $handler->calls, 'a direct client must not borrow the proxy\'s scheme');
+        $this->assertSame(301, $response->getStatusCode());
+    }
+
+    private function middleware(
+        bool $enabled,
+        bool $trustForwardedProto = false,
+        ?ClientIpResolver $clients = null,
+    ): ForceHttpsMiddleware {
+        $factory = new Psr17Factory;
+
+        return new ForceHttpsMiddleware(
+            $enabled,
+            new Responder($factory, $factory),
+            $trustForwardedProto,
+            $clients,
+        );
+    }
+
+    private function request(string $uri, ?string $peer = null): ServerRequestInterface
+    {
+        $server = $peer === null ? [] : ['REMOTE_ADDR' => $peer];
+
+        return (new Psr17Factory)->createServerRequest('GET', $uri, $server);
     }
 
     private function handler(): RequestHandlerInterface

@@ -284,6 +284,42 @@ final class EnvironmentTest extends TestCase
         $env->int('PORT');
     }
 
+    public function testListSplitsOnCommasAndTrims(): void
+    {
+        $env = $this->writeEnv("TRUSTED_PROXIES=10.0.0.0/8, 172.18.0.0/16 ,2001:db8::/32\n");
+
+        $this->assertSame(
+            ['10.0.0.0/8', '172.18.0.0/16', '2001:db8::/32'],
+            $env->list('TRUSTED_PROXIES'),
+        );
+    }
+
+    public function testListTreatsMissingAndEmptyAlike(): void
+    {
+        // "not configured" and "configured to nothing" mean the same thing for
+        // a list, and a caller should not have to tell them apart.
+        $env = $this->writeEnv("TRUSTED_PROXIES=\n");
+
+        $this->assertSame([], $env->list('TRUSTED_PROXIES'));
+        $this->assertSame([], $env->list('NOT_SET_AT_ALL'));
+        $this->assertSame(['127.0.0.1'], $env->list('NOT_SET_AT_ALL', ['127.0.0.1']));
+    }
+
+    public function testListDropsBlankEntries(): void
+    {
+        // A trailing comma is the most common way to write this by hand.
+        $env = $this->writeEnv("HOSTS=a,,b,\n");
+
+        $this->assertSame(['a', 'b'], $env->list('HOSTS'));
+    }
+
+    public function testSingleValueIsAListOfOne(): void
+    {
+        $env = $this->writeEnv("HOSTS=10.0.0.1\n");
+
+        $this->assertSame(['10.0.0.1'], $env->list('HOSTS'));
+    }
+
     public function testMissingEnvFileDoesNotError(): void
     {
         // No .env written — load() must no-op silently.

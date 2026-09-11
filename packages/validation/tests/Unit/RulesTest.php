@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Hydra\Validation\Tests\Unit;
 
+use Hydra\Validation\Rules\InList;
 use Hydra\Validation\Rules\MaxLength;
 use Hydra\Validation\Rules\MinLength;
 use Hydra\Validation\Rules\Pattern;
+use Hydra\Validation\Rules\Range;
 use Hydra\Validation\Rules\Required;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -187,5 +189,74 @@ final class RulesTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         new Pattern('/[unclosed');
+    }
+
+    public function testRangeAcceptsWithinBoundsInclusive(): void
+    {
+        $rule = new Range(1, 100);
+
+        $this->assertNull($rule->validate(1));
+        $this->assertNull($rule->validate(100));
+        $this->assertNull($rule->validate(50));
+    }
+
+    public function testRangeRejectsOutsideBounds(): void
+    {
+        $rule = new Range(1, 100);
+
+        $this->assertSame('Must be a whole number between 1 and 100.', $rule->validate(0));
+        $this->assertSame('Must be a whole number between 1 and 100.', $rule->validate(101));
+        $this->assertSame('Must be a whole number between 1 and 100.', $rule->validate(-5));
+    }
+
+    public function testRangeReadsDigitStringsBecauseQueryInputIsText(): void
+    {
+        $rule = new Range(1, 100);
+
+        $this->assertNull($rule->validate('50'));
+        $this->assertNull($rule->validate(' 50 '));
+        $this->assertSame('Must be a whole number between 1 and 100.', $rule->validate('101'));
+    }
+
+    public function testRangeRejectsWhatIsNotAWholeNumber(): void
+    {
+        // The trap this rule exists to avoid: coercing "abc" to 0 would pass a
+        // min of 0, and flooring "2.5" would accept a value nobody sent.
+        $rule = new Range(0, 100);
+
+        $this->assertNotNull($rule->validate('abc'));
+        $this->assertNotNull($rule->validate('2.5'));
+        $this->assertNotNull($rule->validate(''));
+        $this->assertNotNull($rule->validate(null));
+        $this->assertNotNull($rule->validate([]));
+        $this->assertNotNull($rule->validate(true));
+    }
+
+    public function testInListAcceptsOnlyWhatItLists(): void
+    {
+        $rule = new InList(['asc', 'desc']);
+
+        $this->assertNull($rule->validate('asc'));
+        $this->assertNull($rule->validate('desc'));
+        $this->assertSame('Must be one of: asc, desc.', $rule->validate('sideways'));
+        $this->assertSame('Must be one of: asc, desc.', $rule->validate(''));
+    }
+
+    public function testInListComparesStrictlyOnTheStringForm(): void
+    {
+        // A loose comparison would let 0 match "asc" and true match "1" — the
+        // classic way an allow-list stops being one.
+        $this->assertNotNull((new InList(['asc']))->validate(0));
+        $this->assertNotNull((new InList(['1']))->validate(true));
+        $this->assertNull((new InList([1, 2]))->validate('1'));
+    }
+
+    public function testInListRejectsAnEmptyAllowedSetAtConstruction(): void
+    {
+        // An empty set rejects everything, which is a caller passing through a
+        // list it meant to populate — a developer error, surfaced immediately.
+        $this->expectException(InvalidArgumentException::class);
+
+        new InList([]);
     }
 }

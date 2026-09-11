@@ -23,6 +23,7 @@ final class ForceHttpsMiddleware implements MiddlewareInterface
         private readonly bool $enabled,
         private readonly Responder $respond,
         private readonly bool $trustForwardedProto = false,
+        private readonly ?ClientIpResolver $clients = null,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -53,7 +54,17 @@ final class ForceHttpsMiddleware implements MiddlewareInterface
         // that a proxy it controls sets it (TLS terminated upstream). With no
         // proxy, the header is attacker-controlled — consulting it here would
         // let any direct client spoof its way past the redirect.
-        return $this->trustForwardedProto
-            && strtolower($request->getHeaderLine('X-Forwarded-Proto')) === 'https';
+        if (!$this->trustForwardedProto) {
+            return false;
+        }
+
+        // Declaring the proxies narrows the opt-in from "trust this header" to
+        // "trust this header from these peers", which is the only form of it
+        // that survives a request arriving directly rather than through them.
+        if ($this->clients !== null && !$this->clients->acceptsForwardingFrom($request)) {
+            return false;
+        }
+
+        return strtolower($request->getHeaderLine('X-Forwarded-Proto')) === 'https';
     }
 }

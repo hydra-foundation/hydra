@@ -108,4 +108,41 @@ final class CriteriaTest extends TestCase
             )
             ->compile();
     }
+
+    public function test_a_page_number_is_capped_so_an_offset_cannot_run_away(): void
+    {
+        // page becomes an OFFSET, and the database walks every row it skips —
+        // so an unbounded page is a way to ask for a full scan from a query
+        // string. The cap bounds that without needing to know the row count.
+        $this->assertSame(Criteria::MAX_PAGE, $this->criteria(['page' => '999999999'])->page);
+        $this->assertSame(1, $this->criteria(['page' => '-5'])->page, 'and it still floors at the first page');
+    }
+
+    public function test_a_search_term_is_capped_rather_than_refused(): void
+    {
+        $criteria = $this->criteria(['q' => str_repeat('a', Criteria::MAX_SEARCH + 50)]);
+
+        $this->assertSame(Criteria::MAX_SEARCH, mb_strlen((string) $criteria->search));
+    }
+
+    public function test_a_search_pattern_wraps_the_term_in_wildcards(): void
+    {
+        $this->assertSame('%ada%', $this->criteria(['q' => 'ada'])->searchPattern());
+    }
+
+    public function test_nothing_searched_for_is_no_pattern_at_all(): void
+    {
+        $this->assertNull($this->criteria([])->searchPattern());
+        $this->assertNull($this->criteria(['q' => '   '])->searchPattern());
+    }
+
+    public function test_the_terms_own_wildcards_are_escaped(): void
+    {
+        // A bare "%" would otherwise match every row: not an injection (the
+        // pattern is bound), but a way to turn the search box into a request
+        // for a full scan.
+        $this->assertSame('%\\%%', $this->criteria(['q' => '%'])->searchPattern());
+        $this->assertSame('%a\\_b%', $this->criteria(['q' => 'a_b'])->searchPattern());
+        $this->assertSame('%\\\\%', $this->criteria(['q' => '\\'])->searchPattern());
+    }
 }

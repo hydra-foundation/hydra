@@ -16,6 +16,9 @@
         <testsuite name="authorization">
             <directory>packages/authorization/tests</directory>
         </testsuite>
+        <testsuite name="cache">
+            <directory>packages/cache/tests</directory>
+        </testsuite>
         <testsuite name="console">
             <directory>packages/console/tests</directory>
         </testsuite>

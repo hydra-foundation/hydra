@@ -1,0 +1,42 @@
+{
+    "name": "hydrakit/cache",
+    "description": "A small key/value store behind one contract, with the atomic counters rate limiting needs.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Hydra\\Cache\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hydra\\Cache\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        { "type": "path", "url": "../core", "options": { "symlink": true } }
+    ],
+    "authors": [
+        {
+            "name": "William Hleucka",
+            "email": "william.hleucka@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "hydrakit/core": "^0.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "suggest": {
+        "ext-redis": "Required by RedisStore; without it only ArrayStore is available."
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.3.x-dev"
+        }
+    }
+}
