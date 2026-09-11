@@ -52,23 +52,31 @@ jobs:
           fetch-depth: 0
 
       # Skips cleanly until the token exists, rather than failing sixteen jobs.
-      - uses: symplify/monorepo-split-github-action@v2.3.0
+      - name: Split and push
         if: ${{ env.SPLIT_TOKEN != '' }}
-        with:
-          package_directory: 'packages/${{ matrix.package }}'
-          repository_organization: hydra-foundation
-          repository_name: '${{ matrix.package }}'
-          user_name: William Hleucka
-          user_email: william.hleucka@gmail.com
-        env:
-          GITHUB_TOKEN: '${{ env.SPLIT_TOKEN }}'
+        run: |
+          set -euo pipefail
+          pkg='${{ matrix.package }}'
+          target="https://x-access-token:${SPLIT_TOKEN}@github.com/hydra-foundation/$pkg.git"
 
-      # The split action does not propagate a failed `git push` into the job
-      # status: a 403 from the target repository still exits 0. Compare the
-      # published tree against the source so a silent no-op fails loudly.
+          # The import grafted each package's original commits, so the split
+          # reuses their SHAs: the published history is the real one, and this
+          # push is a fast-forward. A rejection here means the target diverged
+          # and wants looking at, not forcing.
+          sha=$(git subtree split --prefix="packages/$pkg")
+          echo "$pkg split at $sha"
+
+          git push "$target" "$sha:refs/heads/main"
+
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            git push "$target" "$sha:refs/tags/$GITHUB_REF_NAME"
+          fi
+
+      # A push that lands but publishes the wrong content must not pass.
       - name: Verify the published tree
         if: ${{ env.SPLIT_TOKEN != '' }}
         run: |
+          set -euo pipefail
           pkg='${{ matrix.package }}'
           expected=$(git rev-parse "HEAD:packages/$pkg")
 
@@ -79,8 +87,6 @@ jobs:
 
           if [ "$published" != "$expected" ]; then
             echo "::error::$pkg was not published: tree $published, expected $expected"
-            echo "The split reported success but the repository is unchanged;"
-            echo "check SPLIT_TOKEN's resource owner and Contents permission."
             exit 1
           fi
           echo "$pkg published at tree $expected"
