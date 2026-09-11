@@ -35,6 +35,14 @@ requires the suite to pass.
 
 ## Working on it
 
+On a new machine, `bin/install.sh` clones both checkouts into a workspace
+directory; fetch it first if you have neither:
+
+    curl -sO https://raw.githubusercontent.com/hydra-foundation/hydra/main/bin/install.sh
+    bash install.sh
+
+Then:
+
     composer install
     vendor/bin/phpunit
 
