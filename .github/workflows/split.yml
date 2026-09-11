@@ -9,6 +9,8 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+  # Re-run a split without a commit, after a token rotation or a failed job.
+  workflow_dispatch:
 
 permissions:
   contents: read
