@@ -25,6 +25,14 @@ overwritten without warning. All development happens here.
 Consumers are unaffected: they still `composer require hydrakit/http`, and
 still get it from Packagist.
 
+The split uses `git subtree split`, which reuses the commits the import
+grafted in, so each package repository carries its real history rather than a
+snapshot. It pushes with `--force`: a mirror always matches the monorepo.
+
+Branch protection therefore lives here, not on the mirrors, where it would
+only fight the generator. `main` blocks force pushes and deletions and
+requires the suite to pass.
+
 ## Working on it
 
     composer install
