@@ -17,8 +17,11 @@ jobs:
   split:
     name: '${{ matrix.package }}'
     runs-on: ubuntu-latest
-    # Skips cleanly until the token exists, rather than failing sixteen jobs.
-    if: ${{ secrets.SPLIT_TOKEN != '' }}
+    env:
+      # A PAT with `repo` scope on hydra-foundation/*. The default GITHUB_TOKEN
+      # is scoped to this repository and cannot push to the package repos.
+      # Mapped here because the secrets context is not available to a step `if`.
+      SPLIT_TOKEN: '${{ secrets.SPLIT_TOKEN }}'
     strategy:
       fail-fast: false
       matrix:
@@ -42,10 +45,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        if: ${{ env.SPLIT_TOKEN != '' }}
         with:
           fetch-depth: 0
 
+      # Skips cleanly until the token exists, rather than failing sixteen jobs.
       - uses: symplify/monorepo-split-github-action@v2.3.0
+        if: ${{ env.SPLIT_TOKEN != '' }}
         with:
           package_directory: 'packages/${{ matrix.package }}'
           repository_organization: hydra-foundation
@@ -53,7 +59,4 @@ jobs:
           user_name: William Hleucka
           user_email: william.hleucka@gmail.com
         env:
-          # A PAT with `repo` scope on hydra-foundation/*. The default
-          # GITHUB_TOKEN is scoped to this repository and cannot push to
-          # the package repositories.
-          GITHUB_TOKEN: '${{ secrets.SPLIT_TOKEN }}'
+          GITHUB_TOKEN: '${{ env.SPLIT_TOKEN }}'
