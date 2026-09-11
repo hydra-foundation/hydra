@@ -60,13 +60,14 @@ jobs:
           target="https://x-access-token:${SPLIT_TOKEN}@github.com/hydra-foundation/$pkg.git"
 
           # The import grafted each package's original commits, so the split
-          # reuses their SHAs: the published history is the real one, and this
-          # push is a fast-forward. A rejection here means the target diverged
-          # and wants looking at, not forcing.
+          # reuses their SHAs and the published history is the real one.
           sha=$(git subtree split --prefix="packages/$pkg")
           echo "$pkg split at $sha"
 
-          git push "$target" "$sha:refs/heads/main"
+          # Forced because these repositories are generated: they always match
+          # the monorepo, and anything pushed directly to one is overwritten
+          # by design. The monorepo holds the history, so this is recoverable.
+          git push --force "$target" "$sha:refs/heads/main"
 
           if [ "$GITHUB_REF_TYPE" = tag ]; then
             git push "$target" "$sha:refs/tags/$GITHUB_REF_NAME"
