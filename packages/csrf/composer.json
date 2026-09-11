@@ -1,0 +1,47 @@
+{
+    "name": "hydrakit/csrf",
+    "description": "CSRF library for Hydra PHP framework",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Hydra\\Csrf\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hydra\\Csrf\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        { "type": "path", "url": "../core", "options": { "symlink": true } },
+        { "type": "path", "url": "../http", "options": { "symlink": true } },
+        { "type": "path", "url": "../session", "options": { "symlink": true } }
+    ],
+    "authors": [
+        {
+            "name": "William Hleucka",
+            "email": "william.hleucka@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "hydrakit/core": "^0.3",
+        "hydrakit/http": "^0.3",
+        "hydrakit/session": "^0.3",
+        "psr/http-message": "^2.0",
+        "psr/http-server-handler": "^1.0",
+        "psr/http-server-middleware": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "nyholm/psr7": "^1.8"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.3.x-dev"
+        }
+    }
+}
