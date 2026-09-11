@@ -185,7 +185,12 @@ The split workflow now regenerates the 16 package repositories and pushes
 $TAG to each. Watch it at:
   https://github.com/hydra-foundation/hydra/actions
 
-Once Packagist has indexed the tags:
-  cd $DIR/app && composer update "hydrakit/*"    # refresh the released lock
-Local development is unaffected: composer.dev.json keeps using the symlinks.
+The skeleton ships no composer.lock: .gitattributes marks it export-ignore,
+so create-project resolves $TAG fresh from Packagist rather than installing
+whatever the lock happened to pin when the tag was cut.
+
+The tracked lock is for the app checkout and its CI. Refresh it whenever:
+  cd $DIR/app && composer update "hydrakit/*" --no-install
+--no-install because app/vendor holds the symlinks to hydra/packages/*, and a
+plain update would replace them with copies from Packagist.
 EOF
