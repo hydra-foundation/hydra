@@ -31,6 +31,7 @@ jobs:
           - admin
           - auth
           - authorization
+          - cache
           - console
           - core
           - csrf
