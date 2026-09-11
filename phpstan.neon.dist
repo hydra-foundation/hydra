@@ -1,0 +1,25 @@
+parameters:
+    level: 5
+    paths:
+        - packages
+    excludePaths:
+        analyse:
+            - packages/*/tests/*
+
+    # The packages claim >=8.2, so analyse the whole span rather than whatever
+    # PHP the runner happens to have. Otherwise a call that only exists in 8.4
+    # passes CI and breaks for a user on 8.2.
+    phpVersion:
+        min: 80200
+        max: 80500
+
+    # A PHPDoc type is a promise, not a runtime guarantee: callers outside the
+    # package can pass anything. Trusting it turns defensive normalisation
+    # (array_values on a documented list) into "redundant" errors and invites
+    # deleting the guard.
+    treatPhpDocTypesAsCertain: false
+
+    # PDO, sessions and the filesystem report state that calls elsewhere mutate.
+    # Remembering that PDO::inTransaction() was false makes the rollback guard
+    # in PdoConnection::transaction() look unreachable, which it is not.
+    rememberPossiblyImpureFunctionValues: false

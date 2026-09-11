@@ -45,3 +45,27 @@ jobs:
       # fails the build instead of depending on declaration order.
       - name: PHPUnit
         run: vendor/bin/phpunit --order-by=random
+
+  quality:
+    name: Static analysis and style
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          # One version is enough: php-cs-fixer only reads source, and phpstan
+          # pins its own analysis range in phpstan.neon.dist, so neither tool's
+          # verdict depends on the runtime here.
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse --no-progress --error-format=github
+
+      - name: php-cs-fixer
+        run: vendor/bin/php-cs-fixer check --diff

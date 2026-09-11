@@ -26,6 +26,8 @@
     },
     "require-dev": {
         "ext-pdo_sqlite": "*",
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.2",
         "phpunit/phpunit": "^11.0"
     },
     "replace": {
@@ -95,5 +97,16 @@
         "branch-alias": {
             "dev-main": "0.3.x-dev"
         }
+    },
+    "scripts": {
+        "stan": "phpstan analyse",
+        "lint": "php-cs-fixer check --diff",
+        "lint:fix": "php-cs-fixer fix",
+        "test": "phpunit --order-by=random",
+        "qa": [
+            "@stan",
+            "@lint",
+            "@test"
+        ]
     }
 }
