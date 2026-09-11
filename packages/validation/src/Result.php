@@ -14,8 +14,7 @@ final readonly class Result
     public function __construct(
         private array $errors = [],
         private array $validated = [],
-    ) {
-    }
+    ) {}
 
     public function passes(): bool
     {

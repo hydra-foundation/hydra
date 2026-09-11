@@ -38,7 +38,7 @@ final class HttpServiceProvider extends ServiceProvider
 
     public function register(ContainerInterface $container): void
     {
-        $container->singleton(EmitterInterface::class, fn() => new Emitter);
+        $container->singleton(EmitterInterface::class, fn () => new Emitter);
 
         $container->singleton(Responder::class, function () use ($container) {
             return new Responder(
@@ -51,7 +51,7 @@ final class HttpServiceProvider extends ServiceProvider
             return new PlainTextErrorRenderer($container->get(Responder::class));
         });
 
-        $container->singleton(RouteCache::class, fn() => new RouteCache($this->routeCachePath, $this->controllers));
+        $container->singleton(RouteCache::class, fn () => new RouteCache($this->routeCachePath, $this->controllers));
 
         $container->singleton(Router::class, function () use ($container) {
             $router = new Router($container);
@@ -61,7 +61,7 @@ final class HttpServiceProvider extends ServiceProvider
 
         $container->singleton(RequestHandlerInterface::class, function () use ($container) {
             $middleware = array_map(
-                fn(string $class) => $container->get($class),
+                fn (string $class) => $container->get($class),
                 $this->middleware,
             );
 
@@ -82,7 +82,7 @@ final class HttpServiceProvider extends ServiceProvider
      */
     private function compileRoutes(ContainerInterface $container): array
     {
-        $scan = fn(): array => (new RouteScanner)->scan($this->controllers);
+        $scan = fn (): array => (new RouteScanner)->scan($this->controllers);
 
         if (!$this->routeCacheEnabled) {
             return $scan();

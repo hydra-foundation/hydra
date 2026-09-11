@@ -13,7 +13,7 @@ use Psr\Log\LoggerInterface;
 /**
  * Log auth events listener
  *
- * An optional listener that writes a PSR-3 line for each auth lifecycle event. 
+ * An optional listener that writes a PSR-3 line for each auth lifecycle event.
  * A ready-made security audit trail every app tends to want the same way
  */
 final class LogAuthEventsListener

@@ -43,7 +43,7 @@ final class RequestLoggingMiddlewareTest extends TestCase
 
     private function handler(int $status): RequestHandlerInterface
     {
-        return new class($status) implements RequestHandlerInterface {
+        return new class ($status) implements RequestHandlerInterface {
             public function __construct(private int $status) {}
 
             public function handle(ServerRequestInterface $request): ResponseInterface

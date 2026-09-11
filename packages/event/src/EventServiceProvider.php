@@ -20,13 +20,13 @@ final class EventServiceProvider extends ServiceProvider
     {
         // The one shared registry, bound under its own class-string so the app
         // can resolve it to call listen().
-        $container->singleton(ListenerProvider::class, fn() => new ListenerProvider);
+        $container->singleton(ListenerProvider::class, fn () => new ListenerProvider);
 
         // The PSR-14 read interface points at that same instance, so a consumer
         // that depends only on the interface still sees the app's listeners.
         $container->singleton(
             ListenerProviderInterface::class,
-            fn() => $container->get(ListenerProvider::class),
+            fn () => $container->get(ListenerProvider::class),
         );
 
         // The dispatcher over that registry. Subsystems (like auth) depend on the

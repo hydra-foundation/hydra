@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Core;
 
 /**
- * Environment 
+ * Environment
  *
  * Reads .env once, at construction, and exposes typed accessors.
  */

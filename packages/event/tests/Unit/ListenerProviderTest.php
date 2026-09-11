@@ -69,18 +69,10 @@ final class ListenerProviderTest extends TestCase
     }
 }
 
-interface Marker
-{
-}
+interface Marker {}
 
-abstract class Base
-{
-}
+abstract class Base {}
 
-final class Leaf extends Base implements Marker
-{
-}
+final class Leaf extends Base implements Marker {}
 
-final class Unrelated
-{
-}
+final class Unrelated {}

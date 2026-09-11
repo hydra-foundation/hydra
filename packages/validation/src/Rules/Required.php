@@ -13,9 +13,7 @@ use Hydra\Validation\Contracts\RuleInterface;
  */
 final class Required implements RuleInterface
 {
-    public function __construct(private readonly string $message = 'This field is required.')
-    {
-    }
+    public function __construct(private readonly string $message = 'This field is required.') {}
 
     public function validate(mixed $value): ?string
     {

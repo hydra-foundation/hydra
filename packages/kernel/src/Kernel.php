@@ -20,7 +20,7 @@ use Hydra\Session\SessionServiceProvider;
 final class Kernel
 {
     /**
-     * Build the shared composition root: bind the container and environment, 
+     * Build the shared composition root: bind the container and environment,
      * then register the standard provider stack.
      */
     public static function application(ContainerInterface $container, Environment $environment): Application

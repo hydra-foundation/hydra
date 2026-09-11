@@ -40,7 +40,7 @@ final class SecurityHeadersMiddlewareTest extends TestCase
 
     private function handler(int $status = 200, string $body = ''): RequestHandlerInterface
     {
-        return new class($status, $body) implements RequestHandlerInterface {
+        return new class ($status, $body) implements RequestHandlerInterface {
             public function __construct(private int $status, private string $body) {}
 
             public function handle(ServerRequestInterface $request): ResponseInterface

@@ -16,8 +16,7 @@ use Throwable;
  */
 final class StreamLogger extends AbstractLogger
 {
-    public function __construct(private $stream)
-    {}
+    public function __construct(private $stream) {}
 
     public function log($level, string|Stringable $message, array $context = []): void
     {

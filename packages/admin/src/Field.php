@@ -107,7 +107,7 @@ final class Field
         $clone = clone $this;
         $clone->surfaces = array_values(array_filter(
             $this->surfaces,
-            static fn(Surface $surface): bool => !in_array($surface, $surfaces, true),
+            static fn (Surface $surface): bool => !in_array($surface, $surfaces, true),
         ));
 
         return $clone;

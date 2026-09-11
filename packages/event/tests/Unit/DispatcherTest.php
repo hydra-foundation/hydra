@@ -58,8 +58,12 @@ final class DispatcherTest extends TestCase
     public function test_calls_multiple_listeners_in_registration_order(): void
     {
         $order = [];
-        $this->listeners->listen(SampleEvent::class, function () use (&$order) { $order[] = 1; });
-        $this->listeners->listen(SampleEvent::class, function () use (&$order) { $order[] = 2; });
+        $this->listeners->listen(SampleEvent::class, function () use (&$order) {
+            $order[] = 1;
+        });
+        $this->listeners->listen(SampleEvent::class, function () use (&$order) {
+            $order[] = 2;
+        });
 
         $this->dispatcher->dispatch(new SampleEvent('a'));
 
@@ -68,8 +72,12 @@ final class DispatcherTest extends TestCase
 
     public function test_a_listener_can_mutate_the_event_for_later_listeners(): void
     {
-        $this->listeners->listen(SampleEvent::class, function (SampleEvent $e) { $e->tag .= '!'; });
-        $this->listeners->listen(SampleEvent::class, function (SampleEvent $e) use (&$final) { $final = $e->tag; });
+        $this->listeners->listen(SampleEvent::class, function (SampleEvent $e) {
+            $e->tag .= '!';
+        });
+        $this->listeners->listen(SampleEvent::class, function (SampleEvent $e) use (&$final) {
+            $final = $e->tag;
+        });
 
         $event = $this->dispatcher->dispatch(new SampleEvent('a'));
 
@@ -100,9 +108,7 @@ final class SampleEvent
     public function __construct(public string $tag) {}
 }
 
-final class OtherEvent
-{
-}
+final class OtherEvent {}
 
 final class StoppableSampleEvent implements StoppableEventInterface
 {

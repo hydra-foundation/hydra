@@ -105,7 +105,7 @@ final class MigrationRunner
         $applied = $this->appliedFilenames();
 
         return array_map(
-            static fn(string $filename): array => [
+            static fn (string $filename): array => [
                 'filename' => $filename,
                 'applied' => in_array($filename, $applied, true),
             ],
@@ -113,7 +113,7 @@ final class MigrationRunner
         );
     }
 
-    /** 
+    /**
      * Migration files on disk that have not yet been recorded as applied
      */
     public function pending(): array
@@ -124,13 +124,13 @@ final class MigrationRunner
 
         return array_values(array_filter(
             $this->migrationFiles(),
-            static fn(string $filename): bool => !in_array($filename, $applied, true),
+            static fn (string $filename): bool => !in_array($filename, $applied, true),
         ));
     }
 
-    /** 
-     * Create the tracking table if it does not exist. 
-     * Portable across the mysql and sqlite drivers Hydra targets. 
+    /**
+     * Create the tracking table if it does not exist.
+     * Portable across the mysql and sqlite drivers Hydra targets.
      */
     private function ensureTable(): void
     {

@@ -14,9 +14,7 @@ use Hydra\Http\Exceptions\BadRequestException;
 abstract class FieldReader
 {
     /** @param array<string, mixed> $values */
-    protected function __construct(private readonly array $values)
-    {
-    }
+    protected function __construct(private readonly array $values) {}
 
     /** True if the field was submitted at all (even as an empty string). */
     public function has(string $key): bool

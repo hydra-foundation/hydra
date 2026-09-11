@@ -50,7 +50,7 @@ final class Pipeline implements RequestHandlerInterface
     /** Adapt a middleware + its delegate into a single request handler. */
     private function wrap(MiddlewareInterface $middleware, RequestHandlerInterface $next): RequestHandlerInterface
     {
-        return new class($middleware, $next) implements RequestHandlerInterface {
+        return new class ($middleware, $next) implements RequestHandlerInterface {
             public function __construct(
                 private readonly MiddlewareInterface $middleware,
                 private readonly RequestHandlerInterface $next,

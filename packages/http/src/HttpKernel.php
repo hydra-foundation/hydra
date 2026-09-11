@@ -55,7 +55,5 @@ final class HttpKernel implements KernelInterface
         echo 'Internal Server Error';
     }
 
-    public function terminate(): void
-    {
-    }
+    public function terminate(): void {}
 }
