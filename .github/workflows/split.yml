@@ -17,6 +17,8 @@ jobs:
   split:
     name: '${{ matrix.package }}'
     runs-on: ubuntu-latest
+    # Skips cleanly until the token exists, rather than failing sixteen jobs.
+    if: ${{ secrets.SPLIT_TOKEN != '' }}
     strategy:
       fail-fast: false
       matrix:
