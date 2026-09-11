@@ -7,7 +7,7 @@
 #   bin/release.sh 0.4.0 --minor --push  # also rewrite the ^0.3 constraints first
 #
 # Two repositories are tagged: the hydra monorepo and the app skeleton. The
-# sixteen hydrakit/* package repositories are not touched here — the split
+# seventeen hydrakit/* package repositories are not touched here — the split
 # workflow regenerates them from the monorepo tag, and pushing to them by
 # hand would be overwritten.
 #
@@ -123,7 +123,7 @@ echo "Plan for $TAG:"
 [ "$DO_MINOR" -eq 1 ] && \
     echo "  1. rewrite ^$OLD_SERIES -> ^$NEW_SERIES across hydra/packages/*, hydra/ and app/, and commit"
 echo "  $([ "$DO_MINOR" -eq 1 ] && echo 2 || echo 1). tag hydra and app $TAG and push $BRANCH + tag"
-echo "  $([ "$DO_MINOR" -eq 1 ] && echo 3 || echo 2). the split workflow regenerates the 16 package repos at $TAG"
+echo "  $([ "$DO_MINOR" -eq 1 ] && echo 3 || echo 2). the split workflow regenerates the 17 package repos at $TAG"
 
 if [ "$DO_PUSH" -eq 0 ]; then
     echo
@@ -181,7 +181,7 @@ cat <<EOF
 
 Done — hydra and app at $TAG.
 
-The split workflow now regenerates the 16 package repositories and pushes
+The split workflow now regenerates the 17 package repositories and pushes
 $TAG to each. Watch it at:
   https://github.com/hydra-foundation/hydra/actions
 
