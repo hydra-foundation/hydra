@@ -2,12 +2,26 @@
 #
 # Show git status for the Hydra development checkouts.
 #
-#   ./status.sh            # hydra and app
-#   ./status.sh --fetch    # git fetch first, so ahead/behind is real
+#   bin/status.sh            # hydra and app
+#   bin/status.sh --fetch    # git fetch first, so ahead/behind is real
 set -uo pipefail
 
 DIR="${HYDRA_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
-[ "${1:-}" = "--fetch" ] && FETCH=1 || FETCH=0
+
+usage() {
+    # The comment block under the shebang, so editing the header cannot
+    # desynchronise --help from it.
+    awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "${BASH_SOURCE[0]}"
+    exit "${1:-0}"
+}
+
+FETCH=0
+case "${1:-}" in
+    --fetch) FETCH=1 ;;
+    -h|--help) usage 0 ;;
+    "") ;;
+    *) printf 'error: unknown flag: %s (try --help)\n' "$1" >&2; exit 1 ;;
+esac
 
 attention=0
 for repo in hydra app; do

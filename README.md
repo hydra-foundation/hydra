@@ -44,7 +44,7 @@ directory; fetch it first if you have neither:
 Then:
 
     composer install
-    vendor/bin/phpunit
+    vendor/bin/phpunit      # or bin/test.sh, which also runs the app suite
 
 The suite runs all packages in one process, so state that leaks between them
 through `putenv()`, `$_ENV` or static properties is a real failure mode. CI
@@ -60,8 +60,8 @@ edits here are live in the app with no reinstall.
 
 ## Releasing
 
-    ../release.sh 0.3.1 --push          # patch or minor inside the 0.3 series
-    ../release.sh 0.4.0 --minor --push  # crossing to 0.4 rewrites ^0.3 first
+    bin/release.sh 0.3.1 --push          # patch or minor inside the 0.3 series
+    bin/release.sh 0.4.0 --minor --push  # crossing to 0.4 rewrites ^0.3 first
 
 Two repositories are tagged, this one and `app`. The split workflow then
 regenerates the sixteen package repositories at the same tag and Packagist

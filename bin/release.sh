@@ -2,9 +2,9 @@
 #
 # Tag a Hydra release.
 #
-#   ./release.sh 0.3.1                 # dry run: report what would happen
-#   ./release.sh 0.3.1 --push          # tag and push
-#   ./release.sh 0.4.0 --minor --push  # also rewrite the ^0.3 constraints first
+#   bin/release.sh 0.3.1                 # dry run: report what would happen
+#   bin/release.sh 0.3.1 --push          # tag and push
+#   bin/release.sh 0.4.0 --minor --push  # also rewrite the ^0.3 constraints first
 #
 # Two repositories are tagged: the hydra monorepo and the app skeleton. The
 # sixteen hydrakit/* package repositories are not touched here — the split
@@ -28,7 +28,9 @@ ASSUME_YES=0
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
 usage() {
-    sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'
+    # The comment block under the shebang, so editing the header cannot
+    # desynchronise --help from it.
+    awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "${BASH_SOURCE[0]}"
     exit "${1:-0}"
 }
 
