@@ -1,0 +1,47 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo, pdo_sqlite
+          coverage: none
+
+      - name: Validate the root manifest
+        run: composer validate --strict --no-check-lock
+
+      - name: Validate every package manifest
+        run: |
+          status=0
+          for manifest in packages/*/composer.json; do
+            composer validate --strict --no-check-lock --no-check-publish \
+              "$manifest" || status=1
+          done
+          exit $status
+
+      - uses: ramsey/composer-install@v3
+
+      # Randomised order so cross-package pollution through putenv()/$_ENV
+      # fails the build instead of depending on declaration order.
+      - name: PHPUnit
+        run: vendor/bin/phpunit --order-by=random

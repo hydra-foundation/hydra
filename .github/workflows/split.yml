@@ -1,0 +1,57 @@
+name: Split
+
+# Publish each packages/* directory to its own read-only repository, so
+# consumers keep installing hydrakit/core and friends from Packagist while
+# all development happens here. Nothing is ever pushed to those repos by
+# hand: they are generated, and a direct push there will be overwritten.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  split:
+    name: '${{ matrix.package }}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - admin
+          - auth
+          - authorization
+          - console
+          - core
+          - csrf
+          - database
+          - event
+          - http
+          - kernel
+          - log
+          - nyholm
+          - php-di
+          - session
+          - validation
+          - view
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: symplify/monorepo-split-github-action@v2.3.0
+        with:
+          package_directory: 'packages/${{ matrix.package }}'
+          repository_organization: hydra-foundation
+          repository_name: '${{ matrix.package }}'
+          user_name: William Hleucka
+          user_email: william.hleucka@gmail.com
+        env:
+          # A PAT with `repo` scope on hydra-foundation/*. The default
+          # GITHUB_TOKEN is scoped to this repository and cannot push to
+          # the package repositories.
+          GITHUB_TOKEN: '${{ secrets.SPLIT_TOKEN }}'
