@@ -13,6 +13,9 @@ final class SessionConfigTest extends TestCase
 {
     private string $dir;
 
+    /** @var list<string> keys this test's .env may have exported to the process env */
+    private array $written = [];
+
     protected function setUp(): void
     {
         $this->dir = sys_get_temp_dir() . '/hydra-sessionconfig-' . uniqid('', true);
@@ -22,11 +25,13 @@ final class SessionConfigTest extends TestCase
     protected function tearDown(): void
     {
         // Environment writes to putenv()/$_ENV, so values leak across tests via
-        // getenv() unless we scrub the keys this suite touches.
-        foreach (['SESSION_NAME', 'SESSION_LIFETIME', 'SESSION_PATH', 'SESSION_DOMAIN', 'SESSION_SECURE', 'SESSION_HTTP_ONLY', 'SESSION_SAME_SITE'] as $key) {
+        // getenv() unless we scrub the keys this suite touches. Scrub what was
+        // actually written: an allowlist silently rots as cases are added.
+        foreach ($this->written as $key) {
             putenv($key);
-            unset($_ENV[$key]);
+            unset($_ENV[$key], $_SERVER[$key]);
         }
+        $this->written = [];
 
         $envFile = $this->dir . '/.env';
         if (file_exists($envFile)) {
@@ -38,7 +43,20 @@ final class SessionConfigTest extends TestCase
     private function fromEnv(string $contents): SessionConfig
     {
         file_put_contents($this->dir . '/.env', $contents);
+        $this->recordKeys($contents);
+
         return SessionConfig::fromEnvironment(new Environment($this->dir));
+    }
+
+    private function recordKeys(string $contents): void
+    {
+        foreach (explode("\n", $contents) as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+                continue;
+            }
+            $this->written[] = trim(explode('=', $line, 2)[0]);
+        }
     }
 
     public function test_exposes_readonly_fields_from_constructor(): void
