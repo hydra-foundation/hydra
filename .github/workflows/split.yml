@@ -62,3 +62,25 @@ jobs:
           user_email: william.hleucka@gmail.com
         env:
           GITHUB_TOKEN: '${{ env.SPLIT_TOKEN }}'
+
+      # The split action does not propagate a failed `git push` into the job
+      # status: a 403 from the target repository still exits 0. Compare the
+      # published tree against the source so a silent no-op fails loudly.
+      - name: Verify the published tree
+        if: ${{ env.SPLIT_TOKEN != '' }}
+        run: |
+          pkg='${{ matrix.package }}'
+          expected=$(git rev-parse "HEAD:packages/$pkg")
+
+          git clone --quiet --depth 1 \
+            "https://x-access-token:${SPLIT_TOKEN}@github.com/hydra-foundation/$pkg.git" \
+            /tmp/published
+          published=$(git -C /tmp/published rev-parse 'HEAD^{tree}')
+
+          if [ "$published" != "$expected" ]; then
+            echo "::error::$pkg was not published: tree $published, expected $expected"
+            echo "The split reported success but the repository is unchanged;"
+            echo "check SPLIT_TOKEN's resource owner and Contents permission."
+            exit 1
+          fi
+          echo "$pkg published at tree $expected"
