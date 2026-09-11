@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnWarning="true"
+         failOnDeprecation="true"
+         cacheDirectory=".phpunit.cache">
+    <testsuites>
+        <testsuite name="admin">
+            <directory>packages/admin/tests</directory>
+        </testsuite>
+        <testsuite name="auth">
+            <directory>packages/auth/tests</directory>
+        </testsuite>
+        <testsuite name="authorization">
+            <directory>packages/authorization/tests</directory>
+        </testsuite>
+        <testsuite name="console">
+            <directory>packages/console/tests</directory>
+        </testsuite>
+        <testsuite name="core">
+            <directory>packages/core/tests</directory>
+        </testsuite>
+        <testsuite name="csrf">
+            <directory>packages/csrf/tests</directory>
+        </testsuite>
+        <testsuite name="database">
+            <directory>packages/database/tests</directory>
+        </testsuite>
+        <testsuite name="event">
+            <directory>packages/event/tests</directory>
+        </testsuite>
+        <testsuite name="http">
+            <directory>packages/http/tests</directory>
+        </testsuite>
+        <testsuite name="kernel">
+            <directory>packages/kernel/tests</directory>
+        </testsuite>
+        <testsuite name="log">
+            <directory>packages/log/tests</directory>
+        </testsuite>
+        <testsuite name="nyholm">
+            <directory>packages/nyholm/tests</directory>
+        </testsuite>
+        <testsuite name="php-di">
+            <directory>packages/php-di/tests</directory>
+        </testsuite>
+        <testsuite name="session">
+            <directory>packages/session/tests</directory>
+        </testsuite>
+        <testsuite name="validation">
+            <directory>packages/validation/tests</directory>
+        </testsuite>
+        <testsuite name="view">
+            <directory>packages/view/tests</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>packages/admin/src</directory>
+            <directory>packages/auth/src</directory>
+            <directory>packages/authorization/src</directory>
+            <directory>packages/console/src</directory>
+            <directory>packages/core/src</directory>
+            <directory>packages/csrf/src</directory>
+            <directory>packages/database/src</directory>
+            <directory>packages/event/src</directory>
+            <directory>packages/http/src</directory>
+            <directory>packages/kernel/src</directory>
+            <directory>packages/log/src</directory>
+            <directory>packages/nyholm/src</directory>
+            <directory>packages/php-di/src</directory>
+            <directory>packages/session/src</directory>
+            <directory>packages/validation/src</directory>
+            <directory>packages/view/src</directory>
+        </include>
+    </source>
+</phpunit>
