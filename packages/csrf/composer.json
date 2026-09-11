@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/csrf",
-    "description": "CSRF library for Hydra PHP framework",
+    "description": "Synchronizer-token CSRF protection as PSR-15 middleware.",
     "type": "library",
     "license": "MIT",
     "autoload": {

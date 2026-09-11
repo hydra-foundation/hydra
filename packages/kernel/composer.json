@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/kernel",
-    "description": "Default composition root and HTTP plumbing for the Hydra PHP framework",
+    "description": "Hydra's default composition root and HTTP plumbing, kept in one place instead of copied per app.",
     "type": "library",
     "license": "MIT",
     "autoload": {

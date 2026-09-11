@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/authorization",
-    "description": "Authorization library for Hydra PHP framework",
+    "description": "Ability-based authorization for Hydra, on top of hydrakit/auth.",
     "type": "library",
     "license": "MIT",
     "autoload": {

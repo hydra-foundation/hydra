@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/database",
-    "description": "Database library for Hydra PHP framework",
+    "description": "A thin PDO data-access seam and a raw-SQL migration runner.",
     "type": "library",
     "license": "MIT",
     "autoload": {

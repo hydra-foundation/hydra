@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/event",
-    "description": "PSR-14 event dispatcher for Hydra PHP framework",
+    "description": "A minimal PSR-14 event dispatcher and listener provider.",
     "type": "library",
     "license": "MIT",
     "autoload": {

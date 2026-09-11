@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/session",
-    "description": "Session library for Hydra PHP framework",
+    "description": "Session handling as PSR-15 middleware, behind split data and lifecycle interfaces.",
     "type": "library",
     "license": "MIT",
     "autoload": {

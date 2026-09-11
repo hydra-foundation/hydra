@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/nyholm",
-    "description": "Nyholm PSR-7/PSR-17 adapter for the Hydra PHP framework",
+    "description": "Nyholm PSR-7/PSR-17 adapter: the default message and factory implementation for Hydra.",
     "type": "library",
     "license": "MIT",
     "autoload": {

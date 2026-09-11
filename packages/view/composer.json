@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/view",
-    "description": "Native PHP templating for the Hydra PHP framework",
+    "description": "Native PHP templating with template inheritance and escape-by-convention safety. No compile step.",
     "type": "library",
     "license": "MIT",
     "autoload": {

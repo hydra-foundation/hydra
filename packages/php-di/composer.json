@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/php-di",
-    "description": "PHP-DI container adapter for the Hydra PHP framework",
+    "description": "PHP-DI PSR-11 adapter: the default container for Hydra.",
     "type": "library",
     "license": "MIT",
     "autoload": {

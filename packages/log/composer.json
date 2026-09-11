@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/log",
-    "description": "Logging library for Hydra PHP framework",
+    "description": "A minimal PSR-3 logger that writes one plain-text line per record to a stream.",
     "type": "library",
     "license": "MIT",
     "autoload": {

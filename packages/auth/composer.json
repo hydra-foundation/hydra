@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/auth",
-    "description": "Authentication library for Hydra PHP framework",
+    "description": "Authentication for Hydra: identity only, behind a swappable guard.",
     "type": "library",
     "license": "MIT",
     "autoload": {

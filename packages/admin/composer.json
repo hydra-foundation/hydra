@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/admin",
-    "description": "Admin backend library for Hydra PHP framework",
+    "description": "A composable admin backend for Hydra apps: declare a module, get routes and htmx screens.",
     "type": "library",
     "license": "MIT",
     "autoload": {

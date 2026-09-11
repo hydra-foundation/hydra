@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/console",
-    "description": "Console command library for Hydra PHP framework",
+    "description": "The generic console commands every Hydra app needs, powered by Symfony Console.",
     "type": "library",
     "license": "MIT",
     "autoload": {

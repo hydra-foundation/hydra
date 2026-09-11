@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/http",
-    "description": "HTTP library for Hydra PHP framework",
+    "description": "PSR-7/PSR-15 HTTP layer: request lifecycle, routing, and middleware pipeline.",
     "type": "library",
     "license": "MIT",
     "autoload": {

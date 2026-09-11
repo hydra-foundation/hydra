@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/validation",
-    "description": "Validation library for Hydra PHP framework",
+    "description": "Zero-dependency input validation: per-field rules, stateless, shareable.",
     "type": "library",
     "license": "MIT",
     "autoload": {
