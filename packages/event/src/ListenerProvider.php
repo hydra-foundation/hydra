@@ -14,11 +14,14 @@ use Psr\EventDispatcher\ListenerProviderInterface;
  */
 final class ListenerProvider implements ListenerProviderInterface
 {
+    /** @var array<class-string, list<callable>> */
     private array $listeners = [];
 
     /**
      * Register a listener for an event type. The type is a class-string; the
      * listener fires for that class and any subtype of it (see class docblock).
+     *
+     * @param class-string $eventType
      */
     public function listen(string $eventType, callable $listener): void
     {

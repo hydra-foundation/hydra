@@ -25,6 +25,10 @@ final class RouteScanner
             $reflection = new ReflectionClass($class);
             $group = $this->group($reflection);
 
+            // Hoisted: the same two values for every route on the class.
+            $groupPrefix = $group !== null ? $group->prefix : '';
+            $groupMiddleware = $group !== null ? $group->middleware : [];
+
             foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
                 if ($method->isStatic()) {
                     continue;
@@ -36,10 +40,10 @@ final class RouteScanner
                     foreach ($route->methods as $verb) {
                         $routes[] = [
                             'method' => $verb,
-                            'path' => $this->prefix($group?->prefix ?? '', $route->path),
+                            'path' => $this->prefix($groupPrefix, $route->path),
                             'handler' => [$class, $method->getName()],
                             // Group middleware runs outermost, before the method's own.
-                            'middleware' => [...($group?->middleware ?? []), ...$route->middleware],
+                            'middleware' => [...$groupMiddleware, ...$route->middleware],
                         ];
                     }
                 }
