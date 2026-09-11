@@ -1,0 +1,16 @@
+# Dependencies
+/vendor/
+
+# Composer — libraries do not commit their lock file
+/composer.lock
+
+# PHPUnit
+/.phpunit.cache/
+.phpunit.result.cache
+/coverage/
+
+# Editors / OS
+/.idea/
+/.vscode/
+.DS_Store
+*.swp
