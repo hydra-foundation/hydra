@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Hydra\Http\Tests\Unit;
 
-use Hydra\Http\Route;
+use Hydra\Http\CompiledRoute;
 use PHPUnit\Framework\TestCase;
 
-final class RouteTest extends TestCase
+final class CompiledRouteTest extends TestCase
 {
-    private function route(string $path): Route
+    private function route(string $path): CompiledRoute
     {
-        return new Route('GET', $path, fn () => null);
+        return new CompiledRoute('GET', $path, fn () => null);
     }
 
     public function testStaticPathMatchesWithNoParams(): void

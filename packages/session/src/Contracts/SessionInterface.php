@@ -40,5 +40,5 @@ interface SessionInterface
     public function flash(string $key, mixed $value): void;
 
     /** Read a value flashed on the previous request, or $default. */
-    public function getFlash(string $key, mixed $default = null): mixed;
+    public function flashed(string $key, mixed $default = null): mixed;
 }

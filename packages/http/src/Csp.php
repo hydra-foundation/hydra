@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Hydra\Http;
 
 /**
- * A policy as an ordered map of directive => source list, compiled to one
- * header value. Immutable: every builder hands back a new policy.
+ * A Content-Security-Policy as an ordered map of directive => source list,
+ * compiled to one header value. Immutable: every builder hands back a new policy.
  */
-final readonly class ContentSecurityPolicy
+final readonly class Csp
 {
     /**
      * Stands in for the nonce of the request being served. Put it in any

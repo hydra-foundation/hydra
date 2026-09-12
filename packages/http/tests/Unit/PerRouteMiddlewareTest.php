@@ -6,7 +6,7 @@ namespace Hydra\Http\Tests\Unit;
 
 use ArrayObject;
 use Hydra\Core\Contracts\ContainerInterface;
-use Hydra\Http\Attributes\Route as RouteAttribute;
+use Hydra\Http\Attributes\Route;
 use Hydra\Http\Attributes\RouteGroup as RouteGroupAttribute;
 use Hydra\Http\Router;
 use Hydra\Http\RouteScanner;
@@ -96,13 +96,13 @@ final class AdminController
 {
     public function __construct(private readonly ResponseInterface $response) {}
 
-    #[RouteAttribute('/admin', middleware: [AuthMiddleware::class, RateLimitMiddleware::class])]
+    #[Route('/admin', middleware: [AuthMiddleware::class, RateLimitMiddleware::class])]
     public function dashboard(ServerRequestInterface $request): ResponseInterface
     {
         return $this->response;
     }
 
-    #[RouteAttribute('/open')]
+    #[Route('/open')]
     public function open(ServerRequestInterface $request): ResponseInterface
     {
         return $this->response;
@@ -129,7 +129,7 @@ final class GroupedTaggingController
         private readonly ResponseInterface $response,
     ) {}
 
-    #[RouteAttribute('/panel', middleware: [MethodTagMiddleware::class])]
+    #[Route('/panel', middleware: [MethodTagMiddleware::class])]
     public function panel(): ResponseInterface
     {
         $this->log[] = 'controller';

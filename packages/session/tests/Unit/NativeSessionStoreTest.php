@@ -64,7 +64,7 @@ final class NativeSessionStoreTest extends TestCase
         $next->start();
 
         $this->assertSame(42, $next->get('user_id'));
-        $this->assertSame('saved', $next->getFlash('status'));
+        $this->assertSame('saved', $next->flashed('status'));
     }
 
     public function test_regenerate_changes_the_session_id(): void

@@ -7,9 +7,10 @@ namespace Hydra\Http;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Typed reader for a request's parsed body (form fields)
+ * Typed reader over a request's parsed body, the form-field counterpart to
+ * {@see Query}.
  */
-final class Input extends FieldReader
+final class ParsedBody extends FieldReader
 {
     public function __construct(ServerRequestInterface $request)
     {

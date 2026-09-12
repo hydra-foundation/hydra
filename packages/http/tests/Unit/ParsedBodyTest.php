@@ -5,27 +5,27 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\Exceptions\BadRequestException;
-use Hydra\Http\Input;
+use Hydra\Http\ParsedBody;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 
-final class InputTest extends TestCase
+final class ParsedBodyTest extends TestCase
 {
-    private function input(array|object|null $body): Input
+    private function body(array|object|null $body): ParsedBody
     {
         $request = (new Psr17Factory)->createServerRequest('POST', '/')->withParsedBody($body);
 
-        return Input::fromRequest($request);
+        return ParsedBody::fromRequest($request);
     }
 
     public function testStringReadsAField(): void
     {
-        $this->assertSame('Ada', $this->input(['name' => 'Ada'])->string('name'));
+        $this->assertSame('Ada', $this->body(['name' => 'Ada'])->string('name'));
     }
 
     public function testStringFallsBackToDefaultWhenAbsent(): void
     {
-        $input = $this->input(['name' => 'Ada']);
+        $input = $this->body(['name' => 'Ada']);
 
         $this->assertSame('', $input->string('missing'));
         $this->assertSame('anon', $input->string('missing', 'anon'));
@@ -34,80 +34,80 @@ final class InputTest extends TestCase
     public function testStringDoesNotTrim(): void
     {
         // Trimming is the caller's choice; the reader returns the value as sent.
-        $this->assertSame('  spaced  ', $this->input(['x' => '  spaced  '])->string('x'));
+        $this->assertSame('  spaced  ', $this->body(['x' => '  spaced  '])->string('x'));
     }
 
     public function testStringKeepsFalsyZero(): void
     {
-        $this->assertSame('0', $this->input(['x' => '0'])->string('x'));
+        $this->assertSame('0', $this->body(['x' => '0'])->string('x'));
     }
 
     public function testStringDefaultsWhenFieldIsAnArray(): void
     {
         // name[] arrives as an array; stringifying it would be a TypeError.
-        $this->assertSame('', $this->input(['name' => ['a', 'b']])->string('name'));
+        $this->assertSame('', $this->body(['name' => ['a', 'b']])->string('name'));
     }
 
     public function testIntCoercesNumericStrings(): void
     {
-        $this->assertSame(42, $this->input(['age' => '42'])->int('age'));
-        $this->assertSame(0, $this->input(['age' => '0'])->int('age'));
+        $this->assertSame(42, $this->body(['age' => '42'])->int('age'));
+        $this->assertSame(0, $this->body(['age' => '0'])->int('age'));
     }
 
     public function testIntDefaultsOnNonNumeric(): void
     {
-        $this->assertNull($this->input(['age' => 'old'])->int('age'));
-        $this->assertSame(-1, $this->input([])->int('age', -1));
-        $this->assertNull($this->input(['age' => ''])->int('age'));
+        $this->assertNull($this->body(['age' => 'old'])->int('age'));
+        $this->assertSame(-1, $this->body([])->int('age', -1));
+        $this->assertNull($this->body(['age' => ''])->int('age'));
     }
 
     public function testFloatCoercesNumericStrings(): void
     {
-        $this->assertSame(3.14, $this->input(['price' => '3.14'])->float('price'));
-        $this->assertSame(42.0, $this->input(['price' => '42'])->float('price'));
-        $this->assertSame(0.0, $this->input(['price' => '0'])->float('price'));
+        $this->assertSame(3.14, $this->body(['price' => '3.14'])->float('price'));
+        $this->assertSame(42.0, $this->body(['price' => '42'])->float('price'));
+        $this->assertSame(0.0, $this->body(['price' => '0'])->float('price'));
     }
 
     public function testFloatReadsARealFloatFromAJsonBody(): void
     {
-        $this->assertSame(1.5, $this->input(['price' => 1.5])->float('price'));
+        $this->assertSame(1.5, $this->body(['price' => 1.5])->float('price'));
     }
 
     public function testFloatDefaultsOnMissAndNonNumeric(): void
     {
-        $this->assertNull($this->input([])->float('price'));
-        $this->assertSame(9.99, $this->input([])->float('price', 9.99));
-        $this->assertNull($this->input(['price' => 'cheap'])->float('price'));
-        $this->assertNull($this->input(['price' => ''])->float('price'));
-        $this->assertNull($this->input(['price' => ['1.5']])->float('price'));
+        $this->assertNull($this->body([])->float('price'));
+        $this->assertSame(9.99, $this->body([])->float('price', 9.99));
+        $this->assertNull($this->body(['price' => 'cheap'])->float('price'));
+        $this->assertNull($this->body(['price' => ''])->float('price'));
+        $this->assertNull($this->body(['price' => ['1.5']])->float('price'));
     }
 
     public function testBoolAcceptsExplicitTrueForms(): void
     {
         foreach (['true', 'TRUE', '1', 'yes', 'on', 'On', 1, true] as $form) {
-            $this->assertTrue($this->input(['flag' => $form])->bool('flag'), var_export($form, true));
+            $this->assertTrue($this->body(['flag' => $form])->bool('flag'), var_export($form, true));
         }
     }
 
     public function testBoolAcceptsExplicitFalseForms(): void
     {
         foreach (['false', 'FALSE', '0', 'no', 'off', 'Off', 0, false] as $form) {
-            $this->assertFalse($this->input(['flag' => $form])->bool('flag'), var_export($form, true));
+            $this->assertFalse($this->body(['flag' => $form])->bool('flag'), var_export($form, true));
         }
     }
 
     public function testBoolDefaultsWhenAbsent(): void
     {
-        $this->assertNull($this->input([])->bool('flag'));
-        $this->assertTrue($this->input([])->bool('flag', true));
-        $this->assertFalse($this->input([])->bool('flag', false));
+        $this->assertNull($this->body([])->bool('flag'));
+        $this->assertTrue($this->body([])->bool('flag', true));
+        $this->assertFalse($this->body([])->bool('flag', false));
     }
 
     public function testBoolThrowsOnGarbage(): void
     {
         $this->expectException(BadRequestException::class);
 
-        $this->input(['flag' => 'maybe'])->bool('flag');
+        $this->body(['flag' => 'maybe'])->bool('flag');
     }
 
     public function testBoolThrowsOnEmptyString(): void
@@ -115,26 +115,26 @@ final class InputTest extends TestCase
         // "" is present but is neither an explicit true nor false form.
         $this->expectException(BadRequestException::class);
 
-        $this->input(['flag' => ''])->bool('flag');
+        $this->body(['flag' => ''])->bool('flag');
     }
 
     public function testBoolThrowsOnArray(): void
     {
         $this->expectException(BadRequestException::class);
 
-        $this->input(['flag' => ['1']])->bool('flag');
+        $this->body(['flag' => ['1']])->bool('flag');
     }
 
     public function testArrayReadsAnArrayField(): void
     {
-        $this->assertSame(['a', 'b'], $this->input(['tags' => ['a', 'b']])->array('tags'));
-        $this->assertSame([], $this->input(['tags' => []])->array('tags', ['fallback']));
+        $this->assertSame(['a', 'b'], $this->body(['tags' => ['a', 'b']])->array('tags'));
+        $this->assertSame([], $this->body(['tags' => []])->array('tags', ['fallback']));
     }
 
     public function testArrayDefaultsWhenAbsent(): void
     {
-        $this->assertSame([], $this->input([])->array('tags'));
-        $this->assertSame(['x'], $this->input([])->array('tags', ['x']));
+        $this->assertSame([], $this->body([])->array('tags'));
+        $this->assertSame(['x'], $this->body([])->array('tags', ['x']));
     }
 
     public function testArrayThrowsOnScalar(): void
@@ -143,12 +143,12 @@ final class InputTest extends TestCase
         // one-element array.
         $this->expectException(BadRequestException::class);
 
-        $this->input(['tags' => 'oops'])->array('tags');
+        $this->body(['tags' => 'oops'])->array('tags');
     }
 
     public function testHasDistinguishesPresentEmptyFromAbsent(): void
     {
-        $input = $this->input(['name' => '']);
+        $input = $this->body(['name' => '']);
 
         $this->assertTrue($input->has('name'));
         $this->assertFalse($input->has('missing'));
@@ -156,7 +156,7 @@ final class InputTest extends TestCase
 
     public function testHandlesNullParsedBody(): void
     {
-        $input = $this->input(null);
+        $input = $this->body(null);
 
         $this->assertFalse($input->has('name'));
         $this->assertSame('', $input->string('name'));
@@ -166,7 +166,7 @@ final class InputTest extends TestCase
     {
         // PSR-7 getParsedBody() may return an object; (array) casts public
         // props to keys, so a stdClass body reads back by field name.
-        $input = $this->input((object) ['name' => 'Ada', 'age' => '42']);
+        $input = $this->body((object) ['name' => 'Ada', 'age' => '42']);
 
         $this->assertTrue($input->has('name'));
         $this->assertSame('Ada', $input->string('name'));

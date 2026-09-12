@@ -12,7 +12,7 @@ use LogicException;
  * Shared session semantics: the data and flash behaviour every backend has in
  * common, with no opinion on where the bytes live.
  */
-abstract class AbstractSession implements SessionInterface, SessionLifecycleInterface
+abstract class SessionStore implements SessionInterface, SessionLifecycleInterface
 {
     /** True between start() and save() — the only window data methods work. */
     protected bool $started = false;
@@ -91,7 +91,7 @@ abstract class AbstractSession implements SessionInterface, SessionLifecycleInte
         $this->flashNew[$key] = $value;
     }
 
-    public function getFlash(string $key, mixed $default = null): mixed
+    public function flashed(string $key, mixed $default = null): mixed
     {
         $this->guardStarted();
 

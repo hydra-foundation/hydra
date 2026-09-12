@@ -7,7 +7,7 @@ namespace Hydra\Session\Stores;
 /**
  * A pure, in-memory session store.
  */
-final class ArraySessionStore extends AbstractSession
+final class ArraySessionStore extends SessionStore
 {
     private string $id;
 

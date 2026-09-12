@@ -16,7 +16,7 @@ use Hydra\Admin\ViewModels\ShowViewModel;
 use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Http\Exceptions\NotFoundException;
 use Hydra\Http\Htmx;
-use Hydra\Http\Input as SubmittedInput;
+use Hydra\Http\ParsedBody;
 use Hydra\Http\Query;
 use Hydra\Http\Responder;
 use Hydra\Http\Status;
@@ -155,7 +155,7 @@ final class AdminController
 
         $saved = $source->find($id) ?? $submitted;
 
-        if (SubmittedInput::fromRequest($request)->string('_action') === 'apply') {
+        if (ParsedBody::fromRequest($request)->string('_action') === 'apply') {
             return $this->form($request, $blueprint, $screen, $id, $saved, notice: Notice::saved());
         }
 
@@ -329,7 +329,7 @@ final class AdminController
      */
     private function submitted(Request $request, FormScreen $screen): array
     {
-        $input = SubmittedInput::fromRequest($request);
+        $input = ParsedBody::fromRequest($request);
         $values = [];
 
         foreach ($screen->controls() as $control) {

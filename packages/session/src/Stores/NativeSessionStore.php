@@ -9,7 +9,7 @@ use Hydra\Session\SessionConfig;
 /**
  * The production session backend, built on PHP's native session.
  */
-final class NativeSessionStore extends AbstractSession
+final class NativeSessionStore extends SessionStore
 {
     /** Reserved $_SESSION key holding this session's data + pending flash. */
     private const STORAGE_KEY = '_hydra';
@@ -36,7 +36,7 @@ final class NativeSessionStore extends AbstractSession
         $stored = $_SESSION[self::STORAGE_KEY] ?? [];
         $this->data = $stored['data'] ?? [];
         // Whatever was flashed last request lands in "new"; ageFlash() promotes
-        // it to the "old" bucket that getFlash() reads this request.
+        // it to the "old" bucket that flashed() reads this request.
         $this->flashNew = $stored['flash'] ?? [];
         $this->flashOld = [];
         $this->ageFlash();

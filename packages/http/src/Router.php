@@ -19,7 +19,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 final class Router implements RequestHandlerInterface
 {
-    /** @var list<Route> */
+    /** @var list<CompiledRoute> */
     private array $routes = [];
 
     private readonly ArgumentResolverInterface $arguments;
@@ -33,7 +33,7 @@ final class Router implements RequestHandlerInterface
 
     public function add(string $method, string $path, mixed $target, array $middleware = []): self
     {
-        $this->routes[] = new Route(strtoupper($method), $this->normalize($path), $target, $middleware);
+        $this->routes[] = new CompiledRoute(strtoupper($method), $this->normalize($path), $target, $middleware);
 
         return $this;
     }
@@ -128,7 +128,7 @@ final class Router implements RequestHandlerInterface
      * Resolve a matched route into the handler that will answer the request:
      * the target wrapped in its per-route middleware, if any.
      */
-    private function toHandler(Route $route, array $params): RequestHandlerInterface
+    private function toHandler(CompiledRoute $route, array $params): RequestHandlerInterface
     {
         $handler = $this->resolveTarget($route->target, $params);
 

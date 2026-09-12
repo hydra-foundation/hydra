@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\Exceptions\BadRequestException;
-use Hydra\Http\Input;
+use Hydra\Http\ParsedBody;
 use Hydra\Http\ParseBodyMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
@@ -37,7 +37,7 @@ final class ParseBodyMiddlewareTest extends TestCase
     {
         $request = $this->request('PUT', 'application/json', '{"name":"cog"}');
 
-        $input = Input::fromRequest($this->passedThrough($request));
+        $input = ParsedBody::fromRequest($this->passedThrough($request));
 
         $this->assertSame('cog', $input->string('name'));
     }

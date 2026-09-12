@@ -14,14 +14,14 @@ use Psr\Http\Server\RequestHandlerInterface;
  * out. Reading the nonce after the handler has run is deliberate: the page
  * mints it while it renders, and both sides end up naming the same token.
  */
-final class ContentSecurityPolicyMiddleware implements MiddlewareInterface
+final class CspMiddleware implements MiddlewareInterface
 {
     private const ENFORCE = 'Content-Security-Policy';
 
     private const REPORT_ONLY = 'Content-Security-Policy-Report-Only';
 
     public function __construct(
-        private readonly ContentSecurityPolicy $policy,
+        private readonly Csp $policy,
         private readonly CspNonce $nonce,
         private readonly bool $enabled = true,
         private readonly bool $reportOnly = false,

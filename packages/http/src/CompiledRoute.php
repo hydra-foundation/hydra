@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Hydra\Http;
 
 /**
- * A single registered route: an HTTP method, a path, and a handler target
+ * One registered route, with its path compiled to a matcher. Distinct from
+ * the #[Route] attribute, which only declares one: this is what the Router
+ * stores and matches a request against.
  */
-final class Route
+final class CompiledRoute
 {
     /** Compiled regex with named groups, anchored to the full path. */
     private readonly string $pattern;

@@ -114,8 +114,8 @@ final class ArraySessionStoreTest extends TestCase
         $this->session->flash('status', 'saved');
 
         // Readable only on the NEXT request, not this one.
-        $this->assertNull($this->session->getFlash('status'));
-        $this->assertSame('none', $this->session->getFlash('status', 'none'));
+        $this->assertNull($this->session->flashed('status'));
+        $this->assertSame('none', $this->session->flashed('status', 'none'));
     }
 
     public function test_flash_is_visible_on_the_next_request(): void
@@ -125,7 +125,7 @@ final class ArraySessionStoreTest extends TestCase
         // save() + start() simulates the next request's middleware lifecycle.
         $this->nextRequest();
 
-        $this->assertSame('saved', $this->session->getFlash('status'));
+        $this->assertSame('saved', $this->session->flashed('status'));
     }
 
     public function test_flash_expires_after_one_request(): void
@@ -133,10 +133,10 @@ final class ArraySessionStoreTest extends TestCase
         $this->session->flash('status', 'saved');
 
         $this->nextRequest(); // next request: visible
-        $this->assertSame('saved', $this->session->getFlash('status'));
+        $this->assertSame('saved', $this->session->flashed('status'));
 
         $this->nextRequest(); // request after: gone
-        $this->assertNull($this->session->getFlash('status'));
+        $this->assertNull($this->session->flashed('status'));
     }
 
     public function test_flash_does_not_leak_into_data(): void
@@ -227,7 +227,7 @@ final class ArraySessionStoreTest extends TestCase
         $this->session->start();
 
         $this->nextRequest();
-        $this->assertSame('saved', $this->session->getFlash('status'));
+        $this->assertSame('saved', $this->session->flashed('status'));
     }
 
     /** Close and reopen the store the way the middleware brackets a request. */

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Hydra\Http\Tests\Unit;
 
-use Hydra\Http\ContentSecurityPolicy;
-use Hydra\Http\ContentSecurityPolicyMiddleware;
+use Hydra\Http\Csp;
+use Hydra\Http\CspMiddleware;
 use Hydra\Http\CspNonce;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
@@ -13,7 +13,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
-final class ContentSecurityPolicyMiddlewareTest extends TestCase
+final class CspMiddlewareTest extends TestCase
 {
     public function test_stamps_the_compiled_policy_on_the_response(): void
     {
@@ -27,7 +27,7 @@ final class ContentSecurityPolicyMiddlewareTest extends TestCase
         $nonce = new CspNonce;
 
         $response = $this->middleware(
-            policy: (new ContentSecurityPolicy)->with('script-src', ContentSecurityPolicy::NONCE),
+            policy: (new Csp)->with('script-src', Csp::NONCE),
             nonce: $nonce,
         )->process($this->request(), $this->handler());
 
@@ -72,13 +72,13 @@ final class ContentSecurityPolicyMiddlewareTest extends TestCase
     }
 
     private function middleware(
-        ?ContentSecurityPolicy $policy = null,
+        ?Csp $policy = null,
         ?CspNonce $nonce = null,
         bool $enabled = true,
         bool $reportOnly = false,
-    ): ContentSecurityPolicyMiddleware {
-        return new ContentSecurityPolicyMiddleware(
-            $policy ?? (new ContentSecurityPolicy)->with('default-src', "'self'"),
+    ): CspMiddleware {
+        return new CspMiddleware(
+            $policy ?? (new Csp)->with('default-src', "'self'"),
             $nonce ?? new CspNonce,
             $enabled,
             $reportOnly,

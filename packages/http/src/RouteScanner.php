@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Http;
 
-use Hydra\Http\Attributes\Route as RouteAttribute;
+use Hydra\Http\Attributes\Route;
 use Hydra\Http\Attributes\RouteGroup as RouteGroupAttribute;
 use ReflectionClass;
 use ReflectionMethod;
@@ -32,7 +32,7 @@ final class RouteScanner
                     continue;
                 }
 
-                foreach ($method->getAttributes(RouteAttribute::class) as $attribute) {
+                foreach ($method->getAttributes(Route::class) as $attribute) {
                     $route = $attribute->newInstance();
 
                     foreach ($route->methods as $verb) {
