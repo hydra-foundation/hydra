@@ -29,13 +29,13 @@ final class SessionServiceProvider extends ServiceProvider
             return new NativeSessionStore($container->get(SessionConfig::class));
         });
 
-        // Both contracts resolve to that one instance — see the class docblock.
+        // Both contracts resolve to that one instance; see the class docblock.
         $container->singleton(SessionInterface::class, fn () => $container->get(NativeSessionStore::class));
         $container->singleton(SessionLifecycleInterface::class, fn () => $container->get(NativeSessionStore::class));
 
         // StartSessionMiddleware is intentionally not bound here: its only
         // dependency is SessionLifecycleInterface (bound above), so the container
         // autowires it. This provider declares only the wiring that can't be
-        // inferred — the shared-instance-behind-two-interfaces trick above.
+        // inferred: the shared-instance-behind-two-interfaces trick above.
     }
 }

@@ -8,13 +8,18 @@ use Hydra\Auth\AuthConfig;
 use Hydra\Auth\NativeHasher;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * NativeHasher against real password_hash/password_verify: a hash is salted and
+ * never the plaintext, empty and malformed stored hashes are rejected rather
+ * than matching, and a raised cost is reported as needing a rehash.
+ */
 final class NativeHasherTest extends TestCase
 {
     private NativeHasher $hasher;
 
     protected function setUp(): void
     {
-        // The lowest legal cost keeps the suite fast — the hashing behaviour is
+        // The lowest legal cost keeps the suite fast. The hashing behaviour is
         // identical, only slower, at production cost.
         $this->hasher = new NativeHasher(new AuthConfig(hashCost: 4));
     }

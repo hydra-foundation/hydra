@@ -7,7 +7,7 @@ namespace Hydra\Auth;
 use Hydra\Auth\Contracts\HasherInterface;
 
 /**
- * The production {@see HasherInterface}: PHP's native password hashing
+ * The production {@see HasherInterface}: PHP's native password hashing.
  */
 final class NativeHasher implements HasherInterface
 {

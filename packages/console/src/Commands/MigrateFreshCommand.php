@@ -13,8 +13,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Drops every table and re-applies all migrations from scratch — a clean slate
- * for development
+ * Drops every table and re-applies all migrations from scratch, a clean slate
+ * for development.
  */
 #[AsCommand(
     name: 'migrate:fresh',

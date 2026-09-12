@@ -15,6 +15,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
+/**
+ * PhpView against real files in a scratch directory: rendering and escaping, the
+ * fallback search path, and containment of the template name, which is the only
+ * place an untrusted string reaches the filesystem.
+ */
 final class PhpViewTest extends TestCase
 {
     private string $root;
@@ -25,8 +30,8 @@ final class PhpViewTest extends TestCase
     {
         // The view base path is a subdirectory of a scratch root so the
         // traversal tests have a real, existing PHP file one level up
-        // ('../secret') to try to escape to — proving containment, not just
-        // "file didn't exist".
+        // ('../secret') to try to escape to, proving containment rather than
+        // just "file didn't exist".
         $this->root = sys_get_temp_dir() . '/hydra-views-' . uniqid('', true);
         $this->dir = $this->root . '/views';
         mkdir($this->dir, 0777, true);
@@ -209,7 +214,8 @@ final class PhpViewTest extends TestCase
     public function test_an_overridden_template_can_still_reach_the_ones_it_did_not_override(): void
     {
         // Each name resolves on its own, so a chain crosses freely between the
-        // two directories — the point of overriding one template and not the rest.
+        // two directories. That is the point of overriding one template and
+        // not the rest.
         $view = $this->viewWithFallback();
         $this->writeTo($this->packageDir(), 'admin/screen', 'pkg screen');
         $this->writeTo($this->packageDir(), 'admin/table', '[<?= $this->partial("admin/screen") ?>]');
@@ -231,7 +237,7 @@ final class PhpViewTest extends TestCase
     public function test_a_fallback_does_not_widen_what_each_directory_contains(): void
     {
         // Both directories sit beside secret.php, and neither may be climbed
-        // out of to reach it — a second search path is not a second chance.
+        // out of to reach it: a second search path is not a second chance.
         $view = $this->viewWithFallback();
 
         $this->expectException(RuntimeException::class);
@@ -259,7 +265,7 @@ final class PhpViewTest extends TestCase
     {
         // '../' is only dangerous when it escapes the view root. A name whose
         // '..' segments collapse back to a file still under the root is a
-        // legitimate resolution — realpath() normalizes 'sub/../real' to
+        // legitimate resolution: realpath() normalizes 'sub/../real' to
         // 'real', which sits inside the root, so the current code renders it.
         // (Documents intended behavior: containment is about the resolved
         // location, not the presence of '..' in the raw name.)

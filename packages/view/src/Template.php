@@ -38,7 +38,7 @@ final class Template
     {
         $content = $this->evaluate($template);
 
-        // A fragment render ignores the template's layout and returns its body —
+        // A fragment render ignores the template's layout and returns its body,
         // the htmx case. extends() still ran; we just don't walk the chain.
         if (!$this->wrapLayout) {
             return $content;
@@ -94,9 +94,7 @@ final class Template
         return $this->sections[$name] ?? $default;
     }
 
-    /**
-     * Escape a value for safe HTML output
-     */
+    /** Escapes for HTML, except an HtmlView, which is already rendered markup. */
     public function e(string|int|float|bool|Stringable|null $value): string
     {
         if ($value instanceof HtmlView) {
@@ -106,9 +104,7 @@ final class Template
         return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
-    /**
-     * Build an absolute site URL from a root-relative path
-     */
+    /** An absolute URL for a root-relative path, or the path as-is with no base URL. */
     public function siteUrl(string $path = ''): string
     {
         if ($this->baseUrl === null) {
@@ -122,10 +118,10 @@ final class Template
      * Render another template inline and return its HTML. It resolves as its
      * own independent chain, so a partial's sections never touch this render's.
      *
-     * Two deliberate contracts: a partial inherits NONE of the parent's data —
-     * pass everything it needs explicitly via $data — and it renders as a bare
-     * fragment, so a stray extends() inside a partial is ignored rather than
-     * wrapping the partial in a full layout.
+     * Two deliberate contracts. A partial inherits NONE of the parent's data,
+     * so pass everything it needs explicitly via $data. And it renders as a
+     * bare fragment, so a stray extends() inside a partial is ignored rather
+     * than wrapping the partial in a full layout.
      *
      * @param array<string, mixed> $data
      */
@@ -134,9 +130,7 @@ final class Template
         return $this->engine->render($template, $data, layout: false);
     }
 
-    /**
-     * The session's CSRF token (raw)
-     */
+    /** The session's CSRF token, unescaped. */
     public function csrfToken(): string
     {
         if ($this->csrf === null) {
@@ -146,9 +140,7 @@ final class Template
         return $this->csrf->token();
     }
 
-    /**
-     * A hidden form field carrying the CSRF token
-     */
+    /** A hidden form field carrying the CSRF token. */
     public function csrf(): string
     {
         return sprintf(
@@ -159,10 +151,9 @@ final class Template
     }
 
     /**
-     * The request's CSP nonce (raw)
-     *
-     * Stamp it on the markup the policy should trust: the script tags the page
-     * ships, and the hx-nonce of every element carrying htmx attributes.
+     * The request's CSP nonce, unescaped. Stamp it on the markup the policy
+     * should trust: the script tags the page ships, and the hx-nonce of every
+     * element carrying htmx attributes.
      */
     public function cspNonce(): string
     {
@@ -204,7 +195,7 @@ final class Template
 
         // A start() with no matching stop() leaves its buffer open and would
         // otherwise strand the template's real output in a dangling buffer.
-        // Fail loudly — the mirror of stop()-without-start().
+        // Fail loudly, the mirror of stop()-without-start().
         if (count($this->capturing) !== $openSections) {
             while (ob_get_level() > $level) {
                 ob_end_clean();

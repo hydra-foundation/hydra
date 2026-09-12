@@ -14,7 +14,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Compiles the controller #[Route] attributes to the route cache file. This is
- * the sole writer of the cache — the web path only ever reads it (see
+ * the sole writer of the cache; the web path only ever reads it (see
  * AppServiceProvider::compileRoutes). Run it at deploy time when ROUTE_CACHE is
  * on; re-run (or route:cache:clear) after changing any route.
  */

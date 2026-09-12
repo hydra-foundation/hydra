@@ -10,6 +10,11 @@ use Hydra\Session\Stores\ArraySessionStore;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The in-memory store doubles as the reference implementation of the session
+ * contract, so this covers the whole surface: reads and writes, null-as-removal,
+ * flash's one-request lifetime, id rotation, and the lifecycle guards.
+ */
 final class ArraySessionStoreTest extends TestCase
 {
     private ArraySessionStore $session;
@@ -144,7 +149,7 @@ final class ArraySessionStoreTest extends TestCase
         $this->session->flash('status', 'saved');
         $this->nextRequest();
 
-        // Flash lives in its own bucket — it is never exposed through all()/get().
+        // Flash lives in its own bucket, never exposed through all()/get().
         $this->assertSame([], $this->session->all());
         $this->assertNull($this->session->get('status'));
     }
@@ -212,7 +217,7 @@ final class ArraySessionStoreTest extends TestCase
 
     public function test_regenerate_outside_the_lifecycle_throws(): void
     {
-        // Regeneration is the login fixation defense — silently not rotating
+        // Regeneration is the login fixation defense, so silently not rotating
         // would be worse than failing.
         $this->session->save();
 

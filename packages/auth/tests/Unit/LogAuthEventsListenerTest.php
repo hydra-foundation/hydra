@@ -15,7 +15,7 @@ use Psr\Log\AbstractLogger;
 use Stringable;
 
 /**
- * The listener is driven with hand-built events and a fake logger — it asserts
+ * The listener is driven with hand-built events and a fake logger, asserting
  * only the audit-trail contract: the right level, message, and context, and that
  * no password is present (the events never carry one).
  */

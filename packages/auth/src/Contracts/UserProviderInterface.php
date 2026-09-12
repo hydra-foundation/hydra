@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Hydra\Auth\Contracts;
 
 /**
- * Where users come from (fulfilled by the application)
+ * Where users come from. Auth deliberately owns no user storage, so the
+ * application fulfils this and keeps the framework out of its schema.
  */
 interface UserProviderInterface
 {
@@ -17,7 +18,7 @@ interface UserProviderInterface
 
     /**
      * Find the user with this username (or whatever single field a login is
-     * keyed on — an email, say), or null if none. The guard then verifies the
+     * keyed on, an email say), or null if none. The guard then verifies the
      * submitted password against the returned user's stored hash; this method
      * itself performs no password check.
      */

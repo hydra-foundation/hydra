@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Hydra\Session\Stores;
 
 /**
- * A pure, in-memory session store.
+ * A session store that touches no globals, so tests and CLI code get the full
+ * contract (lifecycle guards included) without PHP's once-per-process session.
  */
 final class ArraySessionStore extends SessionStore
 {
@@ -28,7 +29,7 @@ final class ArraySessionStore extends SessionStore
 
     public function save(): void
     {
-        // Nothing to persist for an in-memory store — but the lifecycle still
+        // Nothing to persist for an in-memory store, but the lifecycle still
         // closes, so post-save access fails loud like production.
         $this->started = false;
     }

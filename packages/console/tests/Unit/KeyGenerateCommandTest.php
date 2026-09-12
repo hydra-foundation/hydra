@@ -9,6 +9,11 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
+/**
+ * key:generate against a real temporary .env, weighted towards the cases where
+ * an APP_KEY already exists: overwriting one silently would invalidate
+ * everything sealed with the old key.
+ */
 final class KeyGenerateCommandTest extends TestCase
 {
     private string $envPath;

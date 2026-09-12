@@ -9,7 +9,9 @@ use PDOException;
 use RuntimeException;
 
 /**
- * Applies raw .sql migration files and records which have run
+ * Applies raw .sql migration files in filename order and records which have run.
+ * Forward-only by design: there are no down migrations, so recovering from a bad
+ * one is a new migration rather than an undo the runner has to get right.
  */
 final class MigrationRunner
 {
@@ -26,8 +28,7 @@ final class MigrationRunner
     }
 
     /**
-     * Apply every pending migration in order and return the filenames applied
-     * during this call (empty when already up to date)
+     * The filenames applied by this call, empty when already up to date.
      *
      * @return list<string>
      */
@@ -55,7 +56,8 @@ final class MigrationRunner
     }
 
     /**
-     * Execute one migration file's SQL, surfacing errors from *every* statement in it
+     * Execute one migration file's SQL, surfacing errors from *every* statement
+     * in it, not just the first.
      */
     private function execute(string $sql): void
     {
@@ -73,8 +75,8 @@ final class MigrationRunner
             } while ($statement->nextRowset());
         } catch (PDOException $e) {
             // A driver that can't advance rowsets at all isn't a migration
-            // failure, just a missing capability (SQLSTATE IM001) — the
-            // first statement's error reporting is the best it offers.
+            // failure, just a missing capability (SQLSTATE IM001). The first
+            // statement's error reporting is the best it offers.
             if (!str_contains($e->getMessage(), 'does not support')) {
                 throw $e;
             }
@@ -84,8 +86,8 @@ final class MigrationRunner
     }
 
     /**
-     * Drop every table, then re-apply all migrations from scratch.
-     * Destructive — the calling command guards it. Returns the filenames applied.
+     * Drop every table, then re-apply all migrations from scratch. Destructive:
+     * the calling command guards it. Returns the filenames applied.
      *
      * @return list<string>
      */
@@ -98,7 +100,7 @@ final class MigrationRunner
 
     /**
      * Every migration on disk paired with whether it has been applied, in
-     * order — the data behind migrate:status.
+     * order. This is the data behind migrate:status.
      *
      * @return list<array{filename: string, applied: bool}>
      */
@@ -118,7 +120,7 @@ final class MigrationRunner
     }
 
     /**
-     * Migration files on disk that have not yet been recorded as applied
+     * Migration files on disk not yet recorded as applied.
      *
      * @return list<string>
      */
@@ -134,10 +136,7 @@ final class MigrationRunner
         ));
     }
 
-    /**
-     * Create the tracking table if it does not exist.
-     * Portable across the mysql and sqlite drivers Hydra targets.
-     */
+    /** Written to stay portable across the mysql and sqlite drivers Hydra targets. */
     private function ensureTable(): void
     {
         $this->pdo->exec(

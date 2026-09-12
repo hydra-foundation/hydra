@@ -12,6 +12,10 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use RuntimeException;
 
+/**
+ * The middleware's ordering contract: the session is open before the handler
+ * runs and closed after it returns, including when the handler throws.
+ */
 final class StartSessionMiddlewareTest extends TestCase
 {
     public function test_it_starts_before_handling_and_saves_after(): void
@@ -24,7 +28,7 @@ final class StartSessionMiddlewareTest extends TestCase
         $returned = $middleware->process($this->request(), $handler);
 
         $this->assertSame($response, $returned);
-        // start() must run before the handler, save() after — proving the
+        // start() must run before the handler, save() after, proving the
         // session is open for the controller and closed once the request is done.
         $this->assertSame(['start', 'handle', 'save'], $session->calls);
     }
@@ -71,6 +75,7 @@ final class RecordingSession implements SessionLifecycleInterface
     }
 }
 
+/** Records that it ran, in the session's call log. */
 final class RecordingHandler implements RequestHandlerInterface
 {
     public function __construct(
@@ -85,6 +90,7 @@ final class RecordingHandler implements RequestHandlerInterface
     }
 }
 
+/** Records that it ran, then throws, so save() can be proven to still run. */
 final class ThrowingHandler implements RequestHandlerInterface
 {
     public function __construct(private readonly RecordingSession $session) {}

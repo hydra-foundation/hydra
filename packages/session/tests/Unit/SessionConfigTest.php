@@ -9,6 +9,11 @@ use Hydra\Session\SessionConfig;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * SessionConfig's two jobs: mapping environment keys onto typed cookie settings
+ * with safe defaults, and refusing at construction any combination a browser or
+ * PHP would silently ignore.
+ */
 final class SessionConfigTest extends TestCase
 {
     private string $dir;

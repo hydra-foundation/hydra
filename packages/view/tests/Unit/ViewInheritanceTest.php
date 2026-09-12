@@ -8,6 +8,11 @@ use Hydra\View\PhpView;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
+/**
+ * The layout side of Template: extends(), sections and their defaults, implicit
+ * content capture, and the output buffering all of that depends on keeping
+ * balanced.
+ */
 final class ViewInheritanceTest extends TestCase
 {
     private string $dir;

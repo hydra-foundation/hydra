@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Auth\Contracts;
 
 /**
- * Who is authenticated for the current request, and the verbs to change that
+ * Who is authenticated for the current request, and the verbs to change that.
  */
 interface GuardInterface
 {

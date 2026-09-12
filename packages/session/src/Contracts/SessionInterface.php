@@ -15,14 +15,15 @@ interface SessionInterface
 
     /**
      * Issue a fresh session id, keeping the data. Defends against session
-     * fixation — call it on any privilege change (e.g. login). $deleteOld asks
-     * the backend to drop the old session's storage.
+     * fixation, so call it on any privilege change (e.g. login). $deleteOld
+     * asks the backend to drop the old session's storage.
      */
     public function regenerate(bool $deleteOld = true): void;
 
     /** Read a stored value, or $default when the key is absent. */
     public function get(string $key, mixed $default = null): mixed;
 
+    /** Setting null removes the key: null is the absent value across this contract. */
     public function set(string $key, mixed $value): void;
 
     /** Whether the key holds a non-null value. */

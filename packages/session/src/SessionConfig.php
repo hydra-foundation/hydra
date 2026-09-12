@@ -8,7 +8,10 @@ use Hydra\Core\Environment;
 use InvalidArgumentException;
 
 /**
- * Session config
+ * The session cookie's settings, resolved from the environment once and passed
+ * as a value. Illegal combinations are refused at construction, because a
+ * cookie setting that PHP or the browser silently drops is a security control
+ * that fails without a sound.
  */
 final readonly class SessionConfig
 {
@@ -24,7 +27,7 @@ final readonly class SessionConfig
         public bool $httpOnly = true,
         public string $sameSite = 'Lax',
     ) {
-        // A bad SameSite would otherwise flow silently into PHP and be ignored —
+        // A bad SameSite would otherwise flow silently into PHP and be ignored,
         // a security setting failing without a sound. Fail loud at construction,
         // the same discipline as the validation package's Pattern rule.
         if (!in_array($sameSite, self::SAME_SITE, true)) {
@@ -36,7 +39,7 @@ final readonly class SessionConfig
         }
 
         // A negative lifetime would flow into session_set_cookie_params() as an
-        // already-expired cookie — the session would silently never persist.
+        // already-expired cookie, so the session would silently never persist.
         // Same fail-loud discipline as the SameSite guard above.
         if ($lifetime < 0) {
             throw new InvalidArgumentException(sprintf(
@@ -46,7 +49,7 @@ final readonly class SessionConfig
         }
 
         // Browsers reject a SameSite=None cookie that isn't also Secure, so the
-        // pairing is invalid on its face — better to refuse it than ship a
+        // pairing is invalid on its face. Better to refuse it than ship a
         // cookie the client will drop.
         if ($sameSite === 'None' && !$secure) {
             throw new InvalidArgumentException(

@@ -18,8 +18,8 @@ use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * The guard is driven against the REAL collaborators — the in-memory
- * ArraySessionStore and the real NativeHasher (at the cheapest cost) — with only
+ * The guard is driven against the REAL collaborators, the in-memory
+ * ArraySessionStore and the real NativeHasher (at the cheapest cost), with only
  * the app-supplied user provider faked. So these prove the actual session
  * read/write and password-verify paths, not a mock of them.
  */
@@ -172,8 +172,8 @@ final class SessionGuardTest extends TestCase
     {
         // Regression: logout once removed only the '_auth_id' marker, so data a
         // controller stashed during the authenticated session (cart, CSRF token,
-        // profile fragments) survived into the next — possibly someone else's —
-        // session on a shared machine. OWASP: invalidate the WHOLE session.
+        // profile fragments) survived into the next session, possibly someone
+        // else's, on a shared machine. OWASP: invalidate the WHOLE session.
         $guard = $this->guard();
         $guard->login($this->provider->byUsername('ada'));
         $this->session->set('cart', ['sku-42']);
@@ -215,9 +215,9 @@ final class SessionGuardTest extends TestCase
 
     public function test_authentication_persists_to_a_later_request(): void
     {
-        // Log in on one guard, then resolve on a fresh guard over the SAME store
-        // — i.e. the next request. The user is restored from the session id via
-        // the provider's byIdentifier lookup.
+        // Log in on one guard, then resolve on a fresh guard over the SAME
+        // store, i.e. the next request. The user is restored from the session
+        // id via the provider's byIdentifier lookup.
         $this->guard()->login($this->provider->byUsername('ada'));
 
         $next = $this->guard();
@@ -237,7 +237,7 @@ final class SessionGuardTest extends TestCase
         $next->user();
         $next->check();
 
-        // Three reads, one provider lookup — the per-request cache holds.
+        // Three reads, one provider lookup, so the per-request cache holds.
         $this->assertSame(1, $this->provider->byIdentifierCalls);
     }
 
@@ -257,7 +257,7 @@ final class SessionGuardTest extends TestCase
     public function test_no_dispatcher_means_no_events_and_unchanged_behaviour(): void
     {
         // The default guard() has no dispatcher: this is just a restatement that
-        // the happy path still works with events entirely absent — the other
+        // the happy path still works with events entirely absent: the other
         // dozen tests above all run on this dispatcher-less guard.
         $guard = $this->guard();
 
@@ -293,7 +293,7 @@ final class SessionGuardTest extends TestCase
 
         $this->assertFalse($this->guardWithEvents($events)->attempt('nobody', self::PASSWORD));
 
-        // A missing user is a failure like any other — same event, same shape, so
+        // A missing user is a failure like any other: same event, same shape, so
         // a listener can't tell "no such account" from "wrong password".
         $this->assertSame([Attempting::class, LoginFailed::class], $events->types());
         $this->assertSame('nobody', $events->first(LoginFailed::class)->username);
@@ -326,7 +326,7 @@ final class SessionGuardTest extends TestCase
 
     public function test_a_stale_marker_for_a_deleted_user_is_removed_from_the_session(): void
     {
-        // A session claiming user 999 — an account the provider no longer knows
+        // A session claiming user 999, an account the provider no longer knows
         // (deleted since login). Without cleanup the marker lives forever,
         // re-triggering a futile provider lookup on every request.
         $this->session->set('_auth_id', 999);
@@ -347,7 +347,7 @@ final class SessionGuardTest extends TestCase
 
     public function test_a_live_marker_is_left_untouched_by_resolution(): void
     {
-        // The cleanup fires only on a MISSED lookup — resolving a real user
+        // The cleanup fires only on a MISSED lookup, so resolving a real user
         // must not disturb the marker.
         $this->guard()->login($this->provider->byUsername('ada'));
 
@@ -360,7 +360,7 @@ final class SessionGuardTest extends TestCase
     {
         // The anti-enumeration defense: a miss (no such user) burns exactly one
         // hashing operation, the same count a wrong-password attempt spends on
-        // its verify — so operation counts can't distinguish the two.
+        // its verify, so operation counts can't distinguish the two.
         $hasher = new CountingHasher($this->hasher);
 
         $missGuard = new SessionGuard($this->session, $this->provider, $hasher);
@@ -377,7 +377,7 @@ final class SessionGuardTest extends TestCase
     {
         // Regression: the dummy hash used to be computed lazily on first use,
         // so the FIRST miss paid hash+verify (two operations) while later
-        // misses paid one — a measurable first-call timing skew.
+        // misses paid one, a measurable first-call timing skew.
         $hasher = new CountingHasher($this->hasher);
         $guard = new SessionGuard($this->session, $this->provider, $hasher);
 
@@ -443,7 +443,7 @@ final class CountingHasher implements \Hydra\Auth\Contracts\HasherInterface
 
 /**
  * A spy PSR-14 dispatcher: records every event it is handed, in order, and hands
- * it straight back per the interface contract. No listeners — the guard's job is
+ * it straight back per the interface contract. No listeners: the guard's job is
  * only to dispatch, and that is all this asserts.
  */
 final class RecordingDispatcher implements EventDispatcherInterface

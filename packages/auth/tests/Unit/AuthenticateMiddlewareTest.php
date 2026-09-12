@@ -14,6 +14,10 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * The middleware's only decision: an authenticated request reaches the handler,
+ * an unauthenticated one is rejected with a 401 before the handler is touched.
+ */
 final class AuthenticateMiddlewareTest extends TestCase
 {
     public function test_authenticated_request_reaches_the_handler(): void
@@ -88,6 +92,7 @@ final class FakeGuard implements GuardInterface
     public function logout(): void {}
 }
 
+/** Counts how many times it was reached. */
 final class RecordingHandler implements RequestHandlerInterface
 {
     public int $calls = 0;

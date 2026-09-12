@@ -13,7 +13,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Shared base for the class-emitting stub generators (make:controller,
- * make:ability)
+ * make:ability).
  */
 abstract class MakeClassCommand extends Command
 {

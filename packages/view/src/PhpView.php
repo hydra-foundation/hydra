@@ -10,12 +10,11 @@ use Hydra\View\Contracts\ViewInterface;
 use RuntimeException;
 
 /**
- * Native PHP template renderer.
- *
- * A template name is looked for in the base path first and in the fallbacks
- * after it, so a package can ship templates of its own and the application can
- * replace any one of them by putting a file of the same name in its own views
- * directory. Nothing is registered for that to work: the copy simply wins.
+ * Native PHP template renderer. A template name is looked for in the base path
+ * first and in the fallbacks after it, so a package can ship templates of its
+ * own and the application can replace any one of them with a file of the same
+ * name in its own views directory. Nothing is registered for that: the copy
+ * simply wins.
  */
 final class PhpView implements ViewInterface
 {
@@ -70,7 +69,7 @@ final class PhpView implements ViewInterface
     public function locate(string $template): string
     {
         // A null byte is never a legitimate template name, and the filesystem
-        // calls below would throw a ValueError on it — reject it up front
+        // calls below would throw a ValueError on it, so reject it up front
         // (and don't echo the poisoned name back).
         if (str_contains($template, "\0")) {
             throw new RuntimeException('View not found.');
@@ -89,7 +88,7 @@ final class PhpView implements ViewInterface
 
     /**
      * The template's file inside this views directory, or null when it is not
-     * there — including when the name climbs out of it, which is not this
+     * there, including when the name climbs out of it: that is not this
      * directory's template no matter what the next one holds.
      */
     private function under(string $path, string $template): ?string

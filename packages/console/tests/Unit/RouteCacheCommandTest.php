@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
-/** A controller the scanner can reflect — never instantiated, only its attributes read. */
+/** A controller the scanner can reflect: never instantiated, only its attributes read. */
 final class CacheableRoutesController
 {
     #[Route('/posts')]

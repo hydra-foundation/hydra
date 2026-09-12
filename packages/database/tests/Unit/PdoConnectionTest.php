@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 /**
- * PdoConnection against a real (in-memory sqlite) PDO — the seam's contract:
+ * PdoConnection against a real (in-memory sqlite) PDO. The seam's contract:
  * prepared select/selectOne/execute and lastInsertId, no driver-specific code.
  */
 final class PdoConnectionTest extends TestCase
@@ -59,15 +59,15 @@ final class PdoConnectionTest extends TestCase
         $this->db->execute('INSERT INTO widgets (name) VALUES (?)', ['a']);
         $this->db->execute('INSERT INTO widgets (name) VALUES (?)', ['b']);
 
-        // A string, uncast — PDO's native surface. Regression: an int return
-        // type here would corrupt UUID/string PKs and 64-bit ids on 32-bit
-        // builds; integer-PK callers cast at their own call site.
+        // A string, uncast, as PDO natively reports it. Regression: an int
+        // return type here would corrupt UUID/string PKs and 64-bit ids on
+        // 32-bit builds; integer-PK callers cast at their own call site.
         $this->assertSame('2', $this->db->lastInsertId());
     }
 
     public function test_parameters_are_bound_not_interpolated(): void
     {
-        // A value with SQL metacharacters round-trips intact — proof it's bound.
+        // A value with SQL metacharacters round-trips intact, proving it's bound.
         $payload = "Robert'); DROP TABLE widgets;--";
         $this->db->execute('INSERT INTO widgets (name) VALUES (?)', [$payload]);
 
@@ -98,7 +98,7 @@ final class PdoConnectionTest extends TestCase
             });
             $this->fail('The throwable should have propagated.');
         } catch (RuntimeException $caught) {
-            // The exact instance, not a wrapper — callers keep their error type.
+            // The exact instance, not a wrapper, so callers keep their error type.
             $this->assertSame($thrown, $caught);
         }
 
@@ -134,7 +134,7 @@ final class PdoConnectionTest extends TestCase
                 });
 
                 // The inner call returned cleanly, but only the outermost call
-                // owns the commit — its failure takes the inner writes with it.
+                // owns the commit, so its failure takes the inner writes too.
                 throw new RuntimeException('outer failure');
             });
             $this->fail('The throwable should have propagated.');

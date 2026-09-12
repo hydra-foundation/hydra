@@ -17,7 +17,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The session-backed {@see GuardInterface}: authentication state lives in the
- * session as a single stored identifier
+ * session as a single stored identifier, so who the user is stays the app's to
+ * define through a {@see UserProviderInterface}.
  */
 final class SessionGuard implements GuardInterface
 {
@@ -58,15 +59,12 @@ final class SessionGuard implements GuardInterface
         $user = $this->provider->byIdentifier($id);
 
         if ($user === null) {
-            // The marker points at a user the provider no longer knows — a
-            // deleted account. Left in place it would sit in the session
-            // forever: every request would repeat the futile lookup, and the
-            // session would keep asserting a login that can never resolve.
-            // Remove the marker so the session honestly says "guest" from here
-            // on. The session id is deliberately NOT regenerated: this is a
-            // read path (user()/check() run on ordinary page views), nothing
-            // is being granted — the session only DROPS its claim — and the
-            // next real login() rotates the id as it always does.
+            // The marker points at a user the provider no longer knows, a
+            // deleted account. Left in place it would repeat the futile lookup
+            // on every request while the session went on asserting a login that
+            // can never resolve. The id is deliberately NOT regenerated: this is
+            // a read path, the session only DROPS its claim, and the next real
+            // login() rotates the id as it always does.
             $this->session->remove(self::SESSION_KEY);
         }
 
@@ -89,18 +87,14 @@ final class SessionGuard implements GuardInterface
         $user = $this->provider->byUsername($username);
         $hash = $user?->getAuthPassword() ?? '';
 
-        // A missing user OR a user with no usable password must cost the same as
+        // A missing user, or one with no usable password, must cost the same as
         // a genuine verify: otherwise response timing distinguishes "no such
-        // account" and "account exists but is passwordless/disabled" from a real
-        // wrong-password attempt. Burn exactly one hash at the configured cost —
-        // the same work verify() spends on a stored hash made at that cost, so
-        // the equalisation is close but not exact (a stored hash carries its own
-        // embedded cost): the standard, accepted approximation. Done fresh on
-        // every miss, deliberately: a lazily cached dummy hash made the FIRST
-        // miss pay hash-then-verify (two hash runs) where later misses paid one
-        // — itself a measurable skew — and precomputing it in the constructor
-        // would bill every request that merely constructs the guard (any
-        // check() on any page) a full hash.
+        // account" from a real wrong-password attempt. Burn exactly one hash at
+        // the configured cost, which approximates the work verify() spends on a
+        // stored hash made at that cost. Fresh on every miss, deliberately: a
+        // cached dummy hash made the FIRST miss pay two hash runs where later
+        // misses paid one, and precomputing it in the constructor would bill
+        // every request that merely constructs the guard a full hash.
         if ($hash === '') {
             $this->hasher->hash($password);
             $this->events?->dispatch(new LoginFailed($username));
@@ -137,19 +131,16 @@ final class SessionGuard implements GuardInterface
 
     public function logout(): void
     {
-        // Capture who it was before the marker is cleared — afterwards the guard
-        // can no longer say. Null only when logout() ran with nobody logged in.
+        // Captured before the marker is cleared, since afterwards the guard can
+        // no longer say. Null only when logout() ran with nobody logged in.
         $id = $this->id();
 
-        // Flush EVERYTHING, not just the auth marker: anything a controller
-        // stashed during the authenticated session (cart, profile fragments,
-        // CSRF token) belongs to the user who just left, and on a shared
-        // machine the next person at the browser would inherit it. OWASP says
-        // to invalidate the whole session on logout — session hygiene on a
-        // privilege drop. Flush BEFORE regenerating: regenerate() carries the
-        // current data over to the fresh id, so clearing first guarantees the
-        // post-logout session id is never associated with the old data, even
-        // transiently.
+        // Flush EVERYTHING, not just the auth marker, as OWASP asks on any
+        // privilege drop: anything a controller stashed during the authenticated
+        // session (cart, profile fragments, CSRF token) belongs to the user who
+        // just left, and on a shared machine the next person at the browser
+        // would inherit it. Flush BEFORE regenerating, since regenerate() would
+        // otherwise carry that data over to the fresh id.
         $this->session->clear();
         $this->session->regenerate();
 

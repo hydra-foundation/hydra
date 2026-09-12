@@ -12,8 +12,9 @@ use RuntimeException;
 
 /**
  * MigrationRunner against an in-memory sqlite PDO (the test driver) and a
- * temporary migrations directory — its contract: apply pending .sql files in
- * order, track them so re-runs are no-ops, report status, and reset on fresh().
+ * temporary migrations directory. The contract under test: apply pending .sql
+ * files in order, track them so re-runs are no-ops, report status, and reset
+ * on fresh().
  */
 final class MigrationRunnerTest extends TestCase
 {
@@ -62,7 +63,7 @@ final class MigrationRunnerTest extends TestCase
             $applied,
         );
 
-        // Both tables exist — the DDL actually ran.
+        // Both tables exist, so the DDL actually ran.
         $tables = $this->pdo
             ->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('a', 'b') ORDER BY name")
             ->fetchAll(PDO::FETCH_COLUMN);
@@ -122,7 +123,7 @@ final class MigrationRunnerTest extends TestCase
         $runner = $this->runner();
         $runner->run();
 
-        // A stray table not produced by a migration — fresh() must drop it too.
+        // A stray table not produced by a migration: fresh() must drop it too.
         $this->pdo->exec('CREATE TABLE stray (id INTEGER PRIMARY KEY)');
         $this->pdo->exec('INSERT INTO a (id) VALUES (1)');
 
@@ -157,7 +158,7 @@ final class MigrationRunnerTest extends TestCase
             // expected
         }
 
-        // Neither file is recorded as applied — the bad one failed, the good
+        // Neither file is recorded as applied: the bad one failed, the good
         // one never ran on top of the broken state.
         $this->assertSame(
             [
@@ -176,7 +177,7 @@ final class MigrationRunnerTest extends TestCase
 
     /**
      * A multi-statement file whose *later* statement fails must surface the
-     * error and stay unrecorded — the 2026-07-06 regression was errors after
+     * error and stay unrecorded. The 2026-07-06 regression was errors after
      * the first statement being swallowed and the file marked applied.
      *
      * This exercises the sqlite branch of execute() (plain exec(), which runs
@@ -198,7 +199,7 @@ final class MigrationRunnerTest extends TestCase
             $runner->run();
             $this->fail('Expected the later failing statement to throw');
         } catch (PDOException) {
-            // expected — the second statement's error surfaced.
+            // expected: the second statement's error surfaced.
         }
 
         // The file is not recorded despite its first statement having run.

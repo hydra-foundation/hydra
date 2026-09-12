@@ -13,7 +13,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Generates a 256-bit application key (64 hex chars) and writes it to APP_KEY
- * in the .env file
+ * in the .env file.
  */
 #[AsCommand(
     name: 'key:generate',

@@ -14,7 +14,7 @@ use LogicException;
  */
 abstract class SessionStore implements SessionInterface, SessionLifecycleInterface
 {
-    /** True between start() and save() — the only window data methods work. */
+    /** True between start() and save(), the only window data methods work in. */
     protected bool $started = false;
 
     /** @var array<string, mixed> */
@@ -112,8 +112,8 @@ abstract class SessionStore implements SessionInterface, SessionLifecycleInterfa
     /**
      * Fail loud on any data access outside the start()→save() window. A read
      * would see stale or empty state; a write would silently never persist.
-     * Subclasses use it to guard id()/regenerate() with the same semantics —
-     * regeneration especially is a security operation (fixation defense on
+     * Subclasses use it to guard id()/regenerate() with the same semantics.
+     * Regeneration especially is a security operation (fixation defense on
      * login) that must never silently no-op.
      */
     protected function guardStarted(): void

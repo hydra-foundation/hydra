@@ -9,6 +9,11 @@ use Hydra\Core\Environment;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * AuthConfig's cost setting: how it reads from the environment, and that a cost
+ * outside bcrypt's range is refused at construction rather than surfacing later
+ * as a hash that never verifies.
+ */
 final class AuthConfigTest extends TestCase
 {
     private string $dir;
@@ -76,7 +81,7 @@ final class AuthConfigTest extends TestCase
 
     public function test_rejects_a_cost_below_the_bcrypt_minimum(): void
     {
-        // 3 would make password_hash warn and return false — a non-hash. Reject
+        // 3 would make password_hash warn and return false, a non-hash. Reject
         // it at construction rather than letting it surface as a failed verify.
         $this->expectException(InvalidArgumentException::class);
         new AuthConfig(hashCost: 3);

@@ -11,7 +11,7 @@ use Throwable;
 
 /**
  * Wraps a configured PDO handle and prepares every statement, so all values
- * reach the driver as bound parameters — the connection has no string-built
+ * reach the driver as bound parameters: the connection has no string-built
  * SQL path. The PDO is constructed elsewhere (the service provider) so this
  * class stays driver-agnostic and trivially testable against sqlite.
  */
@@ -25,7 +25,7 @@ final class PdoConnection implements ConnectionInterface
             $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
         } catch (PDOException) {
             // Driver doesn't support the attribute (e.g. sqlite, whose
-            // prepares are always real) — tolerated, see class docblock.
+            // prepares are always real). Tolerated, see the class docblock.
         }
     }
 
@@ -69,8 +69,8 @@ final class PdoConnection implements ConnectionInterface
     {
         // PDO reports the id as a string (or false when the driver has none to
         // report); passed through uncast so UUID/string PKs and ids beyond
-        // PHP_INT_MAX survive intact — see the interface docblock. The false
-        // case fails loud rather than masquerading as an id.
+        // PHP_INT_MAX survive intact, as the interface docblock explains. The
+        // false case fails loud rather than masquerading as an id.
         $id = $this->pdo->lastInsertId();
 
         if ($id === false) {

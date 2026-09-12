@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Hydra\Auth\Contracts;
 
 /**
- * What a user must expose for authentication
+ * The two things auth needs from a user object, so an application's own model
+ * can play the part without inheriting anything from the framework.
  */
 interface AuthenticatableInterface
 {
@@ -17,7 +18,7 @@ interface AuthenticatableInterface
 
     /**
      * The stored password hash. May be an empty string for an account with no
-     * usable password — {@see HasherInterface::verify()} treats that as never
+     * usable password, which {@see HasherInterface::verify()} treats as never
      * matching.
      */
     public function getAuthPassword(): string;

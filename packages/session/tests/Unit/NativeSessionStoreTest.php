@@ -26,7 +26,7 @@ final class NativeSessionStoreTest extends TestCase
     {
         // CLI has no real client; PHPUnit's process isolation buffers output,
         // so the session cookie header can still be "sent" harmlessly. Only the
-        // cache limiter must go — it would emit headers session_start() warns on.
+        // cache limiter must go, since it emits headers session_start() warns on.
         ini_set('session.cache_limiter', '');
     }
 
@@ -118,7 +118,7 @@ final class NativeSessionStoreTest extends TestCase
     public function test_data_access_after_save_throws(): void
     {
         // The write-after-save window: session_write_close() has run, so a
-        // write here would silently never persist — it must fail loud instead.
+        // write here would silently never persist, so it must fail loud instead.
         $store = new NativeSessionStore(new SessionConfig);
         $store->start();
         $store->save();
@@ -129,7 +129,7 @@ final class NativeSessionStoreTest extends TestCase
 
     public function test_id_outside_the_lifecycle_throws(): void
     {
-        // The old behavior returned '' before start() — indistinguishable from
+        // The old behavior returned '' before start(), indistinguishable from
         // a real (if odd) id at the call site. Fail loud instead.
         $store = new NativeSessionStore(new SessionConfig);
 

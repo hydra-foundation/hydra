@@ -14,7 +14,8 @@ use Hydra\Session\Contracts\SessionInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Wires the auth package into an application
+ * Wires the auth package into an application. Binds everything except the
+ * UserProviderInterface, which is left to the app: auth owns no user storage.
  */
 final class AuthServiceProvider extends ServiceProvider
 {
@@ -33,7 +34,7 @@ final class AuthServiceProvider extends ServiceProvider
 
         // The session-backed guard, shared for the request so the middleware and
         // controllers see one consistent authentication state (and its per-request
-        // user cache). It pulls the app-supplied UserProviderInterface — which
+        // user cache). It pulls the app-supplied UserProviderInterface, which
         // this provider intentionally does NOT bind.
         $container->singleton(GuardInterface::class, function () use ($container) {
             // The event dispatcher is OPTIONAL: auth depends on the PSR interface,

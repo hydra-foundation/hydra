@@ -28,7 +28,7 @@ final class NativeSessionStore extends SessionStore
             // Session-fixation defense: with strict mode off (PHP's default),
             // session_start() adopts any uninitialized id an attacker plants in
             // the cookie, letting them pre-choose a victim's session id. Forcing
-            // it here — rather than trusting php.ini, which varies per host —
+            // it here, rather than trusting php.ini (which varies per host),
             // guarantees unknown ids are rejected and replaced on every deploy.
             session_start(['use_strict_mode' => true]);
         }

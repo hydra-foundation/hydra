@@ -16,7 +16,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * The migrate:* and make:migration commands wired to a real MigrationRunner over
- * an in-memory sqlite PDO and a temp directory — covering the dev-mode guard on
+ * an in-memory sqlite PDO and a temp directory, covering the dev-mode guard on
  * migrate:fresh and the timestamped scaffolding of make:migration.
  */
 final class MigrateCommandsTest extends TestCase
