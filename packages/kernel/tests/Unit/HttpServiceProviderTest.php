@@ -27,12 +27,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  * Proves the extracted plumbing wires together: registering the provider binds
  * the whole HTTP chain, and a request actually routes through the pipeline to a
  * controller. This is what used to live (and drift) in each app's
- * AppServiceProvider.
- *
- * The provider deliberately binds no PSR-7 vendor — the PSR-17 factories and
- * the request provider are seams the composition root fills (nyholm's
- * NyholmServiceProvider in the reference app). These tests fill them with
- * local doubles, which is itself proof the kernel is vendor-free.
+ * AppServiceProvider. It deliberately binds no PSR-7 vendor: the PSR-17
+ * factories and the request provider are seams the composition root fills
+ * (nyholm's NyholmServiceProvider in the reference app), and these tests fill
+ * them with local doubles, which is itself proof the kernel is vendor-free.
  */
 final class HttpServiceProviderTest extends TestCase
 {

@@ -7,6 +7,11 @@ namespace Hydra\Core\Tests\Unit;
 use Hydra\Core\Security\Signer;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * HMAC signing and verification, including key rotation and the rejections that
+ * matter: a tampered message, a foreign key, and malformed input, which returns
+ * null rather than throwing.
+ */
 final class SignerTest extends TestCase
 {
     /** A 64-hex (32-byte) key, the shape `key:generate` emits. */

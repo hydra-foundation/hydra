@@ -10,6 +10,10 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * The nyholm side of the request-provider seam: it satisfies the interface the
+ * kernel consumes and builds a server request from the PHP environment.
+ */
 final class NyholmRequestProviderTest extends TestCase
 {
     public function test_fulfils_the_request_provider_seam(): void

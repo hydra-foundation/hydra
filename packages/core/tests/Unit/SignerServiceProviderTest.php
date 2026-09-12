@@ -10,6 +10,11 @@ use Hydra\Core\Security\Signer;
 use Hydra\Core\Security\SignerServiceProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * APP_KEY is checked when the Signer is resolved, not when the provider is
+ * registered, so a missing or malformed key names itself instead of failing
+ * somewhere downstream.
+ */
 final class SignerServiceProviderTest extends TestCase
 {
     private const KEY_HEX = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';

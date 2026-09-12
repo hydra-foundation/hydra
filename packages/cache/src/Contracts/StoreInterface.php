@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Hydra\Cache\Contracts;
 
 /**
- * A key/value store with expiry.
- *
- * The counter methods are the reason this contract is narrow: anything that
+ * A key/value store with expiry. The counter methods are the reason this
+ * contract is narrow: anything that
  * budgets per client has to increment and expire as one step. Doing it in two
  * calls leaves a window where concurrent requests each see a fresh counter, and
  * a limiter with that window can be walked straight past. Atomicity is part of

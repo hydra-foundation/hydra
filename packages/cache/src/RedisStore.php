@@ -11,9 +11,8 @@ use RuntimeException;
 
 /**
  * The store every php-fpm worker shares, which is what makes a per-client
- * budget mean one budget rather than one per worker.
- *
- * Every key is written under a configured prefix so several applications can
+ * budget mean one budget rather than one per worker. Every key is written under
+ * a configured prefix so several applications can
  * share a Redis instance without counting each other's requests.
  */
 final class RedisStore implements StoreInterface

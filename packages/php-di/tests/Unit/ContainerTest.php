@@ -10,9 +10,15 @@ use Hydra\PhpDi\Container;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
+/** An interface and one implementation, enough to bind a contract to a concrete. */
 interface Animal {}
 final class Dog implements Animal {}
 
+/**
+ * The Hydra container contract as PHP-DI fulfils it, and the two places PHP-DI's
+ * own semantics show through: a closure binding must be a factory, and every
+ * resolved entry is shared.
+ */
 final class ContainerTest extends TestCase
 {
     private Container $container;
@@ -36,7 +42,7 @@ final class ContainerTest extends TestCase
     public function test_singleton_with_closure_does_not_throw(): void
     {
         // Regression: passing the closure to \DI\autowire() (which only accepts a
-        // class-name string) threw a TypeError — a callable must use \DI\factory().
+        // class-name string) threw a TypeError; a callable must use \DI\factory().
         $this->container->singleton('service', fn () => new stdClass);
 
         $this->assertInstanceOf(stdClass::class, $this->container->get('service'));
@@ -45,7 +51,7 @@ final class ContainerTest extends TestCase
     public function test_resolved_entries_are_shared(): void
     {
         // PHP-DI caches resolved entries, so repeat resolution returns the same
-        // instance — singleton() is the only binding semantics there is.
+        // instance, and singleton() is the only binding semantics there is.
         $this->container->singleton('service', fn () => new stdClass);
 
         $this->assertSame(

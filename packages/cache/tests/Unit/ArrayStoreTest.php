@@ -7,6 +7,10 @@ namespace Hydra\Cache\Tests\Unit;
 use Hydra\Cache\ArrayStore;
 use Hydra\Cache\Contracts\StoreInterface;
 
+/**
+ * The in-memory store's own behaviour. Everything it shares with the other
+ * drivers is covered by the shared contract case it extends.
+ */
 final class ArrayStoreTest extends StoreContractTestCase
 {
     private ArrayStore $store;

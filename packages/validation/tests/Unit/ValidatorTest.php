@@ -13,6 +13,11 @@ use Hydra\Validation\Rules\Required;
 use Hydra\Validation\Validator;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Running a rule set over input: one error per field, short-circuiting at the
+ * first failure, and validated() returning exactly the ruled subset, which is
+ * what keeps an unvalidated field from reaching the code downstream.
+ */
 final class ValidatorTest extends TestCase
 {
     private Validator $validator;

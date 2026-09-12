@@ -10,6 +10,11 @@ use Hydra\Core\Contracts\KernelInterface;
 use Hydra\Core\Contracts\ServiceProviderInterface;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The boot sequence: register runs the moment a provider is added, boot runs
+ * once, and a provider added after boot is booted on the spot rather than
+ * silently never.
+ */
 final class ApplicationTest extends TestCase
 {
     private function containerResolving(KernelInterface $kernel): ContainerInterface

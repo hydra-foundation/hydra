@@ -15,6 +15,11 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * Which requests are guarded and which are not. Safe verbs pass untouched;
+ * everything else, including lowercase and unknown verbs, needs a valid token
+ * from either the header or the form field.
+ */
 final class VerifyCsrfTokenMiddlewareTest extends TestCase
 {
     public function test_safe_methods_pass_through_without_a_token(): void

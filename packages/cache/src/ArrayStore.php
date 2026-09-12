@@ -7,9 +7,8 @@ namespace Hydra\Cache;
 use Hydra\Cache\Contracts\StoreInterface;
 
 /**
- * The store that lives and dies with the process.
- *
- * It exists for tests and for single-process tooling, and it is deliberately
+ * The store that lives and dies with the process. It exists for tests and for
+ * single-process tooling, and it is deliberately
  * NOT the fallback when Redis is unreachable: php-fpm runs many workers, so a
  * per-process counter would hand each worker its own budget and quietly
  * multiply every limit by the pool size. A limiter that cannot reach its store

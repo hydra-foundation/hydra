@@ -7,6 +7,10 @@ namespace Hydra\Event\Tests\Unit;
 use Hydra\Event\ListenerProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Which listeners an event matches: exact class, base class and interface via
+ * instanceof, and the registration order they come back in.
+ */
 final class ListenerProviderTest extends TestCase
 {
     private ListenerProvider $provider;
@@ -30,7 +34,7 @@ final class ListenerProviderTest extends TestCase
 
     public function test_matches_a_base_class_via_instanceof(): void
     {
-        // A listener on the base type fires for a subtype — the PSR-14 idiom that
+        // A listener on the base type fires for a subtype: the PSR-14 idiom that
         // lets an app subscribe to a whole family of events at once.
         $this->provider->listen(Base::class, $a = fn () => null);
 

@@ -9,6 +9,11 @@ use Hydra\Core\Environment;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Reading the cache settings from the environment, and the values refused at
+ * construction because a counter that silently lands on the wrong driver or a
+ * zero timeout is worse than a startup failure.
+ */
 final class CacheConfigTest extends TestCase
 {
     /** The REDIS_* keys these tests clear so a .env can be read in isolation. */

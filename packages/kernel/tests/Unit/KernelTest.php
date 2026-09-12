@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Proves the composition helper registers the standard stack in one place — the
+ * Proves the composition helper registers the standard stack in one place: the
  * knowledge that used to drift between each app's bootstrap.
  */
 final class KernelTest extends TestCase

@@ -7,6 +7,10 @@ namespace Hydra\Validation\Tests\Unit;
 use Hydra\Validation\Result;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The result object, and the one rule it enforces: validated data cannot be read
+ * off a failed result, so a caller cannot skip checking whether it passed.
+ */
 final class ResultTest extends TestCase
 {
     public function test_passing_result_exposes_its_validated_data(): void

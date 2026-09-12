@@ -9,7 +9,7 @@ use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
 
 /**
- * A tiny strict container for the kernel tests — enough to exercise the
+ * A tiny strict container for the kernel tests, enough to exercise the
  * providers without pulling php-di. Every binding is explicit (no autowiring),
  * which is fine here: the tests pre-bind the one controller the router resolves,
  * and the providers register everything else.

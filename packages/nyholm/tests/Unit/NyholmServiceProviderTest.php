@@ -16,7 +16,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 /**
  * Proves this provider alone fills every PSR-7 seam the kernel consumes: the
  * PSR-17 factory interfaces and the request provider. This is the binding set
- * that used to be hard-coded in the kernel's HttpServiceProvider — an app
+ * that used to be hard-coded in the kernel's HttpServiceProvider; an app now
  * registers this provider (or a rival vendor's equivalent) explicitly.
  */
 final class NyholmServiceProviderTest extends TestCase

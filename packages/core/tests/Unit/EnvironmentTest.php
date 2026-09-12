@@ -7,6 +7,11 @@ namespace Hydra\Core\Tests\Unit;
 use Hydra\Core\Environment;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Parsing a .env file and reading typed values out of it. Weighted towards the
+ * quoting and inline-comment cases, where a wrong answer is a silently
+ * misconfigured application rather than an error.
+ */
 final class EnvironmentTest extends TestCase
 {
     private string $dir;

@@ -9,7 +9,7 @@ use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
 
 /**
- * A tiny strict container for the provider test — enough to register and
+ * A tiny strict container for the provider test, enough to register and
  * resolve the bindings without pulling php-di. No autowiring: everything the
  * provider needs, it must bind itself.
  */

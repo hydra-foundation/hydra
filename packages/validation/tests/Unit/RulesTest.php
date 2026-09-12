@@ -14,6 +14,11 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Stringable;
 
+/**
+ * Every shipped rule against the values a request actually carries, including
+ * the non-string ones (arrays, objects, booleans) that must fail a string rule
+ * rather than warn or fatal on the way.
+ */
 final class RulesTest extends TestCase
 {
     public function test_required_fails_on_null_empty_string_and_empty_array(): void

@@ -9,7 +9,6 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * The behaviour every store owes its callers, run against each implementation.
- *
  * Both stores are held to one set of expectations on purpose: a limiter tested
  * against ArrayStore and deployed against RedisStore is only meaningful if the
  * two agree, and the places they could drift (expiry, counter windows, what a
