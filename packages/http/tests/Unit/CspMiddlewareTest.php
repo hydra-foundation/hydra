@@ -13,6 +13,10 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * Stamping the policy on the response: the request's own nonce named in it,
+ * report-only mode, and a policy a handler already set left alone.
+ */
 final class CspMiddlewareTest extends TestCase
 {
     public function test_stamps_the_compiled_policy_on_the_response(): void

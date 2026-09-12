@@ -165,7 +165,7 @@ final class RouterTest extends TestCase
         $router = new Router($this->container());
         $router->get('/thing', fn (): ResponseInterface => $this->createStub(ResponseInterface::class));
 
-        // A POST to the same path must not hit the GET handler — it's a 405.
+        // A POST to the same path must not hit the GET handler; it's a 405.
         $this->expectException(MethodNotAllowedException::class);
         $router->handle($this->request('POST', '/thing'));
     }
@@ -183,7 +183,7 @@ final class RouterTest extends TestCase
 
     public function test_head_on_a_non_get_route_still_throws_method_not_allowed(): void
     {
-        // HEAD falls back to GET only — a path with no GET handler is still 405.
+        // HEAD falls back to GET only, so a path with no GET handler is 405.
         $router = new Router($this->container());
         $router->post('/submit', fn (): ResponseInterface => $this->createStub(ResponseInterface::class));
 

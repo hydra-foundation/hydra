@@ -10,14 +10,11 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Middleware pipeline
- *
- * The request travels inward through each middleware to the innermost
- * handler (the kernel/router); the response unwinds back outward. Each
- * middleware receives a handler representing "the rest of the pipeline".
- *
- * The chain is rebuilt from the immutable middleware list on every dispatch,
- * so a single instance can safely handle many requests.
+ * The request travels inward through each middleware to the innermost handler
+ * (the kernel/router) and the response unwinds back outward, each middleware
+ * holding a handler that stands for "the rest of the pipeline". The chain is
+ * rebuilt from the immutable middleware list on every dispatch, so one instance
+ * safely handles many requests.
  */
 final class Pipeline implements RequestHandlerInterface
 {

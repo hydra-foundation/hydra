@@ -7,6 +7,11 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\Csp;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Compiling directives to a header value, and the builders that add, replace
+ * and drop them. Each builder returns a new policy, so the shared default is
+ * never mutated by a screen relaxing one directive for itself.
+ */
 final class CspTest extends TestCase
 {
     public function test_compiles_directives_in_declaration_order(): void

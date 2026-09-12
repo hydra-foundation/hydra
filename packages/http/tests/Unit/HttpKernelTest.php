@@ -52,9 +52,9 @@ final class HttpKernelTest extends TestCase
         $requests = $this->createStub(ServerRequestProviderInterface::class);
         $requests->method('fromGlobals')->willReturn($this->createStub(ServerRequestInterface::class));
 
-        // Simulates a throwable escaping the whole pipeline — e.g. an outer
-        // middleware or the lazy container resolution blowing up before the
-        // error handler middleware could catch it.
+        // Simulates a throwable escaping the whole pipeline: an outer middleware
+        // or the lazy container resolution blowing up before the error handler
+        // middleware could catch it.
         $handler = new class implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {

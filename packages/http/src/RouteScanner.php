@@ -62,11 +62,7 @@ final class RouteScanner
         return $routes;
     }
 
-    /**
-     * The optional class-level group declaration, or null when the controller isn't grouped.
-     *
-     * @param ReflectionClass<object> $reflection
-     */
+    /** @param ReflectionClass<object> $reflection */
     private function group(ReflectionClass $reflection): ?RouteGroupAttribute
     {
         $attributes = $reflection->getAttributes(RouteGroupAttribute::class);
@@ -76,7 +72,7 @@ final class RouteScanner
         }
 
         // #[RouteGroup] is not repeatable, but PHP only enforces that when the
-        // second attribute is instantiated — and we instantiate only the first.
+        // second attribute is instantiated, and we instantiate only the first.
         // Surface the misuse loudly at scan time rather than silently dropping it.
         if (count($attributes) > 1) {
             throw new \LogicException(sprintf(

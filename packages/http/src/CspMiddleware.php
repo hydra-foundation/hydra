@@ -37,8 +37,8 @@ final class CspMiddleware implements MiddlewareInterface
 
         $header = $this->reportOnly ? self::REPORT_ONLY : self::ENFORCE;
 
-        // A response that already carries a policy set it on purpose — a screen
-        // relaxing one directive for itself — and re-stamping would undo it.
+        // A response that already carries a policy set it on purpose (a screen
+        // relaxing one directive for itself), and re-stamping would undo it.
         if ($response->hasHeader($header)) {
             return $response;
         }

@@ -117,7 +117,7 @@ final class Router implements RequestHandlerInterface
 
         // The path matched but the verb did not: 405, carrying the verbs that
         // would have worked. Rendering (and the Allow header) is the error
-        // handler's job — the router only signals the condition.
+        // handler's job; the router only signals the condition.
         if ($allowed !== []) {
             throw new MethodNotAllowedException($allowed);
         }
@@ -125,9 +125,7 @@ final class Router implements RequestHandlerInterface
         throw new NotFoundException;
     }
 
-    /**
-     * Does a request method match a registered route's method?
-     */
+    /** HEAD falls back to a GET route, a HEAD being a GET without the body. */
     private function methodMatches(string $routeMethod, string $requestMethod): bool
     {
         return $routeMethod === $requestMethod
@@ -159,11 +157,7 @@ final class Router implements RequestHandlerInterface
         return new Pipeline($middleware, $handler);
     }
 
-    /**
-     * Resolve a route target into a request handler, using the container for classes.
-     *
-     * @param array<string, string> $params
-     */
+    /** @param array<string, string> $params */
     private function resolveTarget(mixed $target, array $params): RequestHandlerInterface
     {
         if (is_array($target)) {

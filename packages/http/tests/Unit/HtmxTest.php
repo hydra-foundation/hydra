@@ -9,6 +9,10 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * The htmx 4 request headers as this reader sees them, including HX-Target's
+ * "tag#id" spelling and an absent header reading as null rather than "".
+ */
 final class HtmxTest extends TestCase
 {
     /** @param array<string, string> $headers */
@@ -73,7 +77,7 @@ final class HtmxTest extends TestCase
     {
         $htmx = Htmx::fromRequest($this->request());
 
-        // null is "not sent" — distinct from an empty value a client could send.
+        // null is "not sent", distinct from an empty value a client could send.
         $this->assertNull($htmx->target());
         $this->assertNull($htmx->targetId());
         $this->assertNull($htmx->currentUrl());

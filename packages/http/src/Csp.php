@@ -22,8 +22,8 @@ final readonly class Csp
     /**
      * Nothing but the origin's own content: no plugins, no <base> an injection
      * could repoint, no posting elsewhere, and inline script only where the
-     * server stamped the request's nonce. What a particular app also needs — a
-     * font host, data: images — is the app's to add, not the framework's to
+     * server stamped the request's nonce. What a particular app also needs (a
+     * font host, data: images) is the app's to add, not the framework's to
      * guess.
      */
     public static function default(): self
@@ -47,9 +47,7 @@ final readonly class Csp
         return new self([...$this->directives, $directive => array_values(array_unique($sources))]);
     }
 
-    /**
-     * Add sources to a directive, keeping the ones it already allows.
-     */
+    /** Adds sources to a directive, keeping the ones it already allows. */
     public function allow(string $directive, string ...$sources): self
     {
         return $this->with($directive, ...[...$this->directives[$directive] ?? [], ...$sources]);

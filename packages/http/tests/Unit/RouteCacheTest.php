@@ -7,6 +7,11 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\RouteCache;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The compiled-routes artifact: an exact round trip including order, which
+ * decides matching precedence, and the staleness checks that make a changed or
+ * reordered controller list read as a miss rather than as wrong routes.
+ */
 final class RouteCacheTest extends TestCase
 {
     /** The controllers list the sample routes were "scanned" from. */
@@ -76,7 +81,7 @@ final class RouteCacheTest extends TestCase
 
         $cache->store($routes);
 
-        // Same values AND same order/keys — the Router iterates in order, so a
+        // Same values AND same order/keys: the Router iterates in order, so a
         // reordered cache would silently change matching precedence.
         $this->assertSame($routes, $cache->load());
     }
@@ -111,7 +116,7 @@ final class RouteCacheTest extends TestCase
         $path = $this->dir . '/routes.php';
         $this->cache($path)->store($this->sampleRoutes());
 
-        // A controller was added since route:cache ran — the artifact is stale
+        // A controller was added since route:cache ran, so the artifact is stale
         // and must read as a miss so the caller re-scans, not as routes that
         // silently lack the new controller.
         $grown = [...self::CONTROLLERS, 'App\\Controllers\\NewController'];
@@ -131,7 +136,7 @@ final class RouteCacheTest extends TestCase
     public function test_load_treats_pre_fingerprint_artifact_as_stale(): void
     {
         // A cache file written by the old format (a bare routes list, no
-        // fingerprint wrapper) reads as a miss — stale, not broken.
+        // fingerprint wrapper) reads as a miss: stale, not broken.
         $path = $this->dir . '/routes.php';
         mkdir($this->dir, 0775, true);
         file_put_contents(
@@ -155,7 +160,7 @@ final class RouteCacheTest extends TestCase
 
     public function test_clear_on_a_cold_cache_is_a_no_op(): void
     {
-        // Clearing an absent cache is success, not an error — it just had
+        // Clearing an absent cache is success, not an error: it just had
         // nothing to remove.
         $this->assertFalse($this->cache($this->dir . '/routes.php')->clear());
     }

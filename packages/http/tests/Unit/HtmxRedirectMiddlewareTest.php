@@ -13,11 +13,10 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * The one place that knows a redirect has to reach htmx differently.
- *
- * Handlers and the other middleware return a plain redirect; this converts it,
- * so a redirect added later cannot forget to. htmx 4 reads no response header,
- * so the conversion is into markup — see {@see \Hydra\Http\HtmxResponse}.
+ * The one place that knows a redirect has to reach htmx differently. Handlers
+ * and the other middleware return a plain redirect and this converts it, so a
+ * redirect added later cannot forget to. htmx 4 reads no response header, so
+ * the conversion is into markup; see {@see \Hydra\Http\HtmxResponse}.
  */
 final class HtmxRedirectMiddlewareTest extends TestCase
 {
@@ -60,7 +59,7 @@ final class HtmxRedirectMiddlewareTest extends TestCase
 
     public function test_a_not_modified_is_left_alone(): void
     {
-        // 304 is 3xx but carries no Location — converting it would invent one.
+        // 304 is 3xx but carries no Location, so converting it would invent one.
         $response = $this->process($this->htmxRequest(), (new Psr17Factory)->createResponse(304));
 
         $this->assertSame(304, $response->getStatusCode());

@@ -7,6 +7,11 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\CompiledRoute;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Path compilation and matching: placeholders capture within one segment,
+ * literal regex characters in a path stay literal, and captured values are
+ * url-decoded.
+ */
 final class CompiledRouteTest extends TestCase
 {
     private function route(string $path): CompiledRoute

@@ -40,8 +40,8 @@ final class RouteCache
     }
 
     /**
-     * Compile the route definitions to the cache file, fingerprinted with the
-     * controllers list they were scanned from
+     * Written via a temp file and rename so a concurrent reader never sees a
+     * half-written artifact.
      *
      * @param list<RouteDefinition> $routes
      */
@@ -73,9 +73,7 @@ final class RouteCache
         }
     }
 
-    /**
-     * Remove the cache file if it exists, returning whether anything was deleted
-     */
+    /** Returns whether there was anything to delete; a cold cache is not an error. */
     public function clear(): bool
     {
         if (!is_file($this->path)) {
@@ -94,7 +92,7 @@ final class RouteCache
     /**
      * The controllers-list fingerprint embedded in the artifact. Order-sensitive
      * on purpose: reordering the list reorders the scan output, which changes
-     * route matching precedence — a different list is a different cache.
+     * route matching precedence: a different list is a different cache.
      */
     private function fingerprint(): string
     {

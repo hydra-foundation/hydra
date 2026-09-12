@@ -9,6 +9,11 @@ use Hydra\Http\Status;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The response factory every controller builds through: the content type and
+ * status each helper produces, and JSON encoding that neither escapes slashes
+ * nor silently emits a broken body.
+ */
 final class ResponderTest extends TestCase
 {
     private function responder(): Responder

@@ -54,7 +54,7 @@ final class ClientIpResolverTest extends TestCase
         // The whole reason this class exists. The caller sends a forged header;
         // our proxy appends what it actually saw. Reading the list from the left
         // returns the forgery, which is a per-request identity reset for anything
-        // counting by client — so the walk starts from the right.
+        // counting by client, so the walk starts from the right.
         $resolver = new ClientIpResolver(new TrustedProxies(['10.0.0.1']));
         $request = $this->request('10.0.0.1', '1.2.3.4, 198.51.100.7');
 

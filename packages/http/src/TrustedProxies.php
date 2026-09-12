@@ -8,11 +8,10 @@ use InvalidArgumentException;
 
 /**
  * The set of addresses whose forwarding headers the application believes.
- *
  * Everything about `X-Forwarded-For` and `X-Forwarded-Proto` hinges on this
  * list: those headers are client-supplied, so they mean nothing until the peer
  * that delivered them is known to overwrite (or append to) them honestly. An
- * empty list is the safe default and says "no proxy in front" — the socket peer
+ * empty list is the safe default and says "no proxy in front": the socket peer
  * is the client, and forwarding headers are ignored entirely.
  */
 final readonly class TrustedProxies
@@ -39,7 +38,7 @@ final readonly class TrustedProxies
 
     /**
      * Whether $ip belongs to one of the trusted ranges. A malformed or missing
-     * address is never trusted — the question is only ever asked about a peer we
+     * address is never trusted: the question is only ever asked about a peer we
      * are deciding to believe, so an unparseable answer must be "no".
      */
     public function contains(?string $ip): bool

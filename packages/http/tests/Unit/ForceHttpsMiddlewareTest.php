@@ -14,6 +14,11 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * The redirect to https and the HSTS header, and the part that decides whether
+ * a request already arrived securely: X-Forwarded-Proto counts only when the
+ * app opted in AND the peer is a declared proxy, since it is client-supplied.
+ */
 final class ForceHttpsMiddlewareTest extends TestCase
 {
     public function test_passes_through_untouched_when_disabled(): void

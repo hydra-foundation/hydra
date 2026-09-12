@@ -12,6 +12,10 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\AbstractLogger;
 
+/**
+ * One structured line per request carrying the facts an access log needs, and
+ * the inner response handed back untouched.
+ */
 final class RequestLoggingMiddlewareTest extends TestCase
 {
     public function test_logs_one_line_with_request_and_response_facts(): void

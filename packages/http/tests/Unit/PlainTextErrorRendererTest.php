@@ -13,6 +13,11 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 
+/**
+ * The fallback renderer used before (or instead of) a view layer, and the line
+ * it draws between debug and production: a trace and the throwable's class only
+ * ever appear in debug.
+ */
 final class PlainTextErrorRendererTest extends TestCase
 {
     private function renderer(): PlainTextErrorRenderer

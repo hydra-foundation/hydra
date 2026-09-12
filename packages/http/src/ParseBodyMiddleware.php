@@ -27,8 +27,8 @@ final class ParseBodyMiddleware implements MiddlewareInterface
         $body = $request->getBody();
         $raw = (string) $body;
         // Leave a re-readable stream for anything downstream that reads raw.
-        // PSR-7 permits non-seekable streams, whose rewind() throws — for
-        // those, downstream raw readers were never possible anyway.
+        // PSR-7 permits non-seekable streams, whose rewind() throws; for those,
+        // downstream raw readers were never possible anyway.
         if ($body->isSeekable()) {
             $body->rewind();
         }
@@ -37,7 +37,7 @@ final class ParseBodyMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        // The media type only — parameters like "; charset=utf-8" don't matter.
+        // The media type only; parameters like "; charset=utf-8" don't matter.
         $type = strtolower(trim(explode(';', $request->getHeaderLine('Content-Type'))[0]));
 
         if ($type === 'application/json' || str_ends_with($type, '+json')) {

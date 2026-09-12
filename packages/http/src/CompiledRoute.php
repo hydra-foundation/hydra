@@ -38,7 +38,7 @@ final class CompiledRoute
 
         // Keep only named captures, url-decoded (e.g. "john%20doe" => "john doe").
         // Note: a percent-encoded slash (%2F) decodes to a literal "/" inside a
-        // single param — intentional, since matching already happened per-segment.
+        // single param, intentional since matching already happened per-segment.
         $params = [];
         foreach ($matches as $name => $value) {
             if (is_string($name)) {

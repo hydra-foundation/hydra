@@ -11,6 +11,10 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * The fixed security headers are stamped on the response, and nothing the inner
+ * handler produced is disturbed in the process.
+ */
 final class SecurityHeadersMiddlewareTest extends TestCase
 {
     public function test_stamps_the_security_headers_on_the_response(): void

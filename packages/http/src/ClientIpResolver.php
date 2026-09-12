@@ -7,15 +7,13 @@ namespace Hydra\Http;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Answers "who sent this request?" — the one question anything that counts per
- * client has to get right.
- *
- * `X-Forwarded-For` is a list a proxy *appends* to, so its leftmost entry is
- * whatever the original caller chose to send. Reading that entry hands the
- * caller its own identity: an attacker varies it per request and every per-IP
- * budget in the application resets with it. The list is therefore walked from
- * the right, dropping hops that are trusted proxies, and the first address that
- * is not one of ours is the furthest point we can still vouch for.
+ * Answers "who sent this request?", the one question anything that counts per
+ * client has to get right. `X-Forwarded-For` is a list a proxy *appends* to, so
+ * its leftmost entry is whatever the original caller chose to send; reading it
+ * hands the caller its own identity, and every per-IP budget in the application
+ * resets as an attacker varies it. The list is therefore walked from the right,
+ * dropping hops that are trusted proxies, and the first address that is not one
+ * of ours is the furthest point we can still vouch for.
  */
 final readonly class ClientIpResolver
 {
@@ -31,7 +29,7 @@ final readonly class ClientIpResolver
         $peer = $this->peer($request);
 
         // With no proxy declared, the socket peer is the client and forwarding
-        // headers are noise — believing them here is the spoof.
+        // headers are noise; believing them here is the spoof.
         if ($this->proxies->isEmpty() || !$this->proxies->contains($peer)) {
             return $peer;
         }
@@ -43,7 +41,7 @@ final readonly class ClientIpResolver
         }
 
         // Every hop was one of ours, so the peer is the closest thing to a
-        // client that exists — a health check from inside the perimeter.
+        // client that exists: a health check from inside the perimeter.
         return $peer;
     }
 
@@ -51,7 +49,7 @@ final readonly class ClientIpResolver
      * Whether a forwarding header on this request may be believed at all.
      *
      * With no proxy list declared the application has expressed no opinion, so
-     * a caller's own opt-in stands — the bundled nginx resolves `X-Forwarded-For`
+     * a caller's own opt-in stands. The bundled nginx resolves `X-Forwarded-For`
      * into REMOTE_ADDR itself, which leaves the proxy invisible here and makes a
      * peer check unanswerable. Once a list exists the peer must be on it, and a
      * request that arrived directly no longer borrows the proxy's word.
@@ -66,7 +64,7 @@ final readonly class ClientIpResolver
     }
 
     /**
-     * The forwarded chain, furthest hop first — the order the walk needs, which
+     * The forwarded chain, furthest hop first: the order the walk needs, which
      * is the reverse of how the header reads.
      *
      * @return list<string>
@@ -97,7 +95,7 @@ final readonly class ClientIpResolver
             return substr($hop, 1, (strpos($hop, ']') ?: 1) - 1);
         }
 
-        // Only strip a trailing :port from IPv4 — a bare IPv6 address is all colons.
+        // Only strip a trailing :port from IPv4; a bare IPv6 address is all colons.
         if (substr_count($hop, ':') === 1) {
             return substr($hop, 0, (int) strpos($hop, ':'));
         }

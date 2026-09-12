@@ -11,6 +11,11 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Throwable;
 
+/**
+ * The exception the framework signals an HTTP status with: the status and any
+ * headers it carries to the response, and the named constructors for the two
+ * cases the router raises itself.
+ */
 final class HttpExceptionTest extends TestCase
 {
     public function test_is_a_throwable(): void

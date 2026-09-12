@@ -11,6 +11,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * Every way a controller method's parameters can be filled: the request by
+ * type, route placeholders coerced to the declared scalar, defaults and
+ * nullables, and the wiring errors that are a bug rather than a bad request.
+ */
 final class ArgumentResolverTest extends TestCase
 {
     private function resolve(callable $target, array $params = [], ?ServerRequestInterface $request = null): array

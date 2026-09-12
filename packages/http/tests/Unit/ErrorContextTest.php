@@ -10,6 +10,11 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 
+/**
+ * What an error renderer is allowed to tell the client. An HttpException's
+ * message was authored for the client and shows; anything else's may carry
+ * internals and never does.
+ */
 final class ErrorContextTest extends TestCase
 {
     private function context(\Throwable $error, int $status, bool $debug = false): ErrorContext
@@ -33,8 +38,8 @@ final class ErrorContextTest extends TestCase
 
     public function test_client_message_never_leaks_a_generic_throwables_message(): void
     {
-        // A non-HttpException may carry internals (a DSN, a path) — its message
-        // must never reach the client; the reason phrase stands in.
+        // A non-HttpException may carry internals (a DSN, a path), so its
+        // message must never reach the client; the reason phrase stands in.
         $context = $this->context(new RuntimeException('secret dsn=user:pw@db'), 500);
 
         $this->assertSame('Internal Server Error', $context->clientMessage());

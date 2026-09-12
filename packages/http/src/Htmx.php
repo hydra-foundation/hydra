@@ -7,11 +7,9 @@ namespace Hydra\Http;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Typed reader for the HX-* request headers htmx sends.
- *
- * Only for headers htmx actually sends: HX-Trigger, HX-Trigger-Name and
- * HX-Prompt were dropped in htmx 4, and a reader for them would answer null
- * forever rather than say why.
+ * Typed reader for the HX-* request headers htmx sends, and only those:
+ * HX-Trigger, HX-Trigger-Name and HX-Prompt were dropped in htmx 4, so a reader
+ * for them would answer null forever rather than say why.
  */
 final class Htmx
 {
@@ -36,8 +34,8 @@ final class Htmx
 
     /**
      * The HX-Target header verbatim. htmx sends the target element as
-     * "tag#id" (e.g. "div#admin-body"), or bare "tag" when it has no id —
-     * {@see targetId()} for the id alone.
+     * "tag#id" (e.g. "div#admin-body"), or bare "tag" when it has no id.
+     * {@see targetId()} returns the id alone.
      */
     public function target(): ?string
     {

@@ -24,9 +24,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 /**
  * A middleware that appends to a shared log and passes through, optionally
  * forwarding a request attribute to the next layer to verify it was visible.
- *
- * Reusing the RecordingMiddleware defined in PipelineTest would require
- * loading that class; a separate, local fixture is cleaner.
+ * Local rather than reusing PipelineTest's RecordingMiddleware, which would
+ * mean loading that file for a fixture.
  */
 final class TaggingMiddleware implements MiddlewareInterface
 {
@@ -118,7 +117,7 @@ final class MethodTagMiddleware {}
  * middleware, the method's #[Route] the INNER one. Used to prove the scanner's
  * group→method fold doesn't just serialize correctly (RouteScannerTest already
  * pins that) but actually EXECUTES outermost-first once dispatched through
- * Router::handle() — the ordering AdminController relies on for its auth/authz
+ * Router::handle(), the ordering AdminController relies on for its auth/authz
  * gates.
  */
 #[RouteGroupAttribute('/admin', middleware: [GroupTagMiddleware::class])]
@@ -302,7 +301,7 @@ final class PerRouteMiddlewareTest extends TestCase
         $resolveCount = 0;
 
         $container = $this->createStub(ContainerInterface::class);
-        // get() should never be called — no class-string to resolve.
+        // get() should never be called: no class-string to resolve.
         $container->method('get')->willReturnCallback(function () use (&$resolveCount) {
             $resolveCount++;
             return null;
@@ -318,7 +317,7 @@ final class PerRouteMiddlewareTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // 5a. Middleware is resolved lazily — only on a match
+    // 5a. Middleware is resolved lazily, only on a match
     // ------------------------------------------------------------------
 
     public function test_middleware_class_is_not_resolved_for_non_matching_route(): void
@@ -336,10 +335,10 @@ final class PerRouteMiddlewareTest extends TestCase
 
         $router = new Router($container);
         $router->get('/admin', fn (): ResponseInterface => $expected, [$classAuth]);
-        // Add a second route that will match — to prove the router still runs.
+        // Add a second route that will match, to prove the router still runs.
         $router->get('/open', fn (): ResponseInterface => $expected);
 
-        // Request hits /open, not /admin — the middleware for /admin must never be resolved.
+        // Request hits /open, not /admin, so /admin's middleware is never resolved.
         $router->handle($this->request('GET', '/open'));
 
         $this->assertNotContains($classAuth, $resolvedClasses, 'middleware for /admin must not be resolved on a /open request');

@@ -7,7 +7,8 @@ namespace Hydra\Http;
 use Hydra\Http\Exceptions\BadRequestException;
 
 /**
- * Shared typed accessors over one request value bag.
+ * Shared typed accessors over one request value bag, so {@see Query} and
+ * {@see ParsedBody} answer the same questions in the same way.
  */
 abstract class FieldReader
 {
@@ -22,7 +23,7 @@ abstract class FieldReader
 
     /**
      * The field as a string. A missing field, or one submitted as an array
-     * (e.g. `name[]`), yields the default — never a TypeError. Not trimmed:
+     * (e.g. `name[]`), yields the default, never a TypeError. Not trimmed:
      * trimming is the caller's choice (a password's spaces may matter).
      */
     public function string(string $key, string $default = ''): string
@@ -55,7 +56,7 @@ abstract class FieldReader
     }
 
     /**
-     * The field as a bool. Only explicit forms are accepted — true/1/yes/on
+     * The field as a bool. Only explicit forms are accepted: true/1/yes/on
      * and false/0/no/off, case-insensitive (the true-forms match
      * `Environment::bool()`), plus real booleans from a parsed JSON body.
      */

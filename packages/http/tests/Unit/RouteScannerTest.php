@@ -14,7 +14,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriInterface;
 
-/** Marker middleware class-strings — the scanner only stores them, never resolves them. */
+/** Marker middleware class-strings: the scanner stores them, never resolves them. */
 final class GroupMiddleware {}
 final class MethodMiddleware {}
 
@@ -43,7 +43,7 @@ final class SloppyPrefixController
     public function users(): void {}
 }
 
-/** Grouped purely to share middleware — the default empty prefix leaves paths alone. */
+/** Grouped purely to share middleware; the default empty prefix leaves paths alone. */
 #[RouteGroup(middleware: [GroupMiddleware::class])]
 final class MiddlewareOnlyGroupController
 {
@@ -161,7 +161,7 @@ final class RouteScannerTest extends TestCase
         $routes = (new RouteScanner)->scan([SloppyPrefixController::class]);
 
         // The emitted (cacheable) path is canonical regardless of how the prefix
-        // was written — no reliance on the Router normalizing it again later.
+        // was written, with no reliance on the Router normalizing it again later.
         $this->assertSame('/admin/users', $routes[0]['path']);
     }
 
@@ -186,7 +186,7 @@ final class RouteScannerTest extends TestCase
         $routes = (new RouteScanner)->scan([AdminPanelController::class]);
 
         // The cacheable-array guarantee must hold once middleware is a populated
-        // list rather than the empty default — that's the regression-prone path.
+        // list rather than the empty default, which is the regression-prone path.
         $this->assertNotEmpty($routes);
         foreach ($routes as $route) {
             $this->assertSame(['method', 'path', 'handler', 'middleware'], array_keys($route));

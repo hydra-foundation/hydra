@@ -14,7 +14,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 final class ForceHttpsMiddleware implements MiddlewareInterface
 {
-    /** One year, and apply to subdomains — the conventional HSTS baseline. */
+    /** One year, and apply to subdomains: the conventional HSTS baseline. */
     private const HSTS = 'max-age=31536000; includeSubDomains';
 
     public function __construct(
@@ -32,7 +32,7 @@ final class ForceHttpsMiddleware implements MiddlewareInterface
 
         if (!$this->isSecure($request)) {
             // Drop any explicit port: an http URL may carry :80, which is wrong
-            // for https — clearing it lets the default 443 apply.
+            // for https, and clearing it lets the default 443 apply.
             $secureUrl = $request->getUri()->withScheme('https')->withPort(null);
 
             return $this->respond->redirect((string) $secureUrl, Status::MovedPermanently);
@@ -50,7 +50,7 @@ final class ForceHttpsMiddleware implements MiddlewareInterface
 
         // The forwarded scheme is only meaningful when the app has declared
         // that a proxy it controls sets it (TLS terminated upstream). With no
-        // proxy, the header is attacker-controlled — consulting it here would
+        // proxy, the header is attacker-controlled, so consulting it here would
         // let any direct client spoof its way past the redirect.
         if (!$this->trustForwardedProto) {
             return false;

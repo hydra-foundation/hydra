@@ -7,6 +7,11 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\CspNonce;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The per-request nonce: minted once and stable for the whole request, so the
+ * policy header and every tag the page stamps agree, and safe to place in a
+ * header or an attribute without escaping.
+ */
 final class CspNonceTest extends TestCase
 {
     public function test_returns_the_same_token_every_time_it_is_read(): void

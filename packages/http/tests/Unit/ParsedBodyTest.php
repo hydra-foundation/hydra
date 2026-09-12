@@ -9,6 +9,11 @@ use Hydra\Http\ParsedBody;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The typed reader over a request's parsed body: coercion per type, the default
+ * on a miss, the cases that throw rather than guess, and the shapes PSR-7
+ * allows a parsed body to be (null, an object) handled without a TypeError.
+ */
 final class ParsedBodyTest extends TestCase
 {
     private function body(array|object|null $body): ParsedBody

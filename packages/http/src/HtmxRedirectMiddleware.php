@@ -10,14 +10,12 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Rewrites a redirect into the form htmx acts on.
- *
- * htmx fetches, so the browser follows a 3xx itself and htmx swaps the redirect
- * target's whole body into one element instead of navigating. htmx 4 reads no
- * response header to say otherwise and skips a 204 entirely, so what makes it
- * navigate is a directive in a body it will look at. Normalising here rather
- * than at each call site means a handler returns a plain redirect and cannot
- * forget.
+ * Rewrites a redirect into the form htmx acts on. htmx fetches, so the browser
+ * follows a 3xx itself and htmx swaps the redirect target's whole body into one
+ * element instead of navigating. htmx 4 reads no response header to say
+ * otherwise and skips a 204 entirely, so what makes it navigate is a directive
+ * in a body it will look at. Normalising here rather than at each call site
+ * means a handler returns a plain redirect and cannot forget.
  */
 final class HtmxRedirectMiddleware implements MiddlewareInterface
 {

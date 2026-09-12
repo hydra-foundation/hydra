@@ -9,6 +9,11 @@ use Hydra\Http\Query;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The typed reader over a request's query string: coercion per type, the
+ * default on a miss, and the cases that throw rather than guess. Reads query
+ * params only, never the parsed body.
+ */
 final class QueryTest extends TestCase
 {
     private function query(array $params): Query

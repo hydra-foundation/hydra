@@ -7,6 +7,10 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\Status;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The status enum and its reason phrases, including that every case has one, so
+ * a status can always be rendered without a lookup table elsewhere.
+ */
 final class StatusTest extends TestCase
 {
     public function test_cases_carry_their_code(): void

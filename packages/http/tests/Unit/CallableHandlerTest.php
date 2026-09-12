@@ -10,6 +10,10 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * The adapter that lets a plain callable stand in as a PSR-15 handler, with the
+ * route's placeholders bound to its typed arguments.
+ */
 final class CallableHandlerTest extends TestCase
 {
     private function handler(callable $target, array $params = []): CallableHandler

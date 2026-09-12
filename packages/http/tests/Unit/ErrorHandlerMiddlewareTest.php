@@ -112,7 +112,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
 
     public function test_catches_errors_not_only_exceptions(): void
     {
-        // A TypeError is a Throwable but not an Exception — must still become 500.
+        // A TypeError is a Throwable but not an Exception, and still becomes 500.
         $middleware = new ErrorHandlerMiddleware($this->renderer(), debug: false);
 
         $response = $middleware->process($this->request(), $this->handlerThrowing(new TypeError('bad type')));
@@ -244,7 +244,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
     {
         // The middleware hands the renderer an ErrorContext carrying the caught
         // throwable, the same request instance, the mapped status, and the debug
-        // flag — and returns whatever the renderer produced, untouched.
+        // flag, and returns whatever the renderer produced, untouched.
         $expected = $this->responder()->text('rendered by the app', 499);
         $request = $this->request();
         $exception = new HttpException(403, 'nope');

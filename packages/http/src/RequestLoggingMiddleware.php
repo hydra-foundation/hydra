@@ -11,9 +11,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Request logging middlware
- *
- * Writes one access-log line per request: method, path, status, duration
+ * Writes one access-log line per request: method, path, status, duration.
  */
 final class RequestLoggingMiddleware implements MiddlewareInterface
 {

@@ -8,7 +8,9 @@ use Hydra\Http\Contracts\EmitterInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * Emitter
+ * The SAPI emitter: header() and echo, which is everything a PHP-FPM or CLI
+ * server request needs and the reason this is the one class the kernel cannot
+ * test end to end.
  */
 final class Emitter implements EmitterInterface
 {

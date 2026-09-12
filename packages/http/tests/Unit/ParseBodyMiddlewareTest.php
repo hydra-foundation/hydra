@@ -15,6 +15,11 @@ use Psr\Http\Message\StreamInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use RuntimeException;
 
+/**
+ * Which bodies get parsed and which are left alone: JSON and urlencoded on
+ * write verbs, malformed JSON as a 400, and an already-parsed body never
+ * clobbered. Also that the stream is left re-readable for raw consumers.
+ */
 final class ParseBodyMiddlewareTest extends TestCase
 {
     private ParseBodyMiddleware $middleware;

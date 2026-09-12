@@ -24,7 +24,7 @@ final class Query extends FieldReader
 
     /**
      * The query string of a URL somebody else is on, read the same way as the
-     * current request's own — for a handler that has to answer in terms of the
+     * current request's own. For a handler that has to answer in terms of the
      * page the browser came from rather than the URL it posted to.
      */
     public static function fromUrl(string $url): self

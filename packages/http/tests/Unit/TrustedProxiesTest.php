@@ -43,7 +43,7 @@ final class TrustedProxiesTest extends TestCase
 
     public function test_a_prefix_that_ends_mid_byte_is_masked_not_rounded(): void
     {
-        // /12 covers 172.16.0.0 through 172.31.255.255 — the private range that
+        // /12 covers 172.16.0.0 through 172.31.255.255, the private range that
         // Docker allocates from, and the classic place an off-by-one bit shows.
         $proxies = new TrustedProxies(['172.16.0.0/12']);
 

@@ -210,7 +210,7 @@ final class PipelineTest extends TestCase
     public function test_kernel_response_propagates_unmodified_through_pass_through_middleware(): void
     {
         // Each pass-through middleware must return exactly what the inner handler
-        // returned — not a copy or a different instance.
+        // returned, not a copy or a different instance.
         $log = new ArrayObject;
         $kernelResponse = $this->response();
         $kernel = new RecordingKernel($kernelResponse, $log);
