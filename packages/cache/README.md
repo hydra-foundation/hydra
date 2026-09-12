@@ -9,7 +9,7 @@
 A key/value store with expiry behind one contract, in two implementations:
 Redis, shared by every process that connects to it, and an in-memory array for
 tests and single-process tooling. The counter methods are why the contract is
-narrow — `increment()` adds to a key and opens its expiry window on the first
+narrow: `increment()` adds to a key and opens its expiry window on the first
 hit, as one atomic step, and never re-arms that window afterwards. Anything
 budgeting per client therefore counts against a window measured from the first
 request rather than one a steady stream can hold open indefinitely. `ArrayStore`
