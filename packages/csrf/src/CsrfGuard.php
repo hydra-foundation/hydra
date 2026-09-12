@@ -9,7 +9,7 @@ use Hydra\Session\Contracts\SessionInterface;
 
 /**
  * The synchronizer-token guard: one secret token per session, compared in
- * constant time against whatever an unsafe request submits
+ * constant time against whatever an unsafe request submits.
  */
 final class CsrfGuard
 {
@@ -22,7 +22,7 @@ final class CsrfGuard
     /** Where the token lives in the session (leading-underscore: framework-reserved). */
     private const SESSION_KEY = '_csrf_token';
 
-    /** Token entropy in bytes; 32 bytes → a 64-char hex string. */
+    /** Token entropy in bytes. 32 gives a 64-char hex string. */
     private const TOKEN_BYTES = 32;
 
     public function __construct(
@@ -31,12 +31,8 @@ final class CsrfGuard
     ) {}
 
     /**
-     * The session's CSRF token, signed for emission: minted on first read and
-     * stable thereafter. Safe to call on every render — repeated calls within a
-     * session return an equivalent value (the same underlying token, re-signed).
-     * The result is "<hmac>.<hex-token>", all URL/HTML/header-safe characters, so
-     * it embeds in HTML attributes, JSON (hx-headers) and headers without further
-     * encoding.
+     * Returns "<hmac>.<hex-token>", all URL/HTML/header-safe characters, so it
+     * embeds in an attribute, in hx-headers JSON and in a header unencoded.
      */
     public function token(): string
     {
@@ -51,19 +47,11 @@ final class CsrfGuard
     }
 
     /**
-     * Discard the current token and mint, store and return a fresh one.
-     *
-     * OWASP recommends rotating the CSRF token on authentication (login,
-     * privilege escalation) so a token a pre-auth attacker may have captured
-     * cannot forge post-auth requests. Note that regenerating the session id
-     * ({@see SessionInterface::regenerate()}) does NOT rotate this token — the
-     * session data survives the id change — which is exactly why this method
-     * exists: the session key is private, so without it an app would have to
-     * hardcode '_csrf_token' to force a fresh one.
-     *
-     * Any token embedded in already-rendered pages stops validating the moment
-     * this runs, so call it at the point you are navigating anyway (the login
-     * POST handler, before rendering the next page).
+     * Call on any privilege change, per OWASP: a token captured pre-auth must
+     * not forge post-auth requests. {@see SessionInterface::regenerate()} will
+     * not do it, since the session data survives the id change, and the session
+     * key here is private. Invalidates every already-rendered page, so rotate
+     * where you are navigating anyway.
      */
     public function rotate(): string
     {
@@ -73,15 +61,10 @@ final class CsrfGuard
     }
 
     /**
-     * Whether this session has a token minted at all. Read-only — it never
-     * mints (unlike {@see token()}).
-     *
-     * This is the seam an app's error policy needs to tell the two faces of a
-     * token mismatch apart: a session WITHOUT a token cannot possibly validate
-     * anything — the classic symptom of an expired session behind a stale form
-     * (redirect the user to log in again) — while a mismatch against a token
-     * that IS issued is a genuine CSRF failure (keep the 403). See the README's
-     * "Expired sessions" recipe.
+     * Lets an error policy tell the two faces of a mismatch apart. No token at
+     * all is an expired session behind a stale form, so send the user back to
+     * log in; a mismatch against a token that was issued is a real forgery
+     * attempt, so keep the 403. Read-only, unlike {@see token()}.
      */
     public function issued(): bool
     {
@@ -91,15 +74,10 @@ final class CsrfGuard
     }
 
     /**
-     * Whether $submitted is a validly-signed token matching the session's stored
-     * token. The signature is verified first (a forged or tampered value fails
-     * here, cheaply), then the recovered token is compared to the stored one in
-     * constant time with hash_equals so a mismatch leaks no timing signal.
-     *
-     * Returns false when nothing was submitted, when the signature does not
-     * verify, or when no token has been minted yet — a request can never validate
-     * against an absent token. Note this does NOT mint a token (unlike
-     * {@see token()}): validation is read-only.
+     * The signature is checked before the token so a forgery fails on the cheap
+     * comparison, and the token itself with hash_equals so a near miss leaks no
+     * timing signal. Read-only: an absent token validates nothing rather than
+     * minting one.
      */
     public function validate(?string $submitted): bool
     {

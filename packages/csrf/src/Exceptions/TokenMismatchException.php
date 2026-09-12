@@ -8,7 +8,7 @@ use Hydra\Http\Exceptions\HttpException;
 use Throwable;
 
 /**
- * An unsafe request arrived without a valid CSRF token: HTTP 403
+ * An unsafe request arrived without a valid CSRF token: HTTP 403.
  */
 final class TokenMismatchException extends HttpException
 {

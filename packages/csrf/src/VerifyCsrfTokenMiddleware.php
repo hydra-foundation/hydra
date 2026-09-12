@@ -11,16 +11,13 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Verify CSRF token middlware
- *
- * Verifies the CSRF token on every state-changing request
+ * Verifies the CSRF token on every state-changing request.
  */
 final class VerifyCsrfTokenMiddleware implements MiddlewareInterface
 {
     /**
-     * The RFC 9110 §9.2.1 safe (read-only) methods, exempt from the token
-     * check. Anything NOT in this list requires a valid token — an allowlist
-     * of known-safe verbs fails closed for verbs we have never heard of.
+     * The RFC 9110 §9.2.1 read-only methods. An allowlist rather than a
+     * denylist, so a verb nobody here has heard of still needs a token.
      */
     private const SAFE = ['GET', 'HEAD', 'OPTIONS'];
 
@@ -38,10 +35,7 @@ final class VerifyCsrfTokenMiddleware implements MiddlewareInterface
         return $handler->handle($request);
     }
 
-    /**
-     * The token the client submitted: the header if present, else the form
-     * field, else null (nothing submitted — which never validates).
-     */
+    /** The header wins over the form field, so an htmx swap needs no hidden input. */
     private function submittedToken(ServerRequestInterface $request): ?string
     {
         $header = $request->getHeaderLine(CsrfGuard::HEADER);
