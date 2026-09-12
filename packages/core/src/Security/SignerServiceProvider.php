@@ -9,7 +9,8 @@ use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
 
 /**
- * Binds the application APP_KEY
+ * Binds the Signer over APP_KEY. Required rather than defaulted: an app with
+ * no key must fail at boot, not sign with a predictable one.
  */
 final class SignerServiceProvider extends ServiceProvider
 {

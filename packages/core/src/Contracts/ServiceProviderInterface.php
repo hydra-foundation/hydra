@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace Hydra\Core\Contracts;
 
 /**
- * Service provider interface
+ * One subsystem's wiring. The two methods are separate phases: every provider
+ * registers before any provider boots.
  */
 interface ServiceProviderInterface
 {
-    /**
-     * Register bindings into container
-     */
+    /** Bindings only. Nothing here may resolve another provider's work. */
     public function register(ContainerInterface $container): void;
 
-    /**
-     * Boot any application services
-     */
+    /** Runs once every provider has registered, so the container is complete. */
     public function boot(ContainerInterface $container): void;
 }

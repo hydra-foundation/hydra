@@ -40,11 +40,12 @@ final readonly class Result
     }
 
     /**
-     * The vetted subset of the input. Exactly the fields that were listed in
-     * the rules AND present in the input, nothing else. Consume this instead
-     * of reaching back into the raw request:
+     * Exactly the fields the rules named and the input carried, nothing else.
+     * Read this rather than the raw request, so a field nobody validated
+     * cannot reach the code downstream.
+     *
+     * @return array<string, mixed>
      */
-    /** @return array<string, mixed> */
     public function validated(): array
     {
         if ($this->errors !== []) {

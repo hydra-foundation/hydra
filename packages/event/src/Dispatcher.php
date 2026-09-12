@@ -10,7 +10,7 @@ use Psr\EventDispatcher\StoppableEventInterface;
 
 /**
  * The read side of the event system: hand it an event object and it calls every
- * listener the provider matched, in order
+ * listener the provider matched, in order.
  */
 final class Dispatcher implements EventDispatcherInterface
 {

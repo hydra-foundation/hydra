@@ -7,22 +7,16 @@ namespace Hydra\Core\Contracts;
 use Psr\Container\ContainerInterface as PsrContainerInterface;
 
 /**
- * Container interface
+ * PSR-11 plus the three writes an application needs at wiring time. Kept
+ * separate from any container library so the adapter is replaceable.
  */
 interface ContainerInterface extends PsrContainerInterface
 {
-    /**
-     * Bind an abstract to a concrete implementation, resolved once and reused.
-     */
+    /** Resolved on first get(), reused thereafter. */
     public function singleton(string $abstract, callable|string $concrete): void;
 
-    /**
-     * Register an already-constructed instance under an abstract.
-     */
     public function instance(string $abstract, object $instance): void;
 
-    /**
-     * Whether the container can RESOLVE the abstract
-     */
+    /** Whether the abstract resolves, which is not the same as it being bound. */
     public function bound(string $abstract): bool;
 }

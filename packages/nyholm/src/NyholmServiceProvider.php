@@ -12,7 +12,7 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
- * Fills Hydra's PSR-7/17 seams with nyholm
+ * Fills Hydra's PSR-7/17 seams with nyholm.
  */
 final class NyholmServiceProvider extends ServiceProvider
 {
@@ -23,7 +23,6 @@ final class NyholmServiceProvider extends ServiceProvider
         $container->singleton(ResponseFactoryInterface::class, fn () => $container->get(Psr17Factory::class));
         $container->singleton(StreamFactoryInterface::class, fn () => $container->get(Psr17Factory::class));
 
-        // Capture the incoming request from PHP globals (nyholm behind our seam).
         $container->singleton(ServerRequestProviderInterface::class, function () use ($container) {
             return NyholmRequestProvider::create($container->get(Psr17Factory::class));
         });

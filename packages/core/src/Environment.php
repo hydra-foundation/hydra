@@ -77,9 +77,7 @@ final class Environment
         return $value === false ? null : $value;
     }
 
-    /**
-     * Normalizes a raw .env value.
-     */
+    /** Strips surrounding quotes and any trailing `# comment`. */
     private function parseValue(string $value): string
     {
         if (strlen($value) >= 2) {
@@ -102,8 +100,8 @@ final class Environment
 
     public function get(string $key, mixed $default = null): mixed
     {
-        // Real process environment first, then the .env file — same precedence
-        // load() applies, and it also covers variables set after construction.
+        // Same precedence load() applies, and it also covers variables the
+        // process gained after construction.
         return $this->fromProcess($key) ?? $this->data[$key] ?? $default;
     }
 
@@ -117,9 +115,7 @@ final class Environment
         return (string) $this->get($key, $default);
     }
 
-    /**
-     * The value for $key, which must be set and non-empty.
-     */
+    /** Throws rather than defaulting, for settings with no safe fallback. */
     public function required(string $key): string
     {
         $value = $this->get($key);

@@ -8,7 +8,7 @@ use Psr\EventDispatcher\ListenerProviderInterface;
 
 /**
  * The mutable half of the event system: where listeners are registered and, at
- * dispatch time, matched to an event
+ * dispatch time, matched to an event.
  */
 final class ListenerProvider implements ListenerProviderInterface
 {
@@ -16,8 +16,8 @@ final class ListenerProvider implements ListenerProviderInterface
     private array $listeners = [];
 
     /**
-     * Register a listener for an event type. The type is a class-string; the
-     * listener fires for that class and any subtype of it (see class docblock).
+     * The listener fires for $eventType and for any subtype of it, so a
+     * listener on a base event sees everything derived from it.
      *
      * @param class-string $eventType
      */
@@ -27,9 +27,8 @@ final class ListenerProvider implements ListenerProviderInterface
     }
 
     /**
-     * Every listener whose registered type the given event is an instance of,
-     * yielded in registration order (and in the order the types were first
-     * registered). The dispatcher calls each in turn.
+     * Ordered by when each type was first registered, then by registration
+     * within that type.
      *
      * @return iterable<callable>
      */

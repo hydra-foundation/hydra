@@ -11,9 +11,7 @@ use Hydra\View\Contracts\ViewInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 
 /**
- * Base controller
- *
- * Response and view helpers every HTML controller wants
+ * Response and view helpers every HTML controller wants.
  */
 abstract class Controller
 {
@@ -22,18 +20,13 @@ abstract class Controller
         protected readonly ViewInterface $view,
     ) {}
 
-    /**
-     * Render a template to an HTML response
-     */
     /** @param array<string, mixed> $data */
     protected function render(string $template, array $data = [], int|Status $status = Status::Ok, bool $layout = true): Response
     {
         return $this->respond->html($this->view->render($template, $data, $layout), $status);
     }
 
-    /**
-     * Stop handling and signal an HTTP error condition
-     */
+    /** Lets a controller bail without having to build a response to bail with. */
     protected function abort(int|Status $status, string $message = ''): never
     {
         throw new HttpException(Status::toInt($status), $message);

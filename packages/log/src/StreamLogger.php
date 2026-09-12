@@ -10,7 +10,7 @@ use Throwable;
 
 /**
  * A minimal PSR-3 logger that writes one plain-text line per record to a
- * writable stream
+ * writable stream.
  */
 final class StreamLogger extends AbstractLogger
 {
@@ -33,7 +33,9 @@ final class StreamLogger extends AbstractLogger
     }
 
     /**
-     * Replace {placeholders} with their context values per PSR-3
+     * Replaces {placeholders} per PSR-3. A value that will not cast to string
+     * leaves its placeholder standing rather than throwing: the record still
+     * carries the value in the context fragment.
      *
      * @param array<string, mixed> $context
      */
@@ -59,9 +61,11 @@ final class StreamLogger extends AbstractLogger
     }
 
     /**
-     * Render leftover context as a trailing fragment
+     * An exception in the context gets its class, message and trace; whatever
+     * remains is appended as JSON.
+     *
+     * @param array<string, mixed> $context
      */
-    /** @param array<string, mixed> $context */
     private function renderContext(array $context): string
     {
         $fragment = '';

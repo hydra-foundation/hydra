@@ -5,18 +5,14 @@ declare(strict_types=1);
 namespace Hydra\Core\Contracts;
 
 /**
- * Kernel interface
+ * The request lifecycle, split either side of the response so an application
+ * can do work after the client has been answered.
  */
 interface KernelInterface
 {
-    /**
-     * Handle the incoming request lifecycle: build the request, dispatch it,
-     * and emit the response. Nothing is returned — the response is sent.
-     */
+    /** Builds the request, dispatches it, and emits the response itself. */
     public function handle(): void;
 
-    /**
-     * Post-response clean-up
-     */
+    /** Runs after the response is flushed, so its cost is off the client's clock. */
     public function terminate(): void;
 }

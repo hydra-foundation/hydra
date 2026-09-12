@@ -9,7 +9,9 @@ use Hydra\Core\Contracts\KernelInterface;
 use Hydra\Core\Contracts\ServiceProviderInterface;
 
 /**
- * The core application
+ * Holds the container and the provider list, and owns the two-phase startup:
+ * every provider registers before any provider boots, so a boot() may depend on
+ * a binding made by a provider registered after it.
  */
 final class Application
 {

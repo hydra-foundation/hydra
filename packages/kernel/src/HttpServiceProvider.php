@@ -24,7 +24,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Binds the framework's HTTP plumbing
+ * Binds the framework's HTTP plumbing.
  *
  * @phpstan-import-type RouteDefinition from RouteScanner
  */
@@ -85,7 +85,8 @@ final class HttpServiceProvider extends ServiceProvider
     }
 
     /**
-     * The compiled route definitions for the Router
+     * A cache miss falls back to a live scan rather than an empty route table,
+     * so a stale or absent cache file degrades to slow, not to 404.
      *
      * @return list<RouteDefinition>
      */

@@ -13,16 +13,11 @@ use Hydra\Event\EventServiceProvider;
 use Hydra\Session\SessionServiceProvider;
 
 /**
- * HTTP Kernel
- *
- * The framework's default composition root.
+ * The framework's default composition root: the provider stack that is
+ * identical in every Hydra app, so an AppServiceProvider holds only policy.
  */
 final class Kernel
 {
-    /**
-     * Build the shared composition root: bind the container and environment,
-     * then register the standard provider stack.
-     */
     public static function application(ContainerInterface $container, Environment $environment): Application
     {
         $container->instance(ContainerInterface::class, $container);

@@ -8,7 +8,7 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Contracts\ServiceProviderInterface;
 
 /**
- * Service provider
+ * No-op base, so a provider overrides only the phase it takes part in.
  */
 class ServiceProvider implements ServiceProviderInterface
 {
