@@ -29,6 +29,10 @@ final class PdoConnection implements ConnectionInterface
         }
     }
 
+    /**
+     * @param array<string|int, scalar|null> $params bound values, named or positional
+     * @return list<array<string, mixed>>
+     */
     public function select(string $sql, array $params = []): array
     {
         $statement = $this->pdo->prepare($sql);
@@ -38,6 +42,10 @@ final class PdoConnection implements ConnectionInterface
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * @param array<string|int, scalar|null> $params bound values, named or positional
+     * @return array<string, mixed>|null
+     */
     public function selectOne(string $sql, array $params = []): ?array
     {
         $statement = $this->pdo->prepare($sql);
@@ -48,6 +56,7 @@ final class PdoConnection implements ConnectionInterface
         return $row === false ? null : $row;
     }
 
+    /** @param array<string|int, scalar|null> $params bound values, named or positional */
     public function execute(string $sql, array $params = []): int
     {
         $statement = $this->pdo->prepare($sql);

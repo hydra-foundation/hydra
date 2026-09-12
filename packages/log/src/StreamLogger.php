@@ -14,6 +14,7 @@ use Throwable;
  */
 final class StreamLogger extends AbstractLogger
 {
+    /** @param resource $stream */
     public function __construct(private $stream) {}
 
     public function log($level, string|Stringable $message, array $context = []): void
@@ -33,6 +34,8 @@ final class StreamLogger extends AbstractLogger
 
     /**
      * Replace {placeholders} with their context values per PSR-3
+     *
+     * @param array<string, mixed> $context
      */
     private function interpolate(string $message, array $context): string
     {
@@ -58,6 +61,7 @@ final class StreamLogger extends AbstractLogger
     /**
      * Render leftover context as a trailing fragment
      */
+    /** @param array<string, mixed> $context */
     private function renderContext(array $context): string
     {
         $fragment = '';

@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace Hydra\Validation;
 
+use Hydra\Validation\Contracts\RuleInterface;
+
 /**
  * Validates a set of input values against a per-field list of rules.
  */
 final class Validator
 {
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string, list<RuleInterface>> $rules
+     */
     public function validate(array $data, array $rules): Result
     {
         $errors = [];

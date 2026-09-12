@@ -75,7 +75,11 @@ final readonly class FormViewModel
         return $this->errors[$name] ?? null;
     }
 
-    /** Errors with no control to hang off — a rejected write, say. @return list<string> */
+    /**
+     * Errors with no control to hang off, a rejected write being the usual one.
+     *
+     * @return list<string>
+     */
     public function formErrors(): array
     {
         $named = array_map(static fn (Input $input): string => $input->name(), $this->controls());

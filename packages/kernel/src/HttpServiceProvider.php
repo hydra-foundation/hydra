@@ -25,9 +25,15 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * Binds the framework's HTTP plumbing
+ *
+ * @phpstan-import-type RouteDefinition from RouteScanner
  */
 final class HttpServiceProvider extends ServiceProvider
 {
+    /**
+     * @param list<class-string> $controllers scanned for #[Route] attributes
+     * @param list<class-string> $middleware the global pipeline, outermost first
+     */
     public function __construct(
         private readonly array $controllers,
         private readonly array $middleware,
@@ -80,6 +86,8 @@ final class HttpServiceProvider extends ServiceProvider
 
     /**
      * The compiled route definitions for the Router
+     *
+     * @return list<RouteDefinition>
      */
     private function compileRoutes(ContainerInterface $container): array
     {

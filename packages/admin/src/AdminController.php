@@ -381,7 +381,11 @@ final class AdminController
         return [$blueprint, $screen, $id];
     }
 
-    /** A screen that names one row, and the id its path carried. @return array{0: Blueprint, 1: ScreenInterface, 2: string} */
+    /**
+     * A screen that names one row, and the id its path carried.
+     *
+     * @return array{0: Blueprint, 1: ScreenInterface, 2: string}
+     */
     private function resolveRow(Request $request): array
     {
         [$blueprint, $screen] = $this->resolve($request);

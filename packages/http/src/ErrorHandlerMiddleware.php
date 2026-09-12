@@ -44,6 +44,8 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
     /**
      * Log the error if it is a fault (5xx), delegate rendering, then apply any
      * headers the error mapped (e.g. Allow on a 405)
+     *
+     * @param array<string, string> $headers
      */
     private function render(Throwable $e, ServerRequestInterface $request, int $status, array $headers = []): ResponseInterface
     {

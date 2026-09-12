@@ -13,6 +13,7 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 final class RouteGroup
 {
+    /** @param list<class-string> $middleware */
     public function __construct(
         public readonly string $prefix = '',
         public readonly array $middleware = [],

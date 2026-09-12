@@ -8,14 +8,18 @@ namespace Hydra\Http;
  * Reads and writes the compiled route cache: the plain array produced by
  * RouteScanner::scan(), written as a PHP file that `return`s it alongside a
  * fingerprint of the controllers list it was compiled from.
+ *
+ * @phpstan-import-type RouteDefinition from RouteScanner
  */
 final class RouteCache
 {
+    /** @param list<class-string> $controllers */
     public function __construct(
         private readonly string $path,
         private readonly array $controllers,
     ) {}
 
+    /** @return list<RouteDefinition>|null */
     public function load(): ?array
     {
         if (!is_file($this->path)) {
@@ -38,6 +42,8 @@ final class RouteCache
     /**
      * Compile the route definitions to the cache file, fingerprinted with the
      * controllers list they were scanned from
+     *
+     * @param list<RouteDefinition> $routes
      */
     public function store(array $routes): void
     {

@@ -157,6 +157,7 @@ final class Environment
      * or empty key is an empty list — "not configured" and "configured to
      * nothing" are the same answer for every setting shaped like this.
      *
+     * @param list<string> $default
      * @return list<string>
      */
     public function list(string $key, array $default = []): array

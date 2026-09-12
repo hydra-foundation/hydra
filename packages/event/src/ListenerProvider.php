@@ -30,6 +30,8 @@ final class ListenerProvider implements ListenerProviderInterface
      * Every listener whose registered type the given event is an instance of,
      * yielded in registration order (and in the order the types were first
      * registered). The dispatcher calls each in turn.
+     *
+     * @return iterable<callable>
      */
     public function getListenersForEvent(object $event): iterable
     {

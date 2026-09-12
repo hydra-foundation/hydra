@@ -11,16 +11,24 @@ interface ConnectionInterface
 {
     /**
      * Run a query and return every row as an associative array
+     *
+     * @param array<string|int, scalar|null> $params bound values, named or positional
+     * @return list<array<string, mixed>>
      */
     public function select(string $sql, array $params = []): array;
 
     /**
      * Run a query and return the first row, or null if there are none
+     *
+     * @param array<string|int, scalar|null> $params bound values, named or positional
+     * @return array<string, mixed>|null
      */
     public function selectOne(string $sql, array $params = []): ?array;
 
     /**
      * Run a write (INSERT/UPDATE/DELETE) and return the affected row count
+     *
+     * @param array<string|int, scalar|null> $params bound values, named or positional
      */
     public function execute(string $sql, array $params = []): int;
 

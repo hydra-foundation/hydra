@@ -12,9 +12,20 @@ use ReflectionMethod;
 /**
  * Reflects over controller classes and turns their #[Route] attributes into a
  * plain, cacheable list of route definitions.
+ *
+ * @phpstan-type RouteDefinition array{
+ *     method: string,
+ *     path: string,
+ *     handler: array{class-string, string},
+ *     middleware: list<class-string>,
+ * }
  */
 final class RouteScanner
 {
+    /**
+     * @param iterable<class-string> $controllers
+     * @return list<RouteDefinition>
+     */
     public function scan(iterable $controllers): array
     {
         $routes = [];
@@ -53,6 +64,8 @@ final class RouteScanner
 
     /**
      * The optional class-level group declaration, or null when the controller isn't grouped.
+     *
+     * @param ReflectionClass<object> $reflection
      */
     private function group(ReflectionClass $reflection): ?RouteGroupAttribute
     {

@@ -12,6 +12,10 @@ namespace Hydra\Admin\Contracts;
  */
 interface RowSourceInterface
 {
-    /** The row at this id, or null when nothing has it. @return array<string, mixed>|null */
+    /**
+     * The row at this id, or null when nothing has it.
+     *
+     * @return array<string, mixed>|null
+     */
     public function find(string $id): ?array;
 }

@@ -71,6 +71,7 @@ final class AdminServiceProvider extends ServiceProvider
         $container->get(Router::class)->loadRoutes($this->routes($container));
     }
 
+    /** @return list<array<string, mixed>> */
     public function routes(ContainerInterface $container): array
     {
         return (new ModuleScanner)->scan(

@@ -126,6 +126,8 @@ final class Template
      * pass everything it needs explicitly via $data — and it renders as a bare
      * fragment, so a stray extends() inside a partial is ignored rather than
      * wrapping the partial in a full layout.
+     *
+     * @param array<string, mixed> $data
      */
     public function partial(string $template, array $data = []): string
     {

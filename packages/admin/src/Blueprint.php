@@ -81,7 +81,10 @@ final readonly class Blueprint
         return null;
     }
 
-    /** @param callable(Field): bool $matches @return list<Field> */
+    /**
+     * @param callable(Field): bool $matches
+     * @return list<Field>
+     */
     private function where(callable $matches): array
     {
         return array_values(array_filter($this->fields, $matches));

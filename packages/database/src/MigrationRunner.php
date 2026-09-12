@@ -28,6 +28,8 @@ final class MigrationRunner
     /**
      * Apply every pending migration in order and return the filenames applied
      * during this call (empty when already up to date)
+     *
+     * @return list<string>
      */
     public function run(): array
     {
@@ -84,6 +86,8 @@ final class MigrationRunner
     /**
      * Drop every table, then re-apply all migrations from scratch.
      * Destructive — the calling command guards it. Returns the filenames applied.
+     *
+     * @return list<string>
      */
     public function fresh(): array
     {
@@ -95,6 +99,8 @@ final class MigrationRunner
     /**
      * Every migration on disk paired with whether it has been applied, in
      * order — the data behind migrate:status.
+     *
+     * @return list<array{filename: string, applied: bool}>
      */
     public function status(): array
     {
@@ -113,6 +119,8 @@ final class MigrationRunner
 
     /**
      * Migration files on disk that have not yet been recorded as applied
+     *
+     * @return list<string>
      */
     public function pending(): array
     {
@@ -140,6 +148,7 @@ final class MigrationRunner
         );
     }
 
+    /** @return list<string> */
     private function appliedFilenames(): array
     {
         $statement = $this->pdo->query('SELECT filename FROM migrations ORDER BY filename');
@@ -148,6 +157,7 @@ final class MigrationRunner
         return $statement->fetchAll(PDO::FETCH_COLUMN);
     }
 
+    /** @return list<string> */
     private function migrationFiles(): array
     {
         if (!is_dir($this->migrationsPath)) {

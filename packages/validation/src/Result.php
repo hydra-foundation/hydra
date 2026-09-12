@@ -9,6 +9,10 @@ namespace Hydra\Validation;
  */
 final readonly class Result
 {
+    /**
+     * @param array<string, string> $errors one message per failed field
+     * @param array<string, mixed> $validated
+     */
     public function __construct(
         private array $errors = [],
         private array $validated = [],
@@ -24,6 +28,7 @@ final readonly class Result
         return $this->errors !== [];
     }
 
+    /** @return array<string, string> */
     public function errors(): array
     {
         return $this->errors;
@@ -39,6 +44,7 @@ final readonly class Result
      * the rules AND present in the input, nothing else. Consume this instead
      * of reaching back into the raw request:
      */
+    /** @return array<string, mixed> */
     public function validated(): array
     {
         if ($this->errors !== []) {

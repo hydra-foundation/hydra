@@ -42,6 +42,8 @@ final class PhpView implements ViewInterface
      * does not: it belongs to the view rather than to any one render, and a
      * layout or partial that needs it cannot be handed it by a caller that does
      * not know it exists. A render's own data still wins on a name collision.
+     *
+     * @param array<string, mixed> $data
      */
     public function render(string $template, array $data = [], bool $layout = true): string
     {

@@ -67,6 +67,8 @@ final class Signer
     /**
      * Build a Signer from Hydra's canonical key format: a hex string (64+ chars)
      * decoded to raw bytes.
+     *
+     * @param list<string> $previousHex keys still accepted on verify, newest first
      */
     public static function fromHex(string $hex, array $previousHex = []): self
     {

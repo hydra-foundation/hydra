@@ -25,6 +25,7 @@ abstract class Controller
     /**
      * Render a template to an HTML response
      */
+    /** @param array<string, mixed> $data */
     protected function render(string $template, array $data = [], int|Status $status = Status::Ok, bool $layout = true): Response
     {
         return $this->respond->html($this->view->render($template, $data, $layout), $status);

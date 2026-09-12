@@ -18,6 +18,10 @@ use ReflectionParameter;
  */
 final class ArgumentResolver implements ArgumentResolverInterface
 {
+    /**
+     * @param array<string, string> $routeParams
+     * @return list<mixed>
+     */
     public function resolve(callable $target, ServerRequestInterface $request, array $routeParams): array
     {
         $reflection = new ReflectionFunction(Closure::fromCallable($target));

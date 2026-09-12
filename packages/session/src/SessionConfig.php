@@ -70,6 +70,8 @@ final readonly class SessionConfig
 
     /**
      * The settings shaped for session_set_cookie_params().
+     *
+     * @return array{lifetime: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}
      */
     public function cookieParams(): array
     {

@@ -17,6 +17,7 @@ final class ModuleScanner
     /**
      * @param iterable<Blueprint> $blueprints
      * @param list<class-string> $middleware
+     * @return list<array<string, mixed>>
      */
     public function scan(iterable $blueprints, string $prefix, array $middleware = []): array
     {

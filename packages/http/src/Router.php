@@ -16,6 +16,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 /**
  * The innermost handler of the pipeline: matches a request to a route, then
  * resolves and invokes its target.
+ *
+ * @phpstan-import-type RouteDefinition from RouteScanner
  */
 final class Router implements RequestHandlerInterface
 {
@@ -31,6 +33,7 @@ final class Router implements RequestHandlerInterface
         $this->arguments = $arguments ?? new ArgumentResolver;
     }
 
+    /** @param list<class-string> $middleware */
     public function add(string $method, string $path, mixed $target, array $middleware = []): self
     {
         $this->routes[] = new CompiledRoute(strtoupper($method), $this->normalize($path), $target, $middleware);
@@ -41,6 +44,8 @@ final class Router implements RequestHandlerInterface
     /**
      * Bulk-register routes from a scanned/compiled definition list, e.g. the
      * output of RouteScanner::scan() (or a cached version of it).
+     *
+     * @param iterable<RouteDefinition> $routes
      */
     public function loadRoutes(iterable $routes): self
     {
@@ -51,26 +56,31 @@ final class Router implements RequestHandlerInterface
         return $this;
     }
 
+    /** @param list<class-string> $middleware */
     public function get(string $path, mixed $target, array $middleware = []): self
     {
         return $this->add('GET', $path, $target, $middleware);
     }
 
+    /** @param list<class-string> $middleware */
     public function post(string $path, mixed $target, array $middleware = []): self
     {
         return $this->add('POST', $path, $target, $middleware);
     }
 
+    /** @param list<class-string> $middleware */
     public function put(string $path, mixed $target, array $middleware = []): self
     {
         return $this->add('PUT', $path, $target, $middleware);
     }
 
+    /** @param list<class-string> $middleware */
     public function patch(string $path, mixed $target, array $middleware = []): self
     {
         return $this->add('PATCH', $path, $target, $middleware);
     }
 
+    /** @param list<class-string> $middleware */
     public function delete(string $path, mixed $target, array $middleware = []): self
     {
         return $this->add('DELETE', $path, $target, $middleware);
@@ -127,6 +137,8 @@ final class Router implements RequestHandlerInterface
     /**
      * Resolve a matched route into the handler that will answer the request:
      * the target wrapped in its per-route middleware, if any.
+     *
+     * @param array<string, string> $params
      */
     private function toHandler(CompiledRoute $route, array $params): RequestHandlerInterface
     {
@@ -149,6 +161,8 @@ final class Router implements RequestHandlerInterface
 
     /**
      * Resolve a route target into a request handler, using the container for classes.
+     *
+     * @param array<string, string> $params
      */
     private function resolveTarget(mixed $target, array $params): RequestHandlerInterface
     {

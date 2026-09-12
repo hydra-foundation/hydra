@@ -12,5 +12,9 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 interface ArgumentResolverInterface
 {
+    /**
+     * @param array<string, string> $routeParams
+     * @return list<mixed>
+     */
     public function resolve(callable $target, ServerRequestInterface $request, array $routeParams): array;
 }

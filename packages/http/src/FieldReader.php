@@ -80,8 +80,13 @@ abstract class FieldReader
     }
 
     /**
-     * The field as an array (e.g. `tags[]`), or the default when absent
-     * A scalar where an array was expected is a malformed request — it     */
+     * The field as an array (e.g. `tags[]`), or the default when absent. A
+     * scalar where an array was expected is a malformed request, so it throws
+     * rather than wrapping the value.
+     *
+     * @param array<array-key, mixed> $default
+     * @return array<array-key, mixed>
+     */
     public function array(string $key, array $default = []): array
     {
         $value = $this->values[$key] ?? null;
