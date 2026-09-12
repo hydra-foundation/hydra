@@ -29,7 +29,7 @@ final class NyholmServiceProviderTest extends TestCase
         (new NyholmServiceProvider)->register($this->container);
     }
 
-    public function test_binds_the_psr17_factory_interfaces_to_one_psr17factory(): void
+    public function test_binds_the_psr17_factory_interfaces_to_one_psr17_factory(): void
     {
         $factory = $this->container->get(Psr17Factory::class);
 

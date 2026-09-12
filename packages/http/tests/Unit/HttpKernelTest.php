@@ -25,7 +25,7 @@ final class CapturingEmitter implements EmitterInterface
 
 final class HttpKernelTest extends TestCase
 {
-    public function testHandleCapturesRequestRunsHandlerAndEmitsResponse(): void
+    public function test_handle_captures_request_runs_handler_and_emits_response(): void
     {
         $request = $this->createStub(ServerRequestInterface::class);
         $response = $this->createStub(ResponseInterface::class);
@@ -47,7 +47,7 @@ final class HttpKernelTest extends TestCase
         $this->assertSame($response, $emitter->emitted, 'the handler response is what gets emitted');
     }
 
-    public function testHandleContainsThrowablesFromTheHandlerAsALastResort(): void
+    public function test_handle_contains_throwables_from_the_handler_as_a_last_resort(): void
     {
         $requests = $this->createStub(ServerRequestProviderInterface::class);
         $requests->method('fromGlobals')->willReturn($this->createStub(ServerRequestInterface::class));

@@ -35,12 +35,12 @@ final class StreamLoggerTest extends TestCase
         return stream_get_contents($this->stream);
     }
 
-    public function testIsPsr3Logger(): void
+    public function test_is_psr3_logger(): void
     {
         $this->assertInstanceOf(LoggerInterface::class, $this->logger);
     }
 
-    public function testWritesLevelAndMessageOnOneLine(): void
+    public function test_writes_level_and_message_on_one_line(): void
     {
         $this->logger->error('boom');
 
@@ -51,14 +51,14 @@ final class StreamLoggerTest extends TestCase
         $this->assertSame(1, substr_count($out, "\n"), 'one record => one line');
     }
 
-    public function testInterpolatesPlaceholders(): void
+    public function test_interpolates_placeholders(): void
     {
         $this->logger->info('Hello {name}', ['name' => 'Will']);
 
         $this->assertStringContainsString('Hello Will', $this->contents());
     }
 
-    public function testRendersFalsyContextValuesInsteadOfDroppingThem(): void
+    public function test_renders_falsy_context_values_instead_of_dropping_them(): void
     {
         // The whole point: a naive truthiness check would erase 0 / '' / false.
         $this->logger->info('count={count} empty={empty} flag={flag}', [
@@ -74,14 +74,14 @@ final class StreamLoggerTest extends TestCase
         $this->assertStringNotContainsString('{flag}', $out);
     }
 
-    public function testLeavesUnmatchedPlaceholdersIntact(): void
+    public function test_leaves_unmatched_placeholders_intact(): void
     {
         $this->logger->info('hi {missing}');
 
         $this->assertStringContainsString('{missing}', $this->contents());
     }
 
-    public function testDoesNotFatalOnNonStringableContextValue(): void
+    public function test_does_not_fatal_on_non_stringable_context_value(): void
     {
         // Arrays/resources can't be cast to string: the placeholder is left
         // intact rather than throwing, and the value still appears in context.
@@ -92,7 +92,7 @@ final class StreamLoggerTest extends TestCase
         $this->assertStringContainsString('payload', $out);
     }
 
-    public function testAppendsRemainingContextAsJson(): void
+    public function test_appends_remaining_context_as_json(): void
     {
         $this->logger->info('saved', ['user_id' => 7]);
 
@@ -101,7 +101,7 @@ final class StreamLoggerTest extends TestCase
         $this->assertStringContainsString('7', $out);
     }
 
-    public function testRendersExceptionContextSpecially(): void
+    public function test_renders_exception_context_specially(): void
     {
         $e = new RuntimeException('kaboom');
         $this->logger->error('request failed', ['exception' => $e]);
@@ -113,7 +113,7 @@ final class StreamLoggerTest extends TestCase
         $this->assertStringContainsString((string) $e->getLine(), $out);
     }
 
-    public function testAcceptsAllPsr3Levels(): void
+    public function test_accepts_all_psr3_levels(): void
     {
         foreach ([
             LogLevel::EMERGENCY, LogLevel::ALERT, LogLevel::CRITICAL, LogLevel::ERROR,
@@ -128,7 +128,7 @@ final class StreamLoggerTest extends TestCase
         $this->assertStringContainsString('DEBUG', $out);
     }
 
-    public function testNeverThrowsWhenStreamIsClosed(): void
+    public function test_never_throws_when_stream_is_closed(): void
     {
         fclose($this->stream);
 

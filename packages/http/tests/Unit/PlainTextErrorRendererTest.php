@@ -27,7 +27,7 @@ final class PlainTextErrorRendererTest extends TestCase
         return new ErrorContext($error, $this->createStub(ServerRequestInterface::class), $status, $debug);
     }
 
-    public function testRendersPlainTextWithTheGivenStatus(): void
+    public function test_renders_plain_text_with_the_given_status(): void
     {
         $response = $this->renderer()->render($this->context(new HttpException(404), 404, false));
 
@@ -35,7 +35,7 @@ final class PlainTextErrorRendererTest extends TestCase
         $this->assertSame('text/plain; charset=utf-8', $response->getHeaderLine('Content-Type'));
     }
 
-    public function testProductionBodyHidesGenericThrowableDetails(): void
+    public function test_production_body_hides_generic_throwable_details(): void
     {
         $response = $this->renderer()->render(
             $this->context(new RuntimeException('secret db dsn leaked here'), 500, false)
@@ -46,7 +46,7 @@ final class PlainTextErrorRendererTest extends TestCase
         $this->assertStringNotContainsString('secret db dsn', $body);
     }
 
-    public function testProductionBodyShowsAnHttpExceptionMessage(): void
+    public function test_production_body_shows_an_http_exception_message(): void
     {
         $response = $this->renderer()->render(
             $this->context(new HttpException(403, 'not yours'), 403, false)
@@ -55,7 +55,7 @@ final class PlainTextErrorRendererTest extends TestCase
         $this->assertSame('not yours', (string) $response->getBody());
     }
 
-    public function testDebugBodyIncludesClassMessageOriginAndTrace(): void
+    public function test_debug_body_includes_class_message_origin_and_trace(): void
     {
         $response = $this->renderer()->render(
             $this->context(new RuntimeException('boom'), 500, true)

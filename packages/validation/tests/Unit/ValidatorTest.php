@@ -22,7 +22,7 @@ final class ValidatorTest extends TestCase
         $this->validator = new Validator;
     }
 
-    public function testPassesWhenEveryRulePasses(): void
+    public function test_passes_when_every_rule_passes(): void
     {
         $result = $this->validator->validate(
             ['name' => 'Ada'],
@@ -36,7 +36,7 @@ final class ValidatorTest extends TestCase
         $this->assertNull($result->first('name'));
     }
 
-    public function testCollectsOneErrorPerField(): void
+    public function test_collects_one_error_per_field(): void
     {
         $result = $this->validator->validate(
             ['name' => '', 'body' => str_repeat('x', 300)],
@@ -54,7 +54,7 @@ final class ValidatorTest extends TestCase
         $this->assertSame('Name is required.', $result->first('name'));
     }
 
-    public function testShortCircuitsToFirstFailingRulePerField(): void
+    public function test_short_circuits_to_first_failing_rule_per_field(): void
     {
         // Required fails first, so MaxLength must never run.
         $exploding = new class implements RuleInterface {
@@ -72,7 +72,7 @@ final class ValidatorTest extends TestCase
         $this->assertSame('required', $result->first('name'));
     }
 
-    public function testAbsentFieldIsPassedToRulesAsNull(): void
+    public function test_absent_field_is_passed_to_rules_as_null(): void
     {
         // 'name' is not present in the data at all.
         $result = $this->validator->validate(
@@ -83,14 +83,14 @@ final class ValidatorTest extends TestCase
         $this->assertSame('required', $result->first('name'));
     }
 
-    public function testFieldWithNoRulesIsIgnored(): void
+    public function test_field_with_no_rules_is_ignored(): void
     {
         $result = $this->validator->validate(['name' => ''], ['name' => []]);
 
         $this->assertTrue($result->passes());
     }
 
-    public function testValidatedReturnsExactlyTheRuledSubsetOnPass(): void
+    public function test_validated_returns_exactly_the_ruled_subset_on_pass(): void
     {
         $result = $this->validator->validate(
             ['name' => 'Ada', 'email' => 'ada@example.com', 'admin' => '1'],
@@ -108,7 +108,7 @@ final class ValidatorTest extends TestCase
         );
     }
 
-    public function testValidatedExcludesUnruledInputKeys(): void
+    public function test_validated_excludes_unruled_input_keys(): void
     {
         // A hostile client posts extra fields; validated() must not smuggle
         // them through to the controller.
@@ -120,7 +120,7 @@ final class ValidatorTest extends TestCase
         $this->assertSame(['name' => 'Ada'], $result->validated());
     }
 
-    public function testValidatedOmitsRuledFieldsAbsentFromInput(): void
+    public function test_validated_omits_ruled_fields_absent_from_input(): void
     {
         // 'nickname' is optional (no Required) and was not submitted: it must
         // be absent from validated(), not invented as null.
@@ -137,7 +137,7 @@ final class ValidatorTest extends TestCase
         $this->assertArrayNotHasKey('nickname', $result->validated());
     }
 
-    public function testValidatedKeepsFalsyButPresentValues(): void
+    public function test_validated_keeps_falsy_but_present_values(): void
     {
         // Present-but-falsy input ('' with no Required, '0') is still input
         // that passed its rules: presence is array_key_exists, not truthiness.
@@ -152,7 +152,7 @@ final class ValidatorTest extends TestCase
         $this->assertSame(['bio' => '', 'count' => '0'], $result->validated());
     }
 
-    public function testValidatedIncludesFieldDeclaredWithEmptyRuleList(): void
+    public function test_validated_includes_field_declared_with_empty_rule_list(): void
     {
         // Listing a field with an empty rule list is still an explicit opt-in.
         $result = $this->validator->validate(['name' => 'Ada'], ['name' => []]);
@@ -160,7 +160,7 @@ final class ValidatorTest extends TestCase
         $this->assertSame(['name' => 'Ada'], $result->validated());
     }
 
-    public function testValidatedThrowsOnFailedResult(): void
+    public function test_validated_throws_on_failed_result(): void
     {
         $result = $this->validator->validate(
             ['name' => 'Ada', 'email' => 'not-an-email'],
@@ -177,7 +177,7 @@ final class ValidatorTest extends TestCase
         $result->validated();
     }
 
-    public function testArrayInputProducesValidationFailureNotException(): void
+    public function test_array_input_produces_validation_failure_not_exception(): void
     {
         // Regression guard (2026-07-06): `field[]=x` arrives as an array. Run
         // through the whole Validator flow, wrong-shaped input must surface as
@@ -197,7 +197,7 @@ final class ValidatorTest extends TestCase
         $this->assertSame('This value is not in the expected format.', $result->first('email'));
     }
 
-    public function testObjectInputProducesValidationFailureNotFatal(): void
+    public function test_object_input_produces_validation_failure_not_fatal(): void
     {
         // A plain object would be a fatal TypeError under a (string) cast. It is
         // wrong-shaped client input, so the flow reports a failure, not a fatal.

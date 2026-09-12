@@ -53,27 +53,27 @@ final class EnvironmentTest extends TestCase
         return new Environment($this->dir);
     }
 
-    public function testReadsPlainValue(): void
+    public function test_reads_plain_value(): void
     {
         $env = $this->writeEnv("APP_NAME=hydra\n");
         $this->assertSame('hydra', $env->get('APP_NAME'));
     }
 
-    public function testFalsyZeroIsNotTreatedAsMissing(): void
+    public function test_falsy_zero_is_not_treated_as_missing(): void
     {
         // Regression: the old `?:` chain returned the default for "0".
         $env = $this->writeEnv("DEBUG=0\n");
         $this->assertSame('0', $env->get('DEBUG', 'DEFAULT'));
     }
 
-    public function testStripsSurroundingQuotes(): void
+    public function test_strips_surrounding_quotes(): void
     {
         $env = $this->writeEnv("NAME=\"hydra framework\"\nALT='single'\n");
         $this->assertSame('hydra framework', $env->get('NAME'));
         $this->assertSame('single', $env->get('ALT'));
     }
 
-    public function testStripsInlineCommentFromUnquotedValue(): void
+    public function test_strips_inline_comment_from_unquoted_value(): void
     {
         // Regression: the shipped .env.example uses inline comments; keeping
         // them in the value silently corrupted APP_DEBUG, APP_KEY and DB_HOST.
@@ -82,13 +82,13 @@ final class EnvironmentTest extends TestCase
         $this->assertTrue($env->bool('APP_DEBUG'));
     }
 
-    public function testStripsInlineCommentWithSingleSpace(): void
+    public function test_strips_inline_comment_with_single_space(): void
     {
         $env = $this->writeEnv("DB_HOST=localhost # or 127.0.0.1\n");
         $this->assertSame('localhost', $env->get('DB_HOST'));
     }
 
-    public function testHashInsideQuotedValueIsPreserved(): void
+    public function test_hash_inside_quoted_value_is_preserved(): void
     {
         // Inside quotes, # is data, not the start of a comment.
         $env = $this->writeEnv("SECRET=\"abc#123 # not a comment\"\nALT='x # y'\n");
@@ -96,13 +96,13 @@ final class EnvironmentTest extends TestCase
         $this->assertSame('x # y', $env->get('ALT'));
     }
 
-    public function testUrlWithFragmentInsideQuotesSurvives(): void
+    public function test_url_with_fragment_inside_quotes_survives(): void
     {
         $env = $this->writeEnv("DOCS_URL=\"https://example.com/page#section\"\n");
         $this->assertSame('https://example.com/page#section', $env->get('DOCS_URL'));
     }
 
-    public function testMismatchedQuotesAreNotStripped(): void
+    public function test_mismatched_quotes_are_not_stripped(): void
     {
         // Regression: trim($value, "\"'") stripped mismatched quotes from
         // either end ("foo' became foo), mangling values that legitimately
@@ -114,7 +114,7 @@ final class EnvironmentTest extends TestCase
         $this->assertSame("trailing'", $env->get('TRAIL'));
     }
 
-    public function testValueThatIsOnlyACommentBecomesEmptyString(): void
+    public function test_value_that_is_only_a_comment_becomes_empty_string(): void
     {
         $env = $this->writeEnv("APP_KEY= # generate me\nBARE=#no space before hash\n");
         $this->assertSame('', $env->get('APP_KEY'));
@@ -122,7 +122,7 @@ final class EnvironmentTest extends TestCase
         $this->assertTrue($env->has('APP_KEY'), 'key is set; its value is just empty');
     }
 
-    public function testSkipsCommentsBlankAndMalformedLinesWithoutWarning(): void
+    public function test_skips_comments_blank_and_malformed_lines_without_warning(): void
     {
         // failOnWarning="true" in phpunit.xml makes a PHP warning fail this test,
         // so this asserts the malformed line ("GARBAGE") is skipped cleanly.
@@ -131,21 +131,21 @@ final class EnvironmentTest extends TestCase
         $this->assertFalse($env->has('GARBAGE'));
     }
 
-    public function testReturnsDefaultForMissingKey(): void
+    public function test_returns_default_for_missing_key(): void
     {
         $env = $this->writeEnv("APP_NAME=hydra\n");
         $this->assertSame('fallback', $env->get('NOPE', 'fallback'));
         $this->assertNull($env->get('NOPE'));
     }
 
-    public function testHasReflectsPresence(): void
+    public function test_has_reflects_presence(): void
     {
         $env = $this->writeEnv("PRESENT=1\n");
         $this->assertTrue($env->has('PRESENT'));
         $this->assertFalse($env->has('ABSENT'));
     }
 
-    public function testRealEnvironmentBeatsDotEnvFile(): void
+    public function test_real_environment_beats_dot_env_file(): void
     {
         // A variable the process already has (container runtime, web server,
         // an `export`) must override the .env file's value, and the file's
@@ -165,7 +165,7 @@ final class EnvironmentTest extends TestCase
         }
     }
 
-    public function testVariableSetViaPutenvAloneStillBeatsDotEnv(): void
+    public function test_variable_set_via_putenv_alone_still_beats_dot_env(): void
     {
         // getenv()-only variables (no $_ENV mirror) count as the real
         // environment too.
@@ -180,7 +180,7 @@ final class EnvironmentTest extends TestCase
         }
     }
 
-    public function testDotEnvValueIsExportedWhenProcessHasNoValue(): void
+    public function test_dot_env_value_is_exported_when_process_has_no_value(): void
     {
         $env = $this->writeEnv("HYDRA_TEST_EXPORT=filled-from-file\n");
 
@@ -194,13 +194,13 @@ final class EnvironmentTest extends TestCase
         }
     }
 
-    public function testRequiredReturnsTheValue(): void
+    public function test_required_returns_the_value(): void
     {
         $env = $this->writeEnv("NEEDED_SECRET=s3cret\n");
         $this->assertSame('s3cret', $env->required('NEEDED_SECRET'));
     }
 
-    public function testRequiredThrowsNamingTheMissingKey(): void
+    public function test_required_throws_naming_the_missing_key(): void
     {
         $env = $this->writeEnv("APP_NAME=hydra\n");
 
@@ -210,7 +210,7 @@ final class EnvironmentTest extends TestCase
         $env->required('TOTALLY_MISSING');
     }
 
-    public function testRequiredThrowsOnEmptyValue(): void
+    public function test_required_throws_on_empty_value(): void
     {
         // `KEY=` in the file is set-but-empty; for required config that is
         // the same misconfiguration as unset.
@@ -222,7 +222,7 @@ final class EnvironmentTest extends TestCase
         $env->required('EMPTY_REQUIRED');
     }
 
-    public function testBoolAcceptedForms(): void
+    public function test_bool_accepted_forms(): void
     {
         // The documented contract, case-insensitively and nothing else:
         // true/false, 1/0, yes/no, on/off.
@@ -242,7 +242,7 @@ final class EnvironmentTest extends TestCase
         $this->assertFalse($env->bool('MISSING_BOOL'));
     }
 
-    public function testBoolRejectsGarbage(): void
+    public function test_bool_rejects_garbage(): void
     {
         // A present-but-non-boolean value is a config error, not a silent
         // false. Same policy as int().
@@ -254,7 +254,7 @@ final class EnvironmentTest extends TestCase
         $env->bool('FLAGGY');
     }
 
-    public function testBoolRejectsEmptyString(): void
+    public function test_bool_rejects_empty_string(): void
     {
         $env = $this->writeEnv("EMPTY_FLAG=\n");
 
@@ -264,7 +264,7 @@ final class EnvironmentTest extends TestCase
         $env->bool('EMPTY_FLAG');
     }
 
-    public function testIntCoercion(): void
+    public function test_int_coercion(): void
     {
         $env = $this->writeEnv("PORT=8080\nZERO=0\nNEG=-5\n");
         $this->assertSame(8080, $env->int('PORT'));
@@ -273,7 +273,7 @@ final class EnvironmentTest extends TestCase
         $this->assertSame(42, $env->int('MISSING', 42));
     }
 
-    public function testIntRejectsNonNumericValue(): void
+    public function test_int_rejects_non_numeric_value(): void
     {
         // A present-but-non-integer value is a config error, not a silent 0.
         $env = $this->writeEnv("PORT=abc\n");
@@ -284,7 +284,7 @@ final class EnvironmentTest extends TestCase
         $env->int('PORT');
     }
 
-    public function testListSplitsOnCommasAndTrims(): void
+    public function test_list_splits_on_commas_and_trims(): void
     {
         $env = $this->writeEnv("TRUSTED_PROXIES=10.0.0.0/8, 172.18.0.0/16 ,2001:db8::/32\n");
 
@@ -294,7 +294,7 @@ final class EnvironmentTest extends TestCase
         );
     }
 
-    public function testListTreatsMissingAndEmptyAlike(): void
+    public function test_list_treats_missing_and_empty_alike(): void
     {
         // "not configured" and "configured to nothing" mean the same thing for
         // a list, and a caller should not have to tell them apart.
@@ -305,7 +305,7 @@ final class EnvironmentTest extends TestCase
         $this->assertSame(['127.0.0.1'], $env->list('NOT_SET_AT_ALL', ['127.0.0.1']));
     }
 
-    public function testListDropsBlankEntries(): void
+    public function test_list_drops_blank_entries(): void
     {
         // A trailing comma is the most common way to write this by hand.
         $env = $this->writeEnv("HOSTS=a,,b,\n");
@@ -313,14 +313,14 @@ final class EnvironmentTest extends TestCase
         $this->assertSame(['a', 'b'], $env->list('HOSTS'));
     }
 
-    public function testSingleValueIsAListOfOne(): void
+    public function test_single_value_is_a_list_of_one(): void
     {
         $env = $this->writeEnv("HOSTS=10.0.0.1\n");
 
         $this->assertSame(['10.0.0.1'], $env->list('HOSTS'));
     }
 
-    public function testMissingEnvFileDoesNotError(): void
+    public function test_missing_env_file_does_not_error(): void
     {
         // No .env written: load() must no-op silently.
         $env = new Environment($this->dir);

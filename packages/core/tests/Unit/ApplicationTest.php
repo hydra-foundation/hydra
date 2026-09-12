@@ -20,7 +20,7 @@ final class ApplicationTest extends TestCase
         return $container;
     }
 
-    public function testRunBootsProvidersThenResolvesAndRunsKernel(): void
+    public function test_run_boots_providers_then_resolves_and_runs_kernel(): void
     {
         $kernel = $this->createMock(KernelInterface::class);
         $kernel->expects($this->once())->method('handle');
@@ -35,7 +35,7 @@ final class ApplicationTest extends TestCase
         (new Application($container))->register($provider)->run();
     }
 
-    public function testBootIsIdempotent(): void
+    public function test_boot_is_idempotent(): void
     {
         $provider = $this->createMock(ServiceProviderInterface::class);
         $provider->expects($this->once())->method('boot');
@@ -47,7 +47,7 @@ final class ApplicationTest extends TestCase
         $app->boot(); // second call must be a no-op
     }
 
-    public function testRegisterIsCalledImmediatelyOnRegistration(): void
+    public function test_register_is_called_immediately_on_registration(): void
     {
         // register() wires bindings up front; boot() happens later.
         $provider = $this->createMock(ServiceProviderInterface::class);
@@ -59,7 +59,7 @@ final class ApplicationTest extends TestCase
         // no run()/boot(), so boot must not have fired yet
     }
 
-    public function testProviderRegisteredAfterBootIsBootedImmediately(): void
+    public function test_provider_registered_after_boot_is_booted_immediately(): void
     {
         // A provider registered post-boot must still be booted, not silently
         // left half-wired.

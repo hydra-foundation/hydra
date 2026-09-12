@@ -22,7 +22,7 @@ final class ContainerTest extends TestCase
         $this->container = new Container(new PhpDiContainer);
     }
 
-    public function testSingletonMapsInterfaceToConcreteInstance(): void
+    public function test_singleton_maps_interface_to_concrete_instance(): void
     {
         // Regression: a bare set($id, $concrete) would store the literal class
         // string, so get() returned "Dog" instead of a Dog instance.
@@ -33,7 +33,7 @@ final class ContainerTest extends TestCase
         $this->assertInstanceOf(Dog::class, $resolved);
     }
 
-    public function testSingletonWithClosureDoesNotThrow(): void
+    public function test_singleton_with_closure_does_not_throw(): void
     {
         // Regression: passing the closure to \DI\autowire() (which only accepts a
         // class-name string) threw a TypeError — a callable must use \DI\factory().
@@ -42,7 +42,7 @@ final class ContainerTest extends TestCase
         $this->assertInstanceOf(stdClass::class, $this->container->get('service'));
     }
 
-    public function testResolvedEntriesAreShared(): void
+    public function test_resolved_entries_are_shared(): void
     {
         // PHP-DI caches resolved entries, so repeat resolution returns the same
         // instance — singleton() is the only binding semantics there is.
@@ -54,7 +54,7 @@ final class ContainerTest extends TestCase
         );
     }
 
-    public function testInstanceRegistersExactObject(): void
+    public function test_instance_registers_exact_object(): void
     {
         $object = new stdClass;
         $this->container->instance('the-object', $object);
@@ -62,7 +62,7 @@ final class ContainerTest extends TestCase
         $this->assertSame($object, $this->container->get('the-object'));
     }
 
-    public function testBoundAndHasReflectRegistration(): void
+    public function test_bound_and_has_reflect_registration(): void
     {
         $this->assertFalse($this->container->bound('missing'));
         $this->assertFalse($this->container->has('missing'));
@@ -73,7 +73,7 @@ final class ContainerTest extends TestCase
         $this->assertTrue($this->container->has('present'));
     }
 
-    public function testCreateBuildsAWorkingAdapterOverAFreshContainer(): void
+    public function test_create_builds_a_working_adapter_over_a_fresh_container(): void
     {
         // The zero-arg factory an app's composition root uses instead of naming
         // DI\Container itself.
@@ -84,7 +84,7 @@ final class ContainerTest extends TestCase
         $this->assertSame($object, $container->get('x'));
     }
 
-    public function testImplementsHydraContainerContract(): void
+    public function test_implements_hydra_container_contract(): void
     {
         $this->assertInstanceOf(ContainerInterface::class, $this->container);
     }

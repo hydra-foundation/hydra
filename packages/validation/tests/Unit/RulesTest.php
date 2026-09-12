@@ -16,7 +16,7 @@ use Stringable;
 
 final class RulesTest extends TestCase
 {
-    public function testRequiredFailsOnNullEmptyStringAndEmptyArray(): void
+    public function test_required_fails_on_null_empty_string_and_empty_array(): void
     {
         $rule = new Required;
 
@@ -25,7 +25,7 @@ final class RulesTest extends TestCase
         $this->assertSame('This field is required.', $rule->validate([]));
     }
 
-    public function testRequiredAllowsFalsyButPresentValues(): void
+    public function test_required_allows_falsy_but_present_values(): void
     {
         // Regression guard: "0", 0, and false are present and must pass.
         $rule = new Required;
@@ -36,7 +36,7 @@ final class RulesTest extends TestCase
         $this->assertNull($rule->validate('hello'));
     }
 
-    public function testRequiredAllowsNonEmptyArray(): void
+    public function test_required_allows_non_empty_array(): void
     {
         // Only the empty array is "missing"; a populated array is present.
         $rule = new Required;
@@ -45,12 +45,12 @@ final class RulesTest extends TestCase
         $this->assertNull($rule->validate([0]));
     }
 
-    public function testRequiredCarriesItsOwnMessage(): void
+    public function test_required_carries_its_own_message(): void
     {
         $this->assertSame('Write something first.', (new Required('Write something first.'))->validate(''));
     }
 
-    public function testMaxLengthIsMultibyteAware(): void
+    public function test_max_length_is_multibyte_aware(): void
     {
         $rule = new MaxLength(3);
 
@@ -59,13 +59,13 @@ final class RulesTest extends TestCase
         $this->assertSame('Must be 3 characters or fewer.', $rule->validate('abcd'));
     }
 
-    public function testMaxLengthPassesAbsentValue(): void
+    public function test_max_length_passes_absent_value(): void
     {
         // null is length zero; presence is Required's job, not MaxLength's.
         $this->assertNull((new MaxLength(10))->validate(null));
     }
 
-    public function testMinLengthIsMultibyteAware(): void
+    public function test_min_length_is_multibyte_aware(): void
     {
         $rule = new MinLength(3);
 
@@ -74,20 +74,20 @@ final class RulesTest extends TestCase
         $this->assertSame('Must be at least 3 characters.', $rule->validate(''));
     }
 
-    public function testMinLengthFailsAbsentValue(): void
+    public function test_min_length_fails_absent_value(): void
     {
         // Deliberate asymmetry with MaxLength: null is length zero, so for any
         // positive minimum it fails rather than passing.
         $this->assertSame('Must be at least 3 characters.', (new MinLength(3))->validate(null));
     }
 
-    public function testCustomMessagesOverrideDefaults(): void
+    public function test_custom_messages_override_defaults(): void
     {
         $this->assertSame('too long', (new MaxLength(2, 'too long'))->validate('abc'));
         $this->assertSame('too short', (new MinLength(5, 'too short'))->validate('ab'));
     }
 
-    public function testPatternMatches(): void
+    public function test_pattern_matches(): void
     {
         $rule = new Pattern('/^[a-z]+$/', 'letters only');
 
@@ -95,7 +95,7 @@ final class RulesTest extends TestCase
         $this->assertSame('letters only', $rule->validate('abc123'));
     }
 
-    public function testPatternUsesDefaultMessage(): void
+    public function test_pattern_uses_default_message(): void
     {
         $this->assertSame(
             'This value is not in the expected format.',
@@ -103,7 +103,7 @@ final class RulesTest extends TestCase
         );
     }
 
-    public function testPatternCoercesNonStringValues(): void
+    public function test_pattern_coerces_non_string_values(): void
     {
         // The (string) cast is load-bearing: numbers stringify, null becomes ''.
         $digits = new Pattern('/^\d+$/');
@@ -112,7 +112,7 @@ final class RulesTest extends TestCase
         $this->assertSame('This value is not in the expected format.', $digits->validate(null));
     }
 
-    public function testArrayInputFailsStringRulesWithoutWarning(): void
+    public function test_array_input_fails_string_rules_without_warning(): void
     {
         // HTTP input is attacker-shaped: `field[]=x` arrives as an array. A
         // (string) cast would warn and coerce to the literal "Array" (length
@@ -126,7 +126,7 @@ final class RulesTest extends TestCase
         $this->assertSame('This value is not in the expected format.', (new Pattern('/\A.+\z/'))->validate($array));
     }
 
-    public function testObjectWithoutToStringFailsStringRules(): void
+    public function test_object_without_to_string_fails_string_rules(): void
     {
         // A plain object would be a fatal TypeError under (string); it is
         // wrong-shaped client input, so it fails validation instead.
@@ -137,7 +137,7 @@ final class RulesTest extends TestCase
         $this->assertSame('This value is not in the expected format.', (new Pattern('/\A.+\z/'))->validate($object));
     }
 
-    public function testBooleanFailsStringRules(): void
+    public function test_boolean_fails_string_rules(): void
     {
         // Booleans are never legitimate text input; casting would validate
         // the artifacts "1"/"" rather than anything the client sent.
@@ -146,7 +146,7 @@ final class RulesTest extends TestCase
         $this->assertSame('This value is not in the expected format.', (new Pattern('/\A.+\z/'))->validate(true));
     }
 
-    public function testStringableObjectValidatesByItsStringValue(): void
+    public function test_stringable_object_validates_by_its_string_value(): void
     {
         $value = new class implements Stringable {
             public function __toString(): string
@@ -161,7 +161,7 @@ final class RulesTest extends TestCase
         $this->assertSame('Must be at least 6 characters.', (new MinLength(6))->validate($value));
     }
 
-    public function testNumericScalarsStillStringify(): void
+    public function test_numeric_scalars_still_stringify(): void
     {
         // int/float remain valid text-shaped input (e.g. already-cast form data).
         $this->assertNull((new MinLength(3))->validate(1234));
@@ -169,7 +169,7 @@ final class RulesTest extends TestCase
         $this->assertNull((new Pattern('/\A[\d.]+\z/'))->validate(12.5));
     }
 
-    public function testEndOfStringAnchorRejectsTrailingNewline(): void
+    public function test_end_of_string_anchor_rejects_trailing_newline(): void
     {
         // With the old '/^.+@.+$/' idiom, PCRE's $ tolerates a trailing
         // newline, so "a@b\n" passes. \A/\z anchor the true string ends;
@@ -182,7 +182,7 @@ final class RulesTest extends TestCase
         $this->assertSame('This value is not in the expected format.', $anchored->validate("a@b\n"));
     }
 
-    public function testPatternRejectsMalformedRegexAtConstruction(): void
+    public function test_pattern_rejects_malformed_regex_at_construction(): void
     {
         // A bad pattern is a developer error, surfaced immediately rather than as a
         // silent per-value "invalid" plus a runtime warning at match time.
@@ -191,7 +191,7 @@ final class RulesTest extends TestCase
         new Pattern('/[unclosed');
     }
 
-    public function testRangeAcceptsWithinBoundsInclusive(): void
+    public function test_range_accepts_within_bounds_inclusive(): void
     {
         $rule = new Range(1, 100);
 
@@ -200,7 +200,7 @@ final class RulesTest extends TestCase
         $this->assertNull($rule->validate(50));
     }
 
-    public function testRangeRejectsOutsideBounds(): void
+    public function test_range_rejects_outside_bounds(): void
     {
         $rule = new Range(1, 100);
 
@@ -209,7 +209,7 @@ final class RulesTest extends TestCase
         $this->assertSame('Must be a whole number between 1 and 100.', $rule->validate(-5));
     }
 
-    public function testRangeReadsDigitStringsBecauseQueryInputIsText(): void
+    public function test_range_reads_digit_strings_because_query_input_is_text(): void
     {
         $rule = new Range(1, 100);
 
@@ -218,7 +218,7 @@ final class RulesTest extends TestCase
         $this->assertSame('Must be a whole number between 1 and 100.', $rule->validate('101'));
     }
 
-    public function testRangeRejectsWhatIsNotAWholeNumber(): void
+    public function test_range_rejects_what_is_not_a_whole_number(): void
     {
         // The trap this rule exists to avoid: coercing "abc" to 0 would pass a
         // min of 0, and flooring "2.5" would accept a value nobody sent.
@@ -232,7 +232,7 @@ final class RulesTest extends TestCase
         $this->assertNotNull($rule->validate(true));
     }
 
-    public function testInListAcceptsOnlyWhatItLists(): void
+    public function test_in_list_accepts_only_what_it_lists(): void
     {
         $rule = new InList(['asc', 'desc']);
 
@@ -242,7 +242,7 @@ final class RulesTest extends TestCase
         $this->assertSame('Must be one of: asc, desc.', $rule->validate(''));
     }
 
-    public function testInListComparesStrictlyOnTheStringForm(): void
+    public function test_in_list_compares_strictly_on_the_string_form(): void
     {
         // A loose comparison would let 0 match "asc" and true match "1", the
         // classic way an allow-list stops being one.
@@ -251,7 +251,7 @@ final class RulesTest extends TestCase
         $this->assertNull((new InList([1, 2]))->validate('1'));
     }
 
-    public function testInListRejectsAnEmptyAllowedSetAtConstruction(): void
+    public function test_in_list_rejects_an_empty_allowed_set_at_construction(): void
     {
         // An empty set rejects everything, which is a caller passing through a
         // list it meant to populate. A developer error, surfaced immediately.

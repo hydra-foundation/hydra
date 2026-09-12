@@ -28,7 +28,7 @@ final class PdoConnectionTest extends TestCase
         $this->db = new PdoConnection($pdo);
     }
 
-    public function testExecuteReturnsAffectedRowsAndSelectReadsThemBack(): void
+    public function test_execute_returns_affected_rows_and_select_reads_them_back(): void
     {
         $affected = $this->db->execute('INSERT INTO widgets (name) VALUES (?)', ['cog']);
         $this->assertSame(1, $affected);
@@ -37,12 +37,12 @@ final class PdoConnectionTest extends TestCase
         $this->assertSame([['id' => 1, 'name' => 'cog']], $rows);
     }
 
-    public function testSelectReturnsEmptyArrayWhenNoRows(): void
+    public function test_select_returns_empty_array_when_no_rows(): void
     {
         $this->assertSame([], $this->db->select('SELECT * FROM widgets'));
     }
 
-    public function testSelectOneReturnsFirstRowOrNull(): void
+    public function test_select_one_returns_first_row_or_null(): void
     {
         $this->assertNull($this->db->selectOne('SELECT * FROM widgets WHERE id = ?', [99]));
 
@@ -54,7 +54,7 @@ final class PdoConnectionTest extends TestCase
         );
     }
 
-    public function testLastInsertIdReflectsMostRecentInsert(): void
+    public function test_last_insert_id_reflects_most_recent_insert(): void
     {
         $this->db->execute('INSERT INTO widgets (name) VALUES (?)', ['a']);
         $this->db->execute('INSERT INTO widgets (name) VALUES (?)', ['b']);
@@ -65,7 +65,7 @@ final class PdoConnectionTest extends TestCase
         $this->assertSame('2', $this->db->lastInsertId());
     }
 
-    public function testParametersAreBoundNotInterpolated(): void
+    public function test_parameters_are_bound_not_interpolated(): void
     {
         // A value with SQL metacharacters round-trips intact — proof it's bound.
         $payload = "Robert'); DROP TABLE widgets;--";
@@ -74,7 +74,7 @@ final class PdoConnectionTest extends TestCase
         $this->assertSame($payload, $this->db->selectOne('SELECT name FROM widgets WHERE id = 1')['name']);
     }
 
-    public function testTransactionCommitsAndPassesTheReturnValueBack(): void
+    public function test_transaction_commits_and_passes_the_return_value_back(): void
     {
         $id = $this->db->transaction(function (PdoConnection $db) {
             $db->execute('INSERT INTO widgets (name) VALUES (?)', ['a']);
@@ -87,7 +87,7 @@ final class PdoConnectionTest extends TestCase
         $this->assertCount(2, $this->db->select('SELECT * FROM widgets'));
     }
 
-    public function testTransactionRollsBackOnThrowAndRethrowsTheOriginal(): void
+    public function test_transaction_rolls_back_on_throw_and_rethrows_the_original(): void
     {
         $thrown = new RuntimeException('boom');
 
@@ -105,14 +105,14 @@ final class PdoConnectionTest extends TestCase
         $this->assertSame([], $this->db->select('SELECT * FROM widgets'));
     }
 
-    public function testTransactionInvokesTheCallableWithTheConnection(): void
+    public function test_transaction_invokes_the_callable_with_the_connection(): void
     {
         $this->db->transaction(function ($arg) {
             $this->assertSame($this->db, $arg);
         });
     }
 
-    public function testNestedTransactionJoinsTheOuterOne(): void
+    public function test_nested_transaction_joins_the_outer_one(): void
     {
         $this->db->transaction(function (PdoConnection $db) {
             $db->execute('INSERT INTO widgets (name) VALUES (?)', ['outer']);
@@ -125,7 +125,7 @@ final class PdoConnectionTest extends TestCase
         $this->assertCount(2, $this->db->select('SELECT * FROM widgets'));
     }
 
-    public function testOuterThrowAfterASuccessfulInnerCallRollsBackItsWrites(): void
+    public function test_outer_throw_after_a_successful_inner_call_rolls_back_its_writes(): void
     {
         try {
             $this->db->transaction(function (PdoConnection $db) {
@@ -144,7 +144,7 @@ final class PdoConnectionTest extends TestCase
         $this->assertSame([], $this->db->select('SELECT * FROM widgets'));
     }
 
-    public function testInnerThrowRollsBackTheWholeOuterTransaction(): void
+    public function test_inner_throw_rolls_back_the_whole_outer_transaction(): void
     {
         try {
             $this->db->transaction(function (PdoConnection $db) {

@@ -71,7 +71,7 @@ final class PipelineTest extends TestCase
         return $this->createStub(ResponseInterface::class);
     }
 
-    public function testEmptyQueueDelegatesStraightToKernel(): void
+    public function test_empty_queue_delegates_straight_to_kernel(): void
     {
         $log = new ArrayObject;
         $kernelResponse = $this->response();
@@ -84,7 +84,7 @@ final class PipelineTest extends TestCase
         $this->assertSame(['kernel'], $log->getArrayCopy());
     }
 
-    public function testRunsMiddlewareOutsideInAndUnwindsInsideOut(): void
+    public function test_runs_middleware_outside_in_and_unwinds_inside_out(): void
     {
         $log = new ArrayObject;
         $kernelResponse = $this->response();
@@ -105,7 +105,7 @@ final class PipelineTest extends TestCase
         $this->assertSame($kernelResponse, $response);
     }
 
-    public function testShortCircuitSkipsInnerMiddlewareAndKernel(): void
+    public function test_short_circuit_skips_inner_middleware_and_kernel(): void
     {
         $log = new ArrayObject;
         $kernel = new RecordingKernel($this->response(), $log);
@@ -127,7 +127,7 @@ final class PipelineTest extends TestCase
         );
     }
 
-    public function testPipelineIsReEntrant(): void
+    public function test_pipeline_is_re_entrant(): void
     {
         // Guards against mutating the queue in place: handling a second request
         // through the same Pipeline instance must replay the full chain.
@@ -143,7 +143,7 @@ final class PipelineTest extends TestCase
         $this->assertSame(['enter:A', 'kernel', 'exit:A'], $log->getArrayCopy());
     }
 
-    public function testGeneratorInputIsAcceptedLikeArray(): void
+    public function test_generator_input_is_accepted_like_array(): void
     {
         // The constructor accepts iterable<MiddlewareInterface>, not just arrays.
         // A generator must produce the same ordering as an equivalent array.
@@ -165,7 +165,7 @@ final class PipelineTest extends TestCase
         $this->assertSame($kernelResponse, $response);
     }
 
-    public function testOutermostFirstOrderingWithThreeMiddleware(): void
+    public function test_outermost_first_ordering_with_three_middleware(): void
     {
         // Pins the "outermost first" contract with three layers: request travels
         // A→B→C→kernel and response unwinds C→B→A.
@@ -188,7 +188,7 @@ final class PipelineTest extends TestCase
         $this->assertSame($kernelResponse, $response);
     }
 
-    public function testOutermostMiddlewareCanShortCircuit(): void
+    public function test_outermost_middleware_can_short_circuit(): void
     {
         // A short-circuit at position 0 must skip every inner layer and the kernel.
         $log = new ArrayObject;
@@ -207,7 +207,7 @@ final class PipelineTest extends TestCase
         $this->assertSame(['enter:A', 'short:A'], $log->getArrayCopy());
     }
 
-    public function testKernelResponsePropagatesUnmodifiedThroughPassThroughMiddleware(): void
+    public function test_kernel_response_propagates_unmodified_through_pass_through_middleware(): void
     {
         // Each pass-through middleware must return exactly what the inner handler
         // returned — not a copy or a different instance.

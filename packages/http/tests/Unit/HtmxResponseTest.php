@@ -17,7 +17,7 @@ use Psr\Http\Message\ResponseInterface;
  */
 final class HtmxResponseTest extends TestCase
 {
-    public function testAMarkerCarriesTheDirectiveAndNothingIsLeftInTheHeaders(): void
+    public function test_a_marker_carries_the_directive_and_nothing_is_left_in_the_headers(): void
     {
         $response = $this->responder()->htmx()
             ->redirect('/login')
@@ -30,7 +30,7 @@ final class HtmxResponseTest extends TestCase
         ));
     }
 
-    public function testTheMarkerIsAppendedToContentRatherThanReplacingIt(): void
+    public function test_the_marker_is_appended_to_content_rather_than_replacing_it(): void
     {
         $response = $this->responder()->htmx()
             ->pushUrl('/users')
@@ -42,7 +42,7 @@ final class HtmxResponseTest extends TestCase
         );
     }
 
-    public function testSeveralDirectivesShareOneMarker(): void
+    public function test_several_directives_share_one_marker(): void
     {
         $response = $this->responder()->htmx()
             ->pushUrl('/users')
@@ -55,7 +55,7 @@ final class HtmxResponseTest extends TestCase
         );
     }
 
-    public function testAListUrlSurvivesTheAttribute(): void
+    public function test_a_list_url_survives_the_attribute(): void
     {
         $response = $this->responder()->htmx()
             ->pushUrl('/admin/users?q=a&sort=id&dir=asc')
@@ -67,7 +67,7 @@ final class HtmxResponseTest extends TestCase
         $this->assertSame('/admin/users?q=a&sort=id&dir=asc', HtmxResponse::directive($response, 'push-url'));
     }
 
-    public function testRetargetWrapsTheBodyOutOfBand(): void
+    public function test_retarget_wraps_the_body_out_of_band(): void
     {
         $response = $this->responder()->htmx()
             ->retarget('#app-error', 'innerHTML')
@@ -81,7 +81,7 @@ final class HtmxResponseTest extends TestCase
         );
     }
 
-    public function testRetargetDefaultsToReplacingTheRegion(): void
+    public function test_retarget_defaults_to_replacing_the_region(): void
     {
         $response = $this->responder()->htmx()
             ->retarget('#app-error')
@@ -90,7 +90,7 @@ final class HtmxResponseTest extends TestCase
         $this->assertStringContainsString('hx-swap-oob="outerHTML:#app-error"', $this->body($response));
     }
 
-    public function testNothingAskedForChangesNothing(): void
+    public function test_nothing_asked_for_changes_nothing(): void
     {
         $response = $this->responder()->htmx()->applyTo($this->html('<p>Fine</p>'));
 

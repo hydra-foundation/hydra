@@ -14,22 +14,22 @@ final class CompiledRouteTest extends TestCase
         return new CompiledRoute('GET', $path, fn () => null);
     }
 
-    public function testStaticPathMatchesWithNoParams(): void
+    public function test_static_path_matches_with_no_params(): void
     {
         $this->assertSame([], $this->route('/health')->matchPath('/health'));
     }
 
-    public function testStaticPathDoesNotMatchDifferentPath(): void
+    public function test_static_path_does_not_match_different_path(): void
     {
         $this->assertNull($this->route('/health')->matchPath('/status'));
     }
 
-    public function testSingleParamIsExtracted(): void
+    public function test_single_param_is_extracted(): void
     {
         $this->assertSame(['id' => '42'], $this->route('/users/{id}')->matchPath('/users/42'));
     }
 
-    public function testMultipleParamsAreExtracted(): void
+    public function test_multiple_params_are_extracted(): void
     {
         $this->assertSame(
             ['post' => '7', 'comment' => '3'],
@@ -37,18 +37,18 @@ final class CompiledRouteTest extends TestCase
         );
     }
 
-    public function testParamDoesNotMatchAcrossASlash(): void
+    public function test_param_does_not_match_across_a_slash(): void
     {
         // A single {id} segment must not swallow an extra path segment.
         $this->assertNull($this->route('/users/{id}')->matchPath('/users/42/edit'));
     }
 
-    public function testParamValueIsUrlDecoded(): void
+    public function test_param_value_is_url_decoded(): void
     {
         $this->assertSame(['name' => 'john doe'], $this->route('/users/{name}')->matchPath('/users/john%20doe'));
     }
 
-    public function testLiteralRegexCharactersAreEscaped(): void
+    public function test_literal_regex_characters_are_escaped(): void
     {
         $route = $this->route('/a.b/{id}');
 
@@ -57,7 +57,7 @@ final class CompiledRouteTest extends TestCase
         $this->assertNull($route->matchPath('/aXb/5'));
     }
 
-    public function testDuplicateParamNamesAreRejectedAtConstruction(): void
+    public function test_duplicate_param_names_are_rejected_at_construction(): void
     {
         // Two groups with the same name would otherwise make PCRE warn and
         // silently never match on every request. Fail fast at registration.

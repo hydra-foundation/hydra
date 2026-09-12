@@ -64,12 +64,12 @@ final class RouteCacheTest extends TestCase
         ];
     }
 
-    public function testLoadReturnsNullWhenNoCacheFileExists(): void
+    public function test_load_returns_null_when_no_cache_file_exists(): void
     {
         $this->assertNull($this->cache($this->dir . '/routes.php')->load());
     }
 
-    public function testStoreThenLoadRoundTripsTheRoutesExactly(): void
+    public function test_store_then_load_round_trips_the_routes_exactly(): void
     {
         $cache = $this->cache($this->dir . '/routes.php');
         $routes = $this->sampleRoutes();
@@ -81,7 +81,7 @@ final class RouteCacheTest extends TestCase
         $this->assertSame($routes, $cache->load());
     }
 
-    public function testStoreCreatesMissingParentDirectories(): void
+    public function test_store_creates_missing_parent_directories(): void
     {
         $path = $this->dir . '/bootstrap/cache/routes.php';
         $cache = $this->cache($path);
@@ -92,7 +92,7 @@ final class RouteCacheTest extends TestCase
         $this->assertSame($this->sampleRoutes(), $cache->load());
     }
 
-    public function testStoredFileIsPlainPhpReturningFingerprintAndRoutes(): void
+    public function test_stored_file_is_plain_php_returning_fingerprint_and_routes(): void
     {
         $path = $this->dir . '/routes.php';
         $this->cache($path)->store($this->sampleRoutes());
@@ -106,7 +106,7 @@ final class RouteCacheTest extends TestCase
         $this->assertSame($this->sampleRoutes(), $artifact['routes']);
     }
 
-    public function testLoadReturnsNullWhenControllersListChanged(): void
+    public function test_load_returns_null_when_controllers_list_changed(): void
     {
         $path = $this->dir . '/routes.php';
         $this->cache($path)->store($this->sampleRoutes());
@@ -118,7 +118,7 @@ final class RouteCacheTest extends TestCase
         $this->assertNull($this->cache($path, $grown)->load());
     }
 
-    public function testLoadReturnsNullWhenControllersListReordered(): void
+    public function test_load_returns_null_when_controllers_list_reordered(): void
     {
         $path = $this->dir . '/routes.php';
         $this->cache($path)->store($this->sampleRoutes());
@@ -128,7 +128,7 @@ final class RouteCacheTest extends TestCase
         $this->assertNull($this->cache($path, array_reverse(self::CONTROLLERS))->load());
     }
 
-    public function testLoadTreatsPreFingerprintArtifactAsStale(): void
+    public function test_load_treats_pre_fingerprint_artifact_as_stale(): void
     {
         // A cache file written by the old format (a bare routes list, no
         // fingerprint wrapper) reads as a miss — stale, not broken.
@@ -142,7 +142,7 @@ final class RouteCacheTest extends TestCase
         $this->assertNull($this->cache($path)->load());
     }
 
-    public function testClearRemovesTheCacheAndReportsIt(): void
+    public function test_clear_removes_the_cache_and_reports_it(): void
     {
         $path = $this->dir . '/routes.php';
         $cache = $this->cache($path);
@@ -153,14 +153,14 @@ final class RouteCacheTest extends TestCase
         $this->assertNull($cache->load());
     }
 
-    public function testClearOnAColdCacheIsANoOp(): void
+    public function test_clear_on_a_cold_cache_is_a_no_op(): void
     {
         // Clearing an absent cache is success, not an error — it just had
         // nothing to remove.
         $this->assertFalse($this->cache($this->dir . '/routes.php')->clear());
     }
 
-    public function testStoreOverwritesAnExistingCache(): void
+    public function test_store_overwrites_an_existing_cache(): void
     {
         $cache = $this->cache($this->dir . '/routes.php');
         $cache->store($this->sampleRoutes());

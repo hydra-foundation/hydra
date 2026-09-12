@@ -36,7 +36,7 @@ final class KeyGenerateCommandTest extends TestCase
         return $m[1] ?? '';
     }
 
-    public function testWritesAKeyWhenAppKeyIsEmpty(): void
+    public function test_writes_a_key_when_app_key_is_empty(): void
     {
         file_put_contents($this->envPath, "APP_NAME=Hydra\nAPP_KEY=\n");
 
@@ -48,7 +48,7 @@ final class KeyGenerateCommandTest extends TestCase
         $this->assertStringContainsString('APP_NAME=Hydra', file_get_contents($this->envPath));
     }
 
-    public function testRefusesToOverwriteAnExistingKeyWithoutForce(): void
+    public function test_refuses_to_overwrite_an_existing_key_without_force(): void
     {
         file_put_contents($this->envPath, "APP_KEY=existing\n");
 
@@ -60,7 +60,7 @@ final class KeyGenerateCommandTest extends TestCase
         $this->assertSame('existing', $this->key());
     }
 
-    public function testOverwritesAnExistingKeyWithForce(): void
+    public function test_overwrites_an_existing_key_with_force(): void
     {
         file_put_contents($this->envPath, "APP_KEY=existing\n");
 
@@ -69,7 +69,7 @@ final class KeyGenerateCommandTest extends TestCase
         $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $this->key());
     }
 
-    public function testAppendsAppKeyWhenTheLineIsAbsent(): void
+    public function test_appends_app_key_when_the_line_is_absent(): void
     {
         file_put_contents($this->envPath, "APP_NAME=Hydra\n");
 
@@ -78,7 +78,7 @@ final class KeyGenerateCommandTest extends TestCase
         $this->assertStringContainsString('APP_NAME=Hydra', file_get_contents($this->envPath));
     }
 
-    public function testFailsWhenEnvFileIsMissing(): void
+    public function test_fails_when_env_file_is_missing(): void
     {
         $tester = $this->tester(); // setUp() never created the file
 

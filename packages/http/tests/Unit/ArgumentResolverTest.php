@@ -20,12 +20,12 @@ final class ArgumentResolverTest extends TestCase
         return (new ArgumentResolver)->resolve($target, $request, $params);
     }
 
-    public function testEmptySignatureResolvesToNoArguments(): void
+    public function test_empty_signature_resolves_to_no_arguments(): void
     {
         $this->assertSame([], $this->resolve(fn (): string => 'ok'));
     }
 
-    public function testRequestIsInjectedByType(): void
+    public function test_request_is_injected_by_type(): void
     {
         $request = $this->createStub(ServerRequestInterface::class);
 
@@ -34,7 +34,7 @@ final class ArgumentResolverTest extends TestCase
         $this->assertSame([$request], $args);
     }
 
-    public function testRequestIsMatchedByTypeRegardlessOfNameOrPosition(): void
+    public function test_request_is_matched_by_type_regardless_of_name_or_position(): void
     {
         $request = $this->createStub(ServerRequestInterface::class);
 
@@ -48,28 +48,28 @@ final class ArgumentResolverTest extends TestCase
         $this->assertSame(['ada', $request], $args);
     }
 
-    public function testStringPlaceholderIsPassedThrough(): void
+    public function test_string_placeholder_is_passed_through(): void
     {
         $args = $this->resolve(fn (string $name) => $name, ['name' => 'ada']);
 
         $this->assertSame(['ada'], $args);
     }
 
-    public function testUntypedPlaceholderIsPassedThroughAsString(): void
+    public function test_untyped_placeholder_is_passed_through_as_string(): void
     {
         $args = $this->resolve(fn ($name) => $name, ['name' => 'ada']);
 
         $this->assertSame(['ada'], $args);
     }
 
-    public function testIntPlaceholderIsCoerced(): void
+    public function test_int_placeholder_is_coerced(): void
     {
         $args = $this->resolve(fn (int $id) => $id, ['id' => '42']);
 
         $this->assertSame([42], $args);
     }
 
-    public function testFloatPlaceholderIsCoerced(): void
+    public function test_float_placeholder_is_coerced(): void
     {
         $args = $this->resolve(fn (float $ratio) => $ratio, ['ratio' => '3.5']);
 
@@ -77,7 +77,7 @@ final class ArgumentResolverTest extends TestCase
     }
 
     #[DataProvider('boolValues')]
-    public function testBoolPlaceholderIsCoerced(string $raw, bool $expected): void
+    public function test_bool_placeholder_is_coerced(string $raw, bool $expected): void
     {
         $args = $this->resolve(fn (bool $flag) => $flag, ['flag' => $raw]);
 
@@ -94,25 +94,25 @@ final class ArgumentResolverTest extends TestCase
         yield 'false' => ['false', false];
     }
 
-    public function testBadIntIsTreatedAsNotFound(): void
+    public function test_bad_int_is_treated_as_not_found(): void
     {
         $this->expectException(NotFoundException::class);
         $this->resolve(fn (int $id) => $id, ['id' => 'abc']);
     }
 
-    public function testBadFloatIsTreatedAsNotFound(): void
+    public function test_bad_float_is_treated_as_not_found(): void
     {
         $this->expectException(NotFoundException::class);
         $this->resolve(fn (float $r) => $r, ['r' => 'nope']);
     }
 
-    public function testUnrecognisedBoolIsTreatedAsNotFound(): void
+    public function test_unrecognised_bool_is_treated_as_not_found(): void
     {
         $this->expectException(NotFoundException::class);
         $this->resolve(fn (bool $flag) => $flag, ['flag' => 'maybe']);
     }
 
-    public function testCoercionFailureCarriesNoClientFacingMessage(): void
+    public function test_coercion_failure_carries_no_client_facing_message(): void
     {
         try {
             $this->resolve(fn (int $id) => $id, ['id' => 'abc']);
@@ -125,34 +125,34 @@ final class ArgumentResolverTest extends TestCase
         }
     }
 
-    public function testDefaultValueIsUsedWhenNoPlaceholderMatches(): void
+    public function test_default_value_is_used_when_no_placeholder_matches(): void
     {
         $args = $this->resolve(fn (string $name = 'world') => $name, []);
 
         $this->assertSame(['world'], $args);
     }
 
-    public function testNullableParameterFallsBackToNull(): void
+    public function test_nullable_parameter_falls_back_to_null(): void
     {
         $args = $this->resolve(fn (?string $name) => $name, []);
 
         $this->assertSame([null], $args);
     }
 
-    public function testPlaceholderTakesPrecedenceOverDefault(): void
+    public function test_placeholder_takes_precedence_over_default(): void
     {
         $args = $this->resolve(fn (string $name = 'world') => $name, ['name' => 'ada']);
 
         $this->assertSame(['ada'], $args);
     }
 
-    public function testUnresolvableRequiredParameterIsAWiringError(): void
+    public function test_unresolvable_required_parameter_is_a_wiring_error(): void
     {
         $this->expectException(LogicException::class);
         $this->resolve(fn (string $missing) => $missing, []);
     }
 
-    public function testNonScalarPlaceholderTypeIsAWiringError(): void
+    public function test_non_scalar_placeholder_type_is_a_wiring_error(): void
     {
         // An array-typed parameter named like a placeholder can't come from a
         // URL segment: that's a programming mistake, not a client 404.
@@ -160,7 +160,7 @@ final class ArgumentResolverTest extends TestCase
         $this->resolve(fn (array $id) => $id, ['id' => '42']);
     }
 
-    public function testResolvesRequestAndPlaceholdersTogether(): void
+    public function test_resolves_request_and_placeholders_together(): void
     {
         $request = $this->createStub(ServerRequestInterface::class);
 

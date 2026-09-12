@@ -62,7 +62,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         return $handler;
     }
 
-    public function testPassesResponseThroughWhenNoExceptionThrown(): void
+    public function test_passes_response_through_when_no_exception_thrown(): void
     {
         $expected = $this->createStub(ResponseInterface::class);
         $handler = $this->createStub(RequestHandlerInterface::class);
@@ -73,7 +73,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame($expected, $middleware->process($this->request(), $handler));
     }
 
-    public function testConvertsThrowableToA500(): void
+    public function test_converts_throwable_to_a_500(): void
     {
         $middleware = new ErrorHandlerMiddleware($this->renderer(), debug: false);
 
@@ -82,7 +82,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame(500, $response->getStatusCode());
     }
 
-    public function testProductionResponseHidesDetails(): void
+    public function test_production_response_hides_details(): void
     {
         $middleware = new ErrorHandlerMiddleware($this->renderer(), debug: false);
 
@@ -96,7 +96,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertStringNotContainsString('secret db dsn', $body);
     }
 
-    public function testDebugResponseIncludesExceptionDetails(): void
+    public function test_debug_response_includes_exception_details(): void
     {
         $middleware = new ErrorHandlerMiddleware($this->renderer(), debug: true);
 
@@ -110,7 +110,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertStringContainsString('boom', $body);
     }
 
-    public function testCatchesErrorsNotOnlyExceptions(): void
+    public function test_catches_errors_not_only_exceptions(): void
     {
         // A TypeError is a Throwable but not an Exception — must still become 500.
         $middleware = new ErrorHandlerMiddleware($this->renderer(), debug: false);
@@ -120,7 +120,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame(500, $response->getStatusCode());
     }
 
-    public function testLogsThrowableAtErrorLevelWithExceptionContext(): void
+    public function test_logs_throwable_at_error_level_with_exception_context(): void
     {
         $logger = new SpyLogger;
         $exception = new RuntimeException('boom');
@@ -137,7 +137,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame(500, $response->getStatusCode());
     }
 
-    public function testDoesNotLogWhenNoExceptionThrown(): void
+    public function test_does_not_log_when_no_exception_thrown(): void
     {
         $logger = new SpyLogger;
         $handler = $this->createStub(RequestHandlerInterface::class);
@@ -149,7 +149,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame([], $logger->records);
     }
 
-    public function testHttpExceptionUsesItsOwnStatus(): void
+    public function test_http_exception_uses_its_own_status(): void
     {
         $middleware = new ErrorHandlerMiddleware($this->renderer(), debug: false);
 
@@ -160,7 +160,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame('Not Found', (string) $response->getBody());
     }
 
-    public function testHttpExceptionMessageIsShownInProduction(): void
+    public function test_http_exception_message_is_shown_in_production(): void
     {
         // An HttpException message is developer-authored and intentional
         // (e.g. abort(403, 'not yours')), so it reaches the client even in prod.
@@ -175,7 +175,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame('not yours', (string) $response->getBody());
     }
 
-    public function testHttpExceptionWithoutMessageFallsBackToReasonPhrase(): void
+    public function test_http_exception_without_message_falls_back_to_reason_phrase(): void
     {
         $middleware = new ErrorHandlerMiddleware($this->renderer(), debug: false);
 
@@ -188,7 +188,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame('Forbidden', (string) $response->getBody());
     }
 
-    public function testUnenumeratedStatusWithoutMessageFallsBackToGenericError(): void
+    public function test_unenumerated_status_without_message_falls_back_to_generic_error(): void
     {
         // A status the Status enum doesn't carry (and no message) hits the
         // `Status::reasonFor($status) ?? 'Error'` fallback rather than blanking.
@@ -203,7 +203,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame('Error', (string) $response->getBody());
     }
 
-    public function testHttpExceptionHeadersAreApplied(): void
+    public function test_http_exception_headers_are_applied(): void
     {
         $middleware = new ErrorHandlerMiddleware($this->renderer(), debug: false);
 
@@ -216,7 +216,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame('GET, POST', $response->getHeaderLine('Allow'));
     }
 
-    public function testClientErrorIsNotLoggedAsAFault(): void
+    public function test_client_error_is_not_logged_as_a_fault(): void
     {
         $logger = new SpyLogger;
         $middleware = new ErrorHandlerMiddleware($this->renderer(), debug: false, logger: $logger);
@@ -226,7 +226,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame([], $logger->records, '4xx is an expected condition, not a fault');
     }
 
-    public function testServerSideHttpExceptionIsLogged(): void
+    public function test_server_side_http_exception_is_logged(): void
     {
         $logger = new SpyLogger;
         $exception = new HttpException(503, 'maintenance');
@@ -240,7 +240,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame($exception, $logger->records[0]['context']['exception']);
     }
 
-    public function testDelegatesToTheRendererWithTheResolvedContext(): void
+    public function test_delegates_to_the_renderer_with_the_resolved_context(): void
     {
         // The middleware hands the renderer an ErrorContext carrying the caught
         // throwable, the same request instance, the mapped status, and the debug
@@ -270,7 +270,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertTrue($renderer->seen->debug);
     }
 
-    public function testMappedHeadersAreAppliedToTheRenderersResponse(): void
+    public function test_mapped_headers_are_applied_to_the_renderers_response(): void
     {
         // Even a custom renderer's response gets the HttpException's headers.
         $renderer = new class ($this->responder()) implements ErrorRendererInterface {
@@ -291,7 +291,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame('GET, POST', $response->getHeaderLine('Allow'));
     }
 
-    public function testAThrowingRendererIsNotSwallowed(): void
+    public function test_a_throwing_renderer_is_not_swallowed(): void
     {
         // A renderer that blows up (broken template, failed view dependency) must
         // propagate to the kernel's last-resort boundary, not be caught here.

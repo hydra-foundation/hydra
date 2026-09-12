@@ -17,7 +17,7 @@ final class ResponderTest extends TestCase
         return new Responder($psr17, $psr17);
     }
 
-    public function testTextResponse(): void
+    public function test_text_response(): void
     {
         $response = $this->responder()->text('hello');
 
@@ -26,7 +26,7 @@ final class ResponderTest extends TestCase
         $this->assertSame('hello', (string) $response->getBody());
     }
 
-    public function testHtmlResponse(): void
+    public function test_html_response(): void
     {
         $response = $this->responder()->html('<h1>hi</h1>', 201);
 
@@ -35,7 +35,7 @@ final class ResponderTest extends TestCase
         $this->assertSame('<h1>hi</h1>', (string) $response->getBody());
     }
 
-    public function testAcceptsAStatusEnumNotJustAnInt(): void
+    public function test_accepts_a_status_enum_not_just_an_int(): void
     {
         // The int|Status contract: passing a Status case must normalize to its code.
         $this->assertSame(201, $this->responder()->json([], Status::Created)->getStatusCode());
@@ -43,7 +43,7 @@ final class ResponderTest extends TestCase
         $this->assertSame(404, $this->responder()->text('x', Status::NotFound)->getStatusCode());
     }
 
-    public function testJsonResponse(): void
+    public function test_json_response(): void
     {
         $response = $this->responder()->json(['name' => 'will', 'roles' => ['admin']]);
 
@@ -52,14 +52,14 @@ final class ResponderTest extends TestCase
         $this->assertSame('{"name":"will","roles":["admin"]}', (string) $response->getBody());
     }
 
-    public function testJsonDoesNotEscapeSlashesOrUnicode(): void
+    public function test_json_does_not_escape_slashes_or_unicode(): void
     {
         $response = $this->responder()->json(['url' => 'https://hydra.dev', 'emoji' => '🐍']);
 
         $this->assertSame('{"url":"https://hydra.dev","emoji":"🐍"}', (string) $response->getBody());
     }
 
-    public function testJsonThrowsOnUnencodableData(): void
+    public function test_json_throws_on_unencodable_data(): void
     {
         $this->expectException(\JsonException::class);
 
@@ -67,7 +67,7 @@ final class ResponderTest extends TestCase
         $this->responder()->json(['handle' => fopen('php://memory', 'r')]);
     }
 
-    public function testNoContentResponse(): void
+    public function test_no_content_response(): void
     {
         $response = $this->responder()->noContent();
 
@@ -75,7 +75,7 @@ final class ResponderTest extends TestCase
         $this->assertSame('', (string) $response->getBody());
     }
 
-    public function testRedirectResponse(): void
+    public function test_redirect_response(): void
     {
         $response = $this->responder()->redirect('/login');
 

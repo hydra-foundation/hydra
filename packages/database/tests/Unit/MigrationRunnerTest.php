@@ -50,7 +50,7 @@ final class MigrationRunnerTest extends TestCase
         file_put_contents($this->dir . '/' . $filename, $sql);
     }
 
-    public function testRunAppliesPendingMigrationsInLexicalOrder(): void
+    public function test_run_applies_pending_migrations_in_lexical_order(): void
     {
         $this->writeMigration('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
         $this->writeMigration('20260102_000000_create_b.sql', 'CREATE TABLE b (id INTEGER PRIMARY KEY)');
@@ -69,7 +69,7 @@ final class MigrationRunnerTest extends TestCase
         $this->assertSame(['a', 'b'], $tables);
     }
 
-    public function testRerunningAppliesNothingFurther(): void
+    public function test_rerunning_applies_nothing_further(): void
     {
         $this->writeMigration('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
 
@@ -77,7 +77,7 @@ final class MigrationRunnerTest extends TestCase
         $this->assertSame([], $this->runner()->run());
     }
 
-    public function testRunAppliesOnlyNewlyAddedMigrations(): void
+    public function test_run_applies_only_newly_added_migrations(): void
     {
         $this->writeMigration('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
         $this->runner()->run();
@@ -87,7 +87,7 @@ final class MigrationRunnerTest extends TestCase
         $this->assertSame(['20260103_000000_create_c.sql'], $this->runner()->run());
     }
 
-    public function testPendingListsUnappliedFiles(): void
+    public function test_pending_lists_unapplied_files(): void
     {
         $this->writeMigration('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
         $this->writeMigration('20260102_000000_create_b.sql', 'CREATE TABLE b (id INTEGER PRIMARY KEY)');
@@ -99,7 +99,7 @@ final class MigrationRunnerTest extends TestCase
         $this->assertSame([], $runner->pending());
     }
 
-    public function testStatusReportsAppliedAndPending(): void
+    public function test_status_reports_applied_and_pending(): void
     {
         $this->writeMigration('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
         $runner = $this->runner();
@@ -116,7 +116,7 @@ final class MigrationRunnerTest extends TestCase
         );
     }
 
-    public function testFreshDropsAllTablesAndReappliesEverything(): void
+    public function test_fresh_drops_all_tables_and_reapplies_everything(): void
     {
         $this->writeMigration('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
         $runner = $this->runner();
@@ -138,12 +138,12 @@ final class MigrationRunnerTest extends TestCase
         $this->assertSame('0', (string) $this->pdo->query('SELECT COUNT(*) FROM a')->fetchColumn());
     }
 
-    public function testStatusOnEmptyDirectoryIsEmpty(): void
+    public function test_status_on_empty_directory_is_empty(): void
     {
         $this->assertSame([], $this->runner()->status());
     }
 
-    public function testFailingMigrationThrowsAndIsNotRecordedAndHaltsLaterFiles(): void
+    public function test_failing_migration_throws_and_is_not_recorded_and_halts_later_files(): void
     {
         $this->writeMigration('20260101_000000_bad.sql', 'CREATE BOGUS this is not sql');
         $this->writeMigration('20260102_000000_create_b.sql', 'CREATE TABLE b (id INTEGER PRIMARY KEY)');
@@ -184,7 +184,7 @@ final class MigrationRunnerTest extends TestCase
      * pdo_mysql query()/nextRowset() draining path that the same fix hardened
      * needs a real MySQL server and cannot be reached from this sqlite harness.
      */
-    public function testMultiStatementMigrationFailingOnALaterStatementIsNotRecorded(): void
+    public function test_multi_statement_migration_failing_on_a_later_statement_is_not_recorded(): void
     {
         $this->writeMigration(
             '20260101_000000_multi.sql',
@@ -208,7 +208,7 @@ final class MigrationRunnerTest extends TestCase
         );
     }
 
-    public function testUnreadableMigrationFileThrowsNamingTheFile(): void
+    public function test_unreadable_migration_file_throws_naming_the_file(): void
     {
         $this->writeMigration('20260101_000000_locked.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
         chmod($this->dir . '/20260101_000000_locked.sql', 0o000);
@@ -225,7 +225,7 @@ final class MigrationRunnerTest extends TestCase
         $runner->run();
     }
 
-    public function testFailedRunLeavesTheFilePendingSoAFixedVersionReruns(): void
+    public function test_failed_run_leaves_the_file_pending_so_a_fixed_version_reruns(): void
     {
         $this->writeMigration('20260101_000000_create_a.sql', 'CREATE BOGUS this is not sql');
         $runner = $this->runner();
@@ -242,7 +242,7 @@ final class MigrationRunnerTest extends TestCase
         $this->assertSame(['20260101_000000_create_a.sql'], $runner->run());
     }
 
-    public function testConstructorEnforcesExceptionErrorModeOnTheInjectedPdo(): void
+    public function test_constructor_enforces_exception_error_mode_on_the_injected_pdo(): void
     {
         $silent = new PDO('sqlite::memory:', null, null, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT,

@@ -47,7 +47,7 @@ final class ViewInheritanceTest extends TestCase
         file_put_contents($path, $contents);
     }
 
-    public function testChildExtendsLayoutAndBodyBecomesContent(): void
+    public function test_child_extends_layout_and_body_becomes_content(): void
     {
         $this->writeTemplate('layouts/base', '<body><?= $this->section("content") ?></body>');
         $this->writeTemplate('home', '<?php $this->extends("layouts/base") ?><h1><?= $this->e($name) ?></h1>');
@@ -57,7 +57,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertSame('<body><h1>Hydra</h1></body>', $out);
     }
 
-    public function testNamedSectionIsCapturedAndYielded(): void
+    public function test_named_section_is_captured_and_yielded(): void
     {
         $this->writeTemplate('layouts/base', '<title><?= $this->section("title") ?></title><?= $this->section("content") ?>');
         $this->writeTemplate('home', implode('', [
@@ -69,7 +69,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertSame('<title>Home</title>BODY', $this->view->render('home'));
     }
 
-    public function testSectionDefaultUsedWhenChildOmitsIt(): void
+    public function test_section_default_used_when_child_omits_it(): void
     {
         $this->writeTemplate('layouts/base', '<title><?= $this->section("title", "Hydra") ?></title>');
         $this->writeTemplate('home', '<?php $this->extends("layouts/base") ?>x');
@@ -77,7 +77,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertSame('<title>Hydra</title>', $this->view->render('home'));
     }
 
-    public function testNamedSectionContentIsExcludedFromImplicitContent(): void
+    public function test_named_section_content_is_excluded_from_implicit_content(): void
     {
         $this->writeTemplate('layouts/base', '[<?= $this->section("content") ?>]');
         $this->writeTemplate('home', implode('', [
@@ -91,7 +91,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertSame('[AB]', $this->view->render('home'));
     }
 
-    public function testMultiLevelExtends(): void
+    public function test_multi_level_extends(): void
     {
         $this->writeTemplate('layouts/skeleton', 'S(<?= $this->section("content") ?>)');
         $this->writeTemplate('layouts/base', '<?php $this->extends("layouts/skeleton") ?>B(<?= $this->section("content") ?>)');
@@ -101,7 +101,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertSame('S(B(H))', $this->view->render('home'));
     }
 
-    public function testSectionsDoNotLeakBetweenRenders(): void
+    public function test_sections_do_not_leak_between_renders(): void
     {
         $this->writeTemplate('layouts/base', '<title><?= $this->section("title", "default") ?></title>');
         $this->writeTemplate('with', '<?php $this->extends("layouts/base") ?><?php $this->start("title") ?>Set<?php $this->stop() ?>');
@@ -112,7 +112,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertSame('<title>default</title>', $this->view->render('without'));
     }
 
-    public function testEscapingStillAppliesInsideLayouts(): void
+    public function test_escaping_still_applies_inside_layouts(): void
     {
         $this->writeTemplate('layouts/base', '<h1><?= $this->e($name) ?></h1><?= $this->section("content") ?>');
         $this->writeTemplate('home', '<?php $this->extends("layouts/base") ?>body');
@@ -123,7 +123,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertStringContainsString('&lt;script&gt;', $out);
     }
 
-    public function testLayoutFalseReturnsBareBodyIgnoringExtends(): void
+    public function test_layout_false_returns_bare_body_ignoring_extends(): void
     {
         $this->writeTemplate('layouts/base', '<body><?= $this->section("content") ?></body>');
         $this->writeTemplate('home', '<?php $this->extends("layouts/base") ?><h1><?= $this->e($name) ?></h1>');
@@ -134,7 +134,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertSame('<h1>Hydra</h1>', $out);
     }
 
-    public function testStopWithoutStartThrows(): void
+    public function test_stop_without_start_throws(): void
     {
         $this->writeTemplate('bad', '<?php $this->stop() ?>');
 
@@ -142,7 +142,7 @@ final class ViewInheritanceTest extends TestCase
         $this->view->render('bad');
     }
 
-    public function testStartWithoutStopThrows(): void
+    public function test_start_without_stop_throws(): void
     {
         // An unclosed section would otherwise strand the body in a dangling
         // buffer; it must fail loudly, the mirror of stop()-without-start().
@@ -152,7 +152,7 @@ final class ViewInheritanceTest extends TestCase
         $this->view->render('bad');
     }
 
-    public function testStartWithoutStopLeaksNoOutputBuffer(): void
+    public function test_start_without_stop_leaks_no_output_buffer(): void
     {
         $this->writeTemplate('bad', 'before<?php $this->start("x") ?>after');
 
@@ -166,7 +166,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertSame($level, ob_get_level(), 'no leaked output buffer');
     }
 
-    public function testSharedDataReachesEveryRenderAndItsPartials(): void
+    public function test_shared_data_reaches_every_render_and_its_partials(): void
     {
         $view = new PhpView($this->dir, shared: ['theme' => 'paper']);
 
@@ -176,7 +176,7 @@ final class ViewInheritanceTest extends TestCase
         $this->assertSame('paper|paper', $view->render('shell'));
     }
 
-    public function testARendersOwnDataWinsOverTheShared(): void
+    public function test_a_renders_own_data_wins_over_the_shared(): void
     {
         $view = new PhpView($this->dir, shared: ['theme' => 'paper']);
 

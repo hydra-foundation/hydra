@@ -85,19 +85,19 @@ final class PhpViewTest extends TestCase
         return new PhpView($this->dir, fallbacks: [$this->packageDir()]);
     }
 
-    public function testIsViewInterface(): void
+    public function test_is_view_interface(): void
     {
         $this->assertInstanceOf(ViewInterface::class, $this->view);
     }
 
-    public function testRendersTemplateWithData(): void
+    public function test_renders_template_with_data(): void
     {
         $this->writeTemplate('hello', 'Hello, <?= $this->e($name) ?>!');
 
         $this->assertSame('Hello, Will!', $this->view->render('hello', ['name' => 'Will']));
     }
 
-    public function testEHelperEscapesUntrustedData(): void
+    public function test_e_helper_escapes_untrusted_data(): void
     {
         $this->writeTemplate('x', '<?= $this->e($input) ?>');
 
@@ -107,7 +107,7 @@ final class PhpViewTest extends TestCase
         $this->assertStringContainsString('&lt;script&gt;', $out);
     }
 
-    public function testEscapesQuotes(): void
+    public function test_escapes_quotes(): void
     {
         $this->writeTemplate('x', '<?= $this->e($input) ?>');
 
@@ -118,7 +118,7 @@ final class PhpViewTest extends TestCase
         $this->assertStringContainsString('&#039;', $out);
     }
 
-    public function testHtmlInstancePassesThroughUnescaped(): void
+    public function test_html_instance_passes_through_unescaped(): void
     {
         $this->writeTemplate('x', '<?= $this->e($markup) ?>');
 
@@ -128,7 +128,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('<b>bold</b>', $out);
     }
 
-    public function testNonHtmlStringableIsEscaped(): void
+    public function test_non_html_stringable_is_escaped(): void
     {
         // A domain value object (Money, Uuid, ...) is untrusted like any string:
         // the safe path escapes it instead of throwing a TypeError.
@@ -146,7 +146,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('&lt;b&gt;5 &amp; 6&lt;/b&gt;', $out);
     }
 
-    public function testHtmlWrapsAStringableUnescaped(): void
+    public function test_html_wraps_a_stringable_unescaped(): void
     {
         $this->writeTemplate('x', '<?= $this->e($markup) ?>');
 
@@ -162,7 +162,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('<i>raw</i>', $out);
     }
 
-    public function testRendersPartialViaThis(): void
+    public function test_renders_partial_via_this(): void
     {
         $this->writeTemplate('partial', 'Hi <?= $this->e($name) ?>');
         $this->writeTemplate('page', 'A: <?= $this->partial("partial", ["name" => $name]) ?>');
@@ -170,7 +170,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('A: Hi Will', $this->view->render('page', ['name' => 'Will']));
     }
 
-    public function testPartialIgnoresAStrayExtends(): void
+    public function test_partial_ignores_a_stray_extends(): void
     {
         // A partial renders as a bare fragment: an extends() inside it must not
         // wrap the partial in a layout.
@@ -181,13 +181,13 @@ final class PhpViewTest extends TestCase
         $this->assertSame('[FRAG]', $this->view->render('page'));
     }
 
-    public function testMissingTemplateThrows(): void
+    public function test_missing_template_throws(): void
     {
         $this->expectException(RuntimeException::class);
         $this->view->render('does-not-exist');
     }
 
-    public function testATemplateOnlyAFallbackHasIsStillFound(): void
+    public function test_a_template_only_a_fallback_has_is_still_found(): void
     {
         $view = $this->viewWithFallback();
         $this->writeTo($this->packageDir(), 'admin/table', 'PACKAGE');
@@ -195,7 +195,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('PACKAGE', $view->render('admin/table'));
     }
 
-    public function testTheBasePathWinsOverAFallback(): void
+    public function test_the_base_path_wins_over_a_fallback(): void
     {
         // The override contract: an application replaces a package's template
         // by putting a file of the same name in its own views directory.
@@ -206,7 +206,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('MINE', $view->render('admin/table'));
     }
 
-    public function testAnOverriddenTemplateCanStillReachTheOnesItDidNotOverride(): void
+    public function test_an_overridden_template_can_still_reach_the_ones_it_did_not_override(): void
     {
         // Each name resolves on its own, so a chain crosses freely between the
         // two directories — the point of overriding one template and not the rest.
@@ -218,7 +218,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('MINE: pkg screen', $view->render('admin/table'));
     }
 
-    public function testATemplateNoDirectoryHasIsReportedAsMissing(): void
+    public function test_a_template_no_directory_has_is_reported_as_missing(): void
     {
         $view = $this->viewWithFallback();
 
@@ -228,7 +228,7 @@ final class PhpViewTest extends TestCase
         $view->render('does-not-exist');
     }
 
-    public function testAFallbackDoesNotWidenWhatEachDirectoryContains(): void
+    public function test_a_fallback_does_not_widen_what_each_directory_contains(): void
     {
         // Both directories sit beside secret.php, and neither may be climbed
         // out of to reach it — a second search path is not a second chance.
@@ -239,14 +239,14 @@ final class PhpViewTest extends TestCase
         $view->render('../secret');
     }
 
-    public function testRendersTemplateInASubdirectory(): void
+    public function test_renders_template_in_a_subdirectory(): void
     {
         $this->writeTemplate('admin/users', 'Users: <?= $this->e($count) ?>');
 
         $this->assertSame('Users: 3', $this->view->render('admin/users', ['count' => 3]));
     }
 
-    public function testRendersADeeplyNestedTemplate(): void
+    public function test_renders_a_deeply_nested_template(): void
     {
         // The containment check must not penalize legitimate nesting: a name
         // with several path segments resolves and renders like any other.
@@ -255,7 +255,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('Deep: 7', $this->view->render('sub/dir/template', ['n' => 7]));
     }
 
-    public function testTraversalThatStaysInsideTheRootStillRenders(): void
+    public function test_traversal_that_stays_inside_the_root_still_renders(): void
     {
         // '../' is only dangerous when it escapes the view root. A name whose
         // '..' segments collapse back to a file still under the root is a
@@ -283,7 +283,7 @@ final class PhpViewTest extends TestCase
     }
 
     #[DataProvider('traversalTemplateNames')]
-    public function testTraversalIsRejectedWithoutExecutingOrLeakingThePath(string $template): void
+    public function test_traversal_is_rejected_without_executing_or_leaking_the_path(string $template): void
     {
         // 'admin/../../secret' needs the intermediate directory to exist,
         // otherwise realpath() fails for the wrong reason and the test would
@@ -301,7 +301,7 @@ final class PhpViewTest extends TestCase
         }
     }
 
-    public function testTraversalToAnExistingFileIsIndistinguishableFromAMiss(): void
+    public function test_traversal_to_an_existing_file_is_indistinguishable_from_a_miss(): void
     {
         // '../secret.php' exists, '../absent.php' does not; the messages must
         // match so a probe cannot use the renderer as a file-exists oracle.
@@ -317,13 +317,13 @@ final class PhpViewTest extends TestCase
         $this->assertSame($messageFor('../secret'), $messageFor('../absent'));
     }
 
-    public function testNullByteInTemplateNameIsRejected(): void
+    public function test_null_byte_in_template_name_is_rejected(): void
     {
         $this->expectException(RuntimeException::class);
         $this->view->render("hello\0../secret");
     }
 
-    public function testInternalVariableNamesAreNotClobberedByData(): void
+    public function test_internal_variable_names_are_not_clobbered_by_data(): void
     {
         // Data keyed like the renderer's internals must not break rendering.
         $this->writeTemplate('x', 'ok');
@@ -331,7 +331,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('ok', $this->view->render('x', ['__path' => 'evil', '__data' => 'evil']));
     }
 
-    public function testOutputBufferIsCleanedWhenTemplateThrows(): void
+    public function test_output_buffer_is_cleaned_when_template_throws(): void
     {
         $this->writeTemplate('boom', 'partial<?php throw new \RuntimeException("boom"); ?>');
 
@@ -345,7 +345,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame($level, ob_get_level(), 'no leaked output buffer');
     }
 
-    public function testSiteUrlReturnsThePathUnchangedWithoutABaseUrl(): void
+    public function test_site_url_returns_the_path_unchanged_without_a_base_url(): void
     {
         // The isolation default: no base URL was wired, so siteUrl is a no-op.
         $this->writeTemplate('x', '<?= $this->siteUrl("/blog") ?>');
@@ -353,7 +353,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('/blog', $this->view->render('x'));
     }
 
-    public function testSiteUrlBuildsAnAbsoluteUrlFromTheBaseUrl(): void
+    public function test_site_url_builds_an_absolute_url_from_the_base_url(): void
     {
         // A trailing slash on the base URL must not double up against the path.
         $view = new PhpView($this->dir, null, 'https://example.com/');
@@ -362,7 +362,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame('https://example.com/blog|https://example.com', $view->render('x'));
     }
 
-    public function testCsrfHelpersThrowWhenNoGuardIsConfigured(): void
+    public function test_csrf_helpers_throw_when_no_guard_is_configured(): void
     {
         $this->writeTemplate('x', '<?= $this->csrfToken() ?>');
 
@@ -370,7 +370,7 @@ final class PhpViewTest extends TestCase
         $this->view->render('x');
     }
 
-    public function testCsrfRendersAHiddenFieldWithTheSessionToken(): void
+    public function test_csrf_renders_a_hidden_field_with_the_session_token(): void
     {
         $store = new ArraySessionStore;
         $store->start();
@@ -384,7 +384,7 @@ final class PhpViewTest extends TestCase
         $this->assertStringContainsString('value="' . $guard->token() . '"', $out);
     }
 
-    public function testCspNonceThrowsWhenNoNonceIsConfigured(): void
+    public function test_csp_nonce_throws_when_no_nonce_is_configured(): void
     {
         $this->writeTemplate('x', '<?= $this->cspNonce() ?>');
 
@@ -392,7 +392,7 @@ final class PhpViewTest extends TestCase
         $this->view->render('x');
     }
 
-    public function testCspNonceRendersTheRequestsToken(): void
+    public function test_csp_nonce_renders_the_requests_token(): void
     {
         $nonce = new CspNonce;
         $view = new PhpView($this->dir, cspNonce: $nonce);
@@ -401,7 +401,7 @@ final class PhpViewTest extends TestCase
         $this->assertSame($nonce->value(), $view->render('x'));
     }
 
-    public function testEveryTemplateInOneRenderSeesTheSameNonce(): void
+    public function test_every_template_in_one_render_sees_the_same_nonce(): void
     {
         // The page stamps it in several places and a fragment swapped into that
         // page has to match; two tokens in one render would block one of them.

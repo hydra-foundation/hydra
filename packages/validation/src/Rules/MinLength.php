@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Hydra\Validation\Rules;
 
 use Hydra\Validation\Contracts\RuleInterface;
-use Stringable;
 
 /**
  * The value, as a string, must be at least $min characters long (multibyte-aware).
  */
 final class MinLength implements RuleInterface
 {
+    use TextualValue;
+
     private readonly string $message;
 
     public function __construct(private readonly int $min, ?string $message = null)
@@ -26,19 +27,5 @@ final class MinLength implements RuleInterface
         }
 
         return mb_strlen((string) $value) < $this->min ? $this->message : null;
-    }
-
-    /**
-     * Whether the value can be safely treated as text. Booleans are excluded
-     * deliberately: real text input never arrives as a bool, and "1"/"" from
-     * a cast would be misleading lengths rather than what the client sent.
-     */
-    private function isTextual(mixed $value): bool
-    {
-        return $value === null
-            || is_string($value)
-            || is_int($value)
-            || is_float($value)
-            || $value instanceof Stringable;
     }
 }

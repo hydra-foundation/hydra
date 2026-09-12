@@ -50,7 +50,7 @@ final class RouterTest extends TestCase
         return $container;
     }
 
-    public function testMatchedRouteReturnsHandlerResponse(): void
+    public function test_matched_route_returns_handler_response(): void
     {
         $expected = $this->createStub(ResponseInterface::class);
         $router = new Router($this->container());
@@ -61,7 +61,7 @@ final class RouterTest extends TestCase
         $this->assertSame($expected, $response);
     }
 
-    public function testUnknownPathThrowsNotFound(): void
+    public function test_unknown_path_throws_not_found(): void
     {
         $router = new Router($this->container());
         $router->get('/health', fn (): ResponseInterface => $this->createStub(ResponseInterface::class));
@@ -70,7 +70,7 @@ final class RouterTest extends TestCase
         $router->handle($this->request('GET', '/nope'));
     }
 
-    public function testKnownPathWrongMethodThrowsMethodNotAllowedWithAllowedList(): void
+    public function test_known_path_wrong_method_throws_method_not_allowed_with_allowed_list(): void
     {
         $router = new Router($this->container());
         $router->get('/users', fn (): ResponseInterface => $this->createStub(ResponseInterface::class));
@@ -85,7 +85,7 @@ final class RouterTest extends TestCase
         }
     }
 
-    public function testResolvesControllerFromContainerAndInvokesMethod(): void
+    public function test_resolves_controller_from_container_and_invokes_method(): void
     {
         $expected = $this->createStub(ResponseInterface::class);
         $controller = new FooController($expected);
@@ -100,7 +100,7 @@ final class RouterTest extends TestCase
         $this->assertSame($request, $controller->received, 'controller method receives the request');
     }
 
-    public function testTrailingSlashIsNormalized(): void
+    public function test_trailing_slash_is_normalized(): void
     {
         $expected = $this->createStub(ResponseInterface::class);
         $router = new Router($this->container());
@@ -112,7 +112,7 @@ final class RouterTest extends TestCase
         $this->assertSame($expected, $response);
     }
 
-    public function testRouteParamsAreAttachedAsRequestAttributes(): void
+    public function test_route_params_are_attached_as_request_attributes(): void
     {
         $expected = $this->createStub(ResponseInterface::class);
 
@@ -133,7 +133,7 @@ final class RouterTest extends TestCase
         $this->assertSame($expected, $router->handle($request));
     }
 
-    public function testTypedRouteParamIsBoundToTheHandlerArgument(): void
+    public function test_typed_route_param_is_bound_to_the_handler_argument(): void
     {
         $expected = $this->createStub(ResponseInterface::class);
         $seen = null;
@@ -150,7 +150,7 @@ final class RouterTest extends TestCase
         $this->assertSame(42, $seen, 'the {id} segment is coerced to int and bound by name');
     }
 
-    public function testNonCoercibleParamFallsThroughToNotFound(): void
+    public function test_non_coercible_param_falls_through_to_not_found(): void
     {
         // /users/abc can't satisfy `int $id`, so the URL addresses no resource.
         $router = new Router($this->container());
@@ -160,7 +160,7 @@ final class RouterTest extends TestCase
         $router->handle($this->request('GET', '/users/abc'));
     }
 
-    public function testVerbIsPartOfMatching(): void
+    public function test_verb_is_part_of_matching(): void
     {
         $router = new Router($this->container());
         $router->get('/thing', fn (): ResponseInterface => $this->createStub(ResponseInterface::class));
@@ -170,7 +170,7 @@ final class RouterTest extends TestCase
         $router->handle($this->request('POST', '/thing'));
     }
 
-    public function testHeadRequestMatchesAGetRoute(): void
+    public function test_head_request_matches_a_get_route(): void
     {
         // RFC 9110 §9.3.2: HEAD must work wherever GET does (curl -I, health
         // checks, link checkers). Body-stripping is the SAPI/Emitter's job.
@@ -181,7 +181,7 @@ final class RouterTest extends TestCase
         $this->assertSame($expected, $router->handle($this->request('HEAD', '/health')));
     }
 
-    public function testHeadOnANonGetRouteStillThrowsMethodNotAllowed(): void
+    public function test_head_on_a_non_get_route_still_throws_method_not_allowed(): void
     {
         // HEAD falls back to GET only — a path with no GET handler is still 405.
         $router = new Router($this->container());
@@ -195,7 +195,7 @@ final class RouterTest extends TestCase
         }
     }
 
-    public function testExplicitHeadRouteIsMatchedForHeadRequests(): void
+    public function test_explicit_head_route_is_matched_for_head_requests(): void
     {
         $expected = $this->createStub(ResponseInterface::class);
         $router = new Router($this->container());

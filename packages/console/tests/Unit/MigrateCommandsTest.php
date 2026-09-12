@@ -52,7 +52,7 @@ final class MigrateCommandsTest extends TestCase
         file_put_contents($this->dir . '/' . $filename, $sql);
     }
 
-    public function testMigrateRunAppliesAndIsIdempotent(): void
+    public function test_migrate_run_applies_and_is_idempotent(): void
     {
         $this->write('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
 
@@ -65,7 +65,7 @@ final class MigrateCommandsTest extends TestCase
         $this->assertStringContainsString('up to date', $tester->getDisplay());
     }
 
-    public function testMigrateStatusShowsAppliedAndPending(): void
+    public function test_migrate_status_shows_applied_and_pending(): void
     {
         $this->write('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
         $this->runner()->run();
@@ -79,7 +79,7 @@ final class MigrateCommandsTest extends TestCase
         $this->assertStringContainsString('pending', $display);
     }
 
-    public function testMigrateFreshRefusesOutsideDebugWithoutForce(): void
+    public function test_migrate_fresh_refuses_outside_debug_without_force(): void
     {
         $this->write('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
 
@@ -88,7 +88,7 @@ final class MigrateCommandsTest extends TestCase
         $this->assertStringContainsString('APP_DEBUG is off', $tester->getDisplay());
     }
 
-    public function testMigrateFreshRunsOutsideDebugWithForce(): void
+    public function test_migrate_fresh_runs_outside_debug_with_force(): void
     {
         $this->write('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
 
@@ -97,7 +97,7 @@ final class MigrateCommandsTest extends TestCase
         $this->assertStringContainsString('Database reset', $tester->getDisplay());
     }
 
-    public function testMigrateFreshConfirmsInDebugMode(): void
+    public function test_migrate_fresh_confirms_in_debug_mode(): void
     {
         $this->write('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
 
@@ -107,7 +107,7 @@ final class MigrateCommandsTest extends TestCase
         $this->assertStringContainsString('Database reset', $tester->getDisplay());
     }
 
-    public function testMigrateFreshAbortsWhenDeclined(): void
+    public function test_migrate_fresh_aborts_when_declined(): void
     {
         $tester = new CommandTester(new MigrateFreshCommand($this->runner(), debug: true));
         $tester->setInputs(['no']);
@@ -115,7 +115,7 @@ final class MigrateCommandsTest extends TestCase
         $this->assertStringContainsString('Aborted', $tester->getDisplay());
     }
 
-    public function testMakeMigrationCreatesTimestampedFile(): void
+    public function test_make_migration_creates_timestamped_file(): void
     {
         $tester = new CommandTester(new MakeMigrationCommand($this->dir));
         $this->assertSame(Command::SUCCESS, $tester->execute(['name' => 'Create Posts Table']));
@@ -129,7 +129,7 @@ final class MigrateCommandsTest extends TestCase
         $this->assertStringContainsString('Forward-only', $body);
     }
 
-    public function testMakeMigrationRejectsAnEmptySlug(): void
+    public function test_make_migration_rejects_an_empty_slug(): void
     {
         $tester = new CommandTester(new MakeMigrationCommand($this->dir));
         $this->assertSame(Command::FAILURE, $tester->execute(['name' => '!!!']));

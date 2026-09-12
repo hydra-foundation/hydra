@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ResultTest extends TestCase
 {
-    public function testPassingResultExposesItsValidatedData(): void
+    public function test_passing_result_exposes_its_validated_data(): void
     {
         $result = new Result([], ['name' => 'Ada']);
 
@@ -17,7 +17,7 @@ final class ResultTest extends TestCase
         $this->assertSame(['name' => 'Ada'], $result->validated());
     }
 
-    public function testEmptyResultPassesWithNoValidatedData(): void
+    public function test_empty_result_passes_with_no_validated_data(): void
     {
         $result = new Result;
 
@@ -25,7 +25,7 @@ final class ResultTest extends TestCase
         $this->assertSame([], $result->validated());
     }
 
-    public function testValidatedThrowsLogicExceptionWhenResultFailed(): void
+    public function test_validated_throws_logic_exception_when_result_failed(): void
     {
         // Asking a failed result for validated data is a programming error:
         // fail loud rather than hand out partial data.

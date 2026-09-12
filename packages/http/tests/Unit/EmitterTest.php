@@ -18,7 +18,7 @@ final class EmitterTest extends TestCase
      * proceed; a nested buffer captures the body the Emitter echoes.
      */
     #[RunInSeparateProcess]
-    public function testEmitsBodyToOutput(): void
+    public function test_emits_body_to_output(): void
     {
         $psr17 = new Psr17Factory;
         $response = $psr17->createResponse(200)

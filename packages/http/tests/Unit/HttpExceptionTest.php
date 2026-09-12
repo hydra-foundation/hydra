@@ -13,12 +13,12 @@ use Throwable;
 
 final class HttpExceptionTest extends TestCase
 {
-    public function testIsAThrowable(): void
+    public function test_is_a_throwable(): void
     {
         $this->assertInstanceOf(Throwable::class, new HttpException(400));
     }
 
-    public function testCarriesStatusAndHeaders(): void
+    public function test_carries_status_and_headers(): void
     {
         $e = new HttpException(418, 'short and stout', ['X-Teapot' => 'yes']);
 
@@ -27,12 +27,12 @@ final class HttpExceptionTest extends TestCase
         $this->assertSame('short and stout', $e->getMessage());
     }
 
-    public function testDefaultsToNoHeaders(): void
+    public function test_defaults_to_no_headers(): void
     {
         $this->assertSame([], (new HttpException(400))->headers());
     }
 
-    public function testPreservesPreviousException(): void
+    public function test_preserves_previous_exception(): void
     {
         $previous = new RuntimeException('root cause');
         $e = new HttpException(500, 'wrapped', [], $previous);
@@ -40,7 +40,7 @@ final class HttpExceptionTest extends TestCase
         $this->assertSame($previous, $e->getPrevious());
     }
 
-    public function testNotFoundIsA404(): void
+    public function test_not_found_is_a_404(): void
     {
         $e = new NotFoundException;
 
@@ -48,7 +48,7 @@ final class HttpExceptionTest extends TestCase
         $this->assertSame(404, $e->status());
     }
 
-    public function testMethodNotAllowedIsA405WithAllowHeader(): void
+    public function test_method_not_allowed_is_a_405_with_allow_header(): void
     {
         $e = new MethodNotAllowedException(['GET', 'POST']);
 
@@ -56,7 +56,7 @@ final class HttpExceptionTest extends TestCase
         $this->assertSame(['Allow' => 'GET, POST'], $e->headers());
     }
 
-    public function testMethodNotAllowedDeduplicatesAllowedMethods(): void
+    public function test_method_not_allowed_deduplicates_allowed_methods(): void
     {
         $e = new MethodNotAllowedException(['GET', 'GET', 'HEAD']);
 

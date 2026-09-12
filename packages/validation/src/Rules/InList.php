@@ -6,7 +6,6 @@ namespace Hydra\Validation\Rules;
 
 use Hydra\Validation\Contracts\RuleInterface;
 use InvalidArgumentException;
-use Stringable;
 
 /**
  * The value must be one of an explicit set.
@@ -17,6 +16,8 @@ use Stringable;
  */
 final class InList implements RuleInterface
 {
+    use TextualValue;
+
     /** @var list<string> */
     private readonly array $allowed;
 
@@ -42,19 +43,5 @@ final class InList implements RuleInterface
         }
 
         return in_array((string) $value, $this->allowed, true) ? null : $this->message;
-    }
-
-    /**
-     * Whether the value can be safely treated as text. Booleans are excluded
-     * deliberately: a bool casts to "1"/"" and would match an unrelated entry
-     * rather than the value the client actually sent.
-     */
-    private function isTextual(mixed $value): bool
-    {
-        return $value === null
-            || is_string($value)
-            || is_int($value)
-            || is_float($value)
-            || $value instanceof Stringable;
     }
 }

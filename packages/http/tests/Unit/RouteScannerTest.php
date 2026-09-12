@@ -108,7 +108,7 @@ final class RouteScannerTest extends TestCase
         return "{$route['method']} {$route['path']} => {$class}::{$method}";
     }
 
-    public function testScanEmitsOneRoutePerVerbPerAttributeAndIgnoresPlainMethods(): void
+    public function test_scan_emits_one_route_per_verb_per_attribute_and_ignores_plain_methods(): void
     {
         $routes = (new RouteScanner)->scan([BlogController::class]);
 
@@ -127,7 +127,7 @@ final class RouteScannerTest extends TestCase
         $this->assertSame($expected, $actual);
     }
 
-    public function testRouteGroupPrependsPrefixAndCollapsesRootSlash(): void
+    public function test_route_group_prepends_prefix_and_collapses_root_slash(): void
     {
         $routes = (new RouteScanner)->scan([AdminPanelController::class]);
 
@@ -138,7 +138,7 @@ final class RouteScannerTest extends TestCase
         $this->assertSame(['/admin', '/admin/users', '/admin/users/{id}'], $paths);
     }
 
-    public function testRouteGroupMiddlewareIsOutermostThenMethodMiddleware(): void
+    public function test_route_group_middleware_is_outermost_then_method_middleware(): void
     {
         $routes = (new RouteScanner)->scan([AdminPanelController::class]);
         $byPath = [];
@@ -156,7 +156,7 @@ final class RouteScannerTest extends TestCase
         );
     }
 
-    public function testRouteGroupCanonicalizesAPrefixMissingItsLeadingSlash(): void
+    public function test_route_group_canonicalizes_a_prefix_missing_its_leading_slash(): void
     {
         $routes = (new RouteScanner)->scan([SloppyPrefixController::class]);
 
@@ -165,7 +165,7 @@ final class RouteScannerTest extends TestCase
         $this->assertSame('/admin/users', $routes[0]['path']);
     }
 
-    public function testEmptyPrefixGroupLeavesPathsVerbatimButStillFoldsMiddleware(): void
+    public function test_empty_prefix_group_leaves_paths_verbatim_but_still_folds_middleware(): void
     {
         $routes = (new RouteScanner)->scan([MiddlewareOnlyGroupController::class]);
 
@@ -173,7 +173,7 @@ final class RouteScannerTest extends TestCase
         $this->assertSame([GroupMiddleware::class], $routes[0]['middleware']);
     }
 
-    public function testDuplicateRouteGroupFailsLoud(): void
+    public function test_duplicate_route_group_fails_loud(): void
     {
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('only one is allowed');
@@ -181,7 +181,7 @@ final class RouteScannerTest extends TestCase
         (new RouteScanner)->scan([DoublyGroupedController::class]);
     }
 
-    public function testGroupedRoutesStayPlainAndCacheable(): void
+    public function test_grouped_routes_stay_plain_and_cacheable(): void
     {
         $routes = (new RouteScanner)->scan([AdminPanelController::class]);
 
@@ -194,7 +194,7 @@ final class RouteScannerTest extends TestCase
         $this->assertSame($routes, unserialize(serialize($routes)));
     }
 
-    public function testRoutesWithoutAGroupKeepRawPathsAndNoMiddleware(): void
+    public function test_routes_without_a_group_keep_raw_paths_and_no_middleware(): void
     {
         $routes = (new RouteScanner)->scan([BlogController::class]);
 
@@ -208,7 +208,7 @@ final class RouteScannerTest extends TestCase
         }
     }
 
-    public function testScannedArrayIsPlainAndCacheable(): void
+    public function test_scanned_array_is_plain_and_cacheable(): void
     {
         $routes = (new RouteScanner)->scan([BlogController::class]);
 
@@ -224,7 +224,7 @@ final class RouteScannerTest extends TestCase
         $this->assertSame($routes, unserialize(serialize($routes)));
     }
 
-    public function testScannedRoutesDispatchThroughTheRouter(): void
+    public function test_scanned_routes_dispatch_through_the_router(): void
     {
         $response = $this->createStub(ResponseInterface::class);
         $controller = new BlogController($response);

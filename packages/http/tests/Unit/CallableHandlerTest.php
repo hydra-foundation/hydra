@@ -17,7 +17,7 @@ final class CallableHandlerTest extends TestCase
         return new CallableHandler($target, new ArgumentResolver, $params);
     }
 
-    public function testReturnsTheCallablesResponse(): void
+    public function test_returns_the_callables_response(): void
     {
         $expected = $this->createStub(ResponseInterface::class);
         $handler = $this->handler(fn (): ResponseInterface => $expected);
@@ -27,7 +27,7 @@ final class CallableHandlerTest extends TestCase
         $this->assertSame($expected, $response);
     }
 
-    public function testPassesTheRequestToTheCallable(): void
+    public function test_passes_the_request_to_the_callable(): void
     {
         $request = $this->createStub(ServerRequestInterface::class);
         $seen = null;
@@ -42,7 +42,7 @@ final class CallableHandlerTest extends TestCase
         $this->assertSame($request, $seen);
     }
 
-    public function testBindsRouteParamsToTypedArguments(): void
+    public function test_binds_route_params_to_typed_arguments(): void
     {
         $seen = null;
 

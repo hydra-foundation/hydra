@@ -17,21 +17,21 @@ final class ErrorContextTest extends TestCase
         return new ErrorContext($error, $this->createStub(ServerRequestInterface::class), $status, $debug);
     }
 
-    public function testClientMessageShowsAnHttpExceptionsAuthoredMessage(): void
+    public function test_client_message_shows_an_http_exceptions_authored_message(): void
     {
         $context = $this->context(new HttpException(403, 'not yours'), 403);
 
         $this->assertSame('not yours', $context->clientMessage());
     }
 
-    public function testClientMessageFallsBackToReasonPhraseForAMessagelessHttpException(): void
+    public function test_client_message_falls_back_to_reason_phrase_for_a_messageless_http_exception(): void
     {
         $context = $this->context(new HttpException(403), 403);
 
         $this->assertSame('Forbidden', $context->clientMessage());
     }
 
-    public function testClientMessageNeverLeaksAGenericThrowablesMessage(): void
+    public function test_client_message_never_leaks_a_generic_throwables_message(): void
     {
         // A non-HttpException may carry internals (a DSN, a path) — its message
         // must never reach the client; the reason phrase stands in.
@@ -41,7 +41,7 @@ final class ErrorContextTest extends TestCase
         $this->assertStringNotContainsString('secret', $context->clientMessage());
     }
 
-    public function testClientMessageFallsBackToGenericErrorForAnUnknownStatus(): void
+    public function test_client_message_falls_back_to_generic_error_for_an_unknown_status(): void
     {
         // A status the Status enum doesn't carry, with no usable message.
         $context = $this->context(new RuntimeException('x'), 599);
@@ -49,7 +49,7 @@ final class ErrorContextTest extends TestCase
         $this->assertSame('Error', $context->clientMessage());
     }
 
-    public function testExposesTheThrowableRequestStatusAndDebugFlag(): void
+    public function test_exposes_the_throwable_request_status_and_debug_flag(): void
     {
         $error = new RuntimeException('boom');
         $request = $this->createStub(ServerRequestInterface::class);

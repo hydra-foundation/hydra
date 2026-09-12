@@ -177,7 +177,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 1. Middleware runs around the controller in outermost-first order
     // ------------------------------------------------------------------
 
-    public function testMiddlewareRunsAroundControllerInOutermostFirstOrder(): void
+    public function test_middleware_runs_around_controller_in_outermost_first_order(): void
     {
         $log = new ArrayObject;
         $controllerResponse = $this->response();
@@ -226,7 +226,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 2. Per-route middleware can short-circuit before reaching the controller
     // ------------------------------------------------------------------
 
-    public function testPerRouteMiddlewareCanShortCircuitWithoutCallingController(): void
+    public function test_per_route_middleware_can_short_circuit_without_calling_controller(): void
     {
         $log = new ArrayObject;
         $shortResponse = $this->response();
@@ -255,7 +255,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 3. Per-route middleware can see route-param request attributes
     // ------------------------------------------------------------------
 
-    public function testPerRouteMiddlewareReceivesRouteParamAttributes(): void
+    public function test_per_route_middleware_receives_route_param_attributes(): void
     {
         $sniffer = new AttributeSniffingMiddleware('userId');
         $controllerResponse = $this->response();
@@ -296,7 +296,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 4. Route with no middleware returns bare handler (no observable wrapping)
     // ------------------------------------------------------------------
 
-    public function testRouteWithNoMiddlewareReturnsDirectControllerResponse(): void
+    public function test_route_with_no_middleware_returns_direct_controller_response(): void
     {
         $expected = $this->response();
         $resolveCount = 0;
@@ -321,7 +321,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 5a. Middleware is resolved lazily — only on a match
     // ------------------------------------------------------------------
 
-    public function testMiddlewareClassIsNotResolvedForNonMatchingRoute(): void
+    public function test_middleware_class_is_not_resolved_for_non_matching_route(): void
     {
         $resolvedClasses = [];
 
@@ -349,7 +349,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 5b. Middleware IS resolved on a match
     // ------------------------------------------------------------------
 
-    public function testMiddlewareClassIsResolvedThroughContainerOnMatch(): void
+    public function test_middleware_class_is_resolved_through_container_on_match(): void
     {
         $log = new ArrayObject;
         $controllerResponse = $this->response();
@@ -372,7 +372,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 6a. Scanner captures middleware from #[Route] attribute
     // ------------------------------------------------------------------
 
-    public function testScannerCapturesMiddlewareClassStringsFromAttribute(): void
+    public function test_scanner_captures_middleware_class_strings_from_attribute(): void
     {
         $routes = (new RouteScanner)->scan([AdminController::class]);
 
@@ -388,7 +388,7 @@ final class PerRouteMiddlewareTest extends TestCase
         );
     }
 
-    public function testScannerEmitsEmptyMiddlewareArrayWhenNoneSpecified(): void
+    public function test_scanner_emits_empty_middleware_array_when_none_specified(): void
     {
         $routes = (new RouteScanner)->scan([AdminController::class]);
 
@@ -405,7 +405,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 6b. Scanned routes with middleware dispatch correctly end-to-end
     // ------------------------------------------------------------------
 
-    public function testScannedRoutesWithMiddlewareDispatchThroughRouter(): void
+    public function test_scanned_routes_with_middleware_dispatch_through_router(): void
     {
         $log = new ArrayObject;
         $controllerResponse = $this->response();
@@ -440,7 +440,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 6c. loadRoutes propagates middleware to the Route value object
     // ------------------------------------------------------------------
 
-    public function testLoadRoutesFlowsMiddlewareIntoRegisteredRoute(): void
+    public function test_load_routes_flows_middleware_into_registered_route(): void
     {
         $log = new ArrayObject;
         $controllerResponse = $this->response();
@@ -470,7 +470,7 @@ final class PerRouteMiddlewareTest extends TestCase
     // 6d. Group middleware executes OUTERMOST of the method's own, end-to-end
     // ------------------------------------------------------------------
 
-    public function testGroupMiddlewareRunsOutermostThroughFullDispatch(): void
+    public function test_group_middleware_runs_outermost_through_full_dispatch(): void
     {
         $log = new ArrayObject;
         $controllerResponse = $this->response();
