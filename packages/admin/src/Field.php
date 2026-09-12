@@ -30,7 +30,7 @@ final class Field
     /** @var array<string, string> keyed by Surface->value */
     private array $placeholders = [];
 
-    /** @param array<string, string>|null $options */
+    /** @param array<array-key, string>|null $options */
     private function __construct(
         private readonly string $name,
         private readonly FieldType $type,
@@ -49,7 +49,12 @@ final class Field
         return new self($name, FieldType::Text);
     }
 
-    /** @param array<string, string> $options */
+    /**
+     * Keys are stored column values. PHP turns a numeric-looking one into an
+     * int, so a status map keyed '200' arrives here keyed 200.
+     *
+     * @param array<array-key, string> $options
+     */
     public static function select(string $name, array $options): self
     {
         return new self($name, FieldType::Select, $options);
@@ -160,7 +165,7 @@ final class Field
         return $this->label;
     }
 
-    /** @return array<string, string>|null */
+    /** @return array<array-key, string>|null */
     public function options(): ?array
     {
         return $this->options;
