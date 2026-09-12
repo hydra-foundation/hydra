@@ -19,6 +19,13 @@ jobs:
   split:
     name: '${{ matrix.package }}'
     runs-on: ubuntu-latest
+    # Pushing main and pushing the release tag start two runs at once, and both
+    # split the same commit. Without this they race for the same ref and the
+    # loser is rejected with "cannot lock ref", leaving that package unpublished.
+    # One job per package repository at a time, queued rather than cancelled.
+    concurrency:
+      group: 'split-${{ matrix.package }}'
+      cancel-in-progress: false
     env:
       # A PAT with `repo` scope on hydra-foundation/*. The default GITHUB_TOKEN
       # is scoped to this repository and cannot push to the package repos.
