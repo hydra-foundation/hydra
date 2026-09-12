@@ -86,11 +86,11 @@
     ],
     "require": {
         "php": ">=8.2",
-        "hydrakit/core": "^0.3",
-        "hydrakit/http": "^0.3",
-        "hydrakit/validation": "^0.3",
-        "hydrakit/view": "^0.3",
-        "hydrakit/authorization": "^0.3",
+        "hydrakit/core": "^0.4",
+        "hydrakit/http": "^0.4",
+        "hydrakit/validation": "^0.4",
+        "hydrakit/view": "^0.4",
+        "hydrakit/authorization": "^0.4",
         "psr/http-message": "^2.0",
         "symfony/console": "^7.0"
     },
@@ -102,7 +102,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.3.x-dev"
+            "dev-main": "0.4.x-dev"
         }
     }
 }
