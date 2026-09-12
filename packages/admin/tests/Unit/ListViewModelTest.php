@@ -14,6 +14,10 @@ use Hydra\Admin\ViewModels\ListViewModel;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * What a table template reads: the sliding pager window, and the URLs behind the
+ * page and sort links, which carry the current criteria rather than resetting it.
+ */
 final class ListViewModelTest extends TestCase
 {
     /**

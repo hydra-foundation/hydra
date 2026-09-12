@@ -11,12 +11,17 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 
+/**
+ * The admin renders templates by name, so a name with no file behind it fails
+ * only when somebody opens the screen. These hold the package's own names, swap
+ * targets and nonce discipline together at test time instead.
+ */
 final class ShippedViewsTest extends TestCase
 {
     /**
      * The admin renders by name, and a name with no file behind it fails at the
-     * moment somebody opens the screen. Every name the package writes down —
-     * in a controller or in one of its own templates — has to be one it ships,
+     * moment somebody opens the screen. Every name the package writes down (in
+     * a controller or in one of its own templates) has to be one it ships,
      * or the application is quietly expected to supply it.
      */
     public function test_every_template_the_admin_names_is_one_it_ships(): void
@@ -96,7 +101,7 @@ final class ShippedViewsTest extends TestCase
      * gives htmx attributes to has to carry the nonce beside them.
      *
      * hx-swap-oob is the exception, and only because htmx reads it off the
-     * parsed fragment and removes it before the element is ever initialised —
+     * parsed fragment and removes it before the element is ever initialised;
      * the gate runs at initialisation, so it never sees the attribute. An
      * out-of-band element's own contents are initialised after it lands, which
      * is why anything htmx inside one is still covered here.

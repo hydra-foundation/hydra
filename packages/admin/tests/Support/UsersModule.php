@@ -8,6 +8,10 @@ use Hydra\Admin\Contracts\ModuleInterface;
 use Hydra\Admin\Definition;
 use Hydra\Admin\Field;
 
+/**
+ * The ordinary module most tests use: titled, gated, sortable and searchable,
+ * with nothing declared that the list screen does not need.
+ */
 final class UsersModule implements ModuleInterface
 {
     public function define(): Definition

@@ -13,6 +13,12 @@ use Hydra\Http\Query;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The query string a list reads itself from, which is entirely visitor-supplied:
+ * sort columns and filter values must be declared to count, the page and search
+ * term are capped so neither can ask for a full scan, and the term's own
+ * wildcards are escaped.
+ */
 final class CriteriaTest extends TestCase
 {
     public function test_it_ignores_a_sort_column_the_module_never_declared(): void
@@ -111,8 +117,8 @@ final class CriteriaTest extends TestCase
 
     public function test_a_page_number_is_capped_so_an_offset_cannot_run_away(): void
     {
-        // page becomes an OFFSET, and the database walks every row it skips —
-        // so an unbounded page is a way to ask for a full scan from a query
+        // page becomes an OFFSET, and the database walks every row it skips, so
+        // an unbounded page is a way to ask for a full scan from a query
         // string. The cap bounds that without needing to know the row count.
         $this->assertSame(Criteria::MAX_PAGE, $this->criteria(['page' => '999999999'])->page);
         $this->assertSame(1, $this->criteria(['page' => '-5'])->page, 'and it still floors at the first page');

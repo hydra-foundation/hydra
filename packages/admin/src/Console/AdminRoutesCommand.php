@@ -21,8 +21,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * generated on your behalf.
  *
  * A page screen names a template the admin cannot check when the module is
- * declared — compile() has no view to ask. Nothing else looks, so a name with a
- * typo in it routes, gates and breadcrumbs correctly and then 500s the moment a
+ * declared, since compile() has no view to ask. Nothing else looks, so a name
+ * with a typo routes, gates and breadcrumbs correctly and then 500s the moment a
  * visitor follows the link. That is what this command is for: given a view, it
  * says which templates are missing and fails rather than only reporting.
  */
@@ -85,7 +85,7 @@ final class AdminRoutesCommand extends Command
 
     /**
      * The template a route renders, or null when the admin renders it from a
-     * blueprint — a table and a form are the package's own templates, and are
+     * blueprint: a table and a form are the package's own templates, and are
      * covered by the package's own tests.
      *
      * @param array<string, Blueprint> $blueprints
@@ -109,7 +109,7 @@ final class AdminRoutesCommand extends Command
 
     /**
      * The route name is "slug.screen", plus ".submit" on the POST a submittable
-     * screen adds — which answers at the same screen, so it answers to the same
+     * screen adds, which answers at the same screen, so it answers to the same
      * ability and renders the same template.
      *
      * @param array<string, Blueprint> $blueprints

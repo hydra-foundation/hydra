@@ -10,6 +10,10 @@ use Hydra\Admin\Field;
 use Hydra\Admin\Screens\ShowScreen;
 use Hydra\Admin\Surface;
 
+/**
+ * A module with a show screen, including a field hidden from the list, which is
+ * the case a show screen exists for.
+ */
 final class ViewableUsersModule implements ModuleInterface
 {
     public function define(): Definition

@@ -22,6 +22,11 @@ use Hydra\Admin\Tests\Support\UsersModule;
 use Hydra\Admin\Tests\Support\ViewableUsersModule;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Mapping a request back to the screen that answers it, and the capability
+ * checks in front of that: a screen cannot be served by a source that lacks the
+ * operation it needs, and one write capability never implies another.
+ */
 final class ModuleRegistryTest extends TestCase
 {
     public function test_it_maps_a_request_path_back_to_its_module(): void

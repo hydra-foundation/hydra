@@ -78,7 +78,7 @@ final class AdminRoutesCommandTest extends TestCase
 
     public function test_a_template_nobody_ships_is_reported_rather_than_waiting_for_a_visitor(): void
     {
-        // It routes, it gates, it breadcrumbs — and it 500s when followed. The
+        // It routes, it gates, it breadcrumbs, and it 500s when followed. The
         // receipt is where that has to surface, because nothing else looks.
         $tester = $this->tester(new TypoModule);
         $tester->execute([]);

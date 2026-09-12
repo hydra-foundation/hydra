@@ -61,7 +61,7 @@ final class Definition
 
     /**
      * The heading this module sits under in the sidebar. Purely how the menu is
-     * organised — modules in a group need not relate to each other, and nothing
+     * organised: modules in a group need not relate to each other, and nothing
      * about a group is addressable, so it is a label and not a screen.
      */
     public function group(string $group): self
@@ -200,7 +200,7 @@ final class Definition
     /**
      * A screen whose path carries {id} is handed one from the request and hands it
      * to the source. The table has to be able to put one there in the first place,
-     * and Field::id() is what says which column that is — without it the row links
+     * and Field::id() is what says which column that is. Without it the row links
      * simply never render, which is a hard thing to notice and a harder one to
      * explain.
      */

@@ -19,6 +19,11 @@ use Hydra\Admin\Tests\Support\ArraySource;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The read-only row screen: it compiles to a GET and no POST, a literal sibling
+ * still wins over the {id} it resembles, and a path naming no row is refused
+ * where it is declared.
+ */
 final class ShowScreenTest extends TestCase
 {
     public function test_it_reads_one_row_through_the_admin_controller(): void

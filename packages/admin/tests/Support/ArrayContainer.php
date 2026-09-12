@@ -7,6 +7,7 @@ namespace Hydra\Admin\Tests\Support;
 use Hydra\Core\Contracts\ContainerInterface;
 use RuntimeException;
 
+/** A container with no autowiring: what a test puts in is all it can resolve. */
 final class ArrayContainer implements ContainerInterface
 {
     /** @param array<string, object> $services */

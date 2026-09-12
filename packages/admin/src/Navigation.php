@@ -8,7 +8,7 @@ use Hydra\Authorization\Contracts\GateInterface;
 
 /**
  * The sidebar, built from the same blueprints the routes came from and filtered
- * through the gate — so a link can never appear for a screen that would 403.
+ * through the gate, so a link can never appear for a screen that would 403.
  */
 final class Navigation
 {
@@ -37,9 +37,9 @@ final class Navigation
 
     /**
      * The modules this visitor may open, in declaration order. Which screen is
-     * current does not change the list, only which entry is marked — and a
-     * screen asks for both the list and the root it hangs under, so the gate is
-     * walked once rather than once per question.
+     * current does not change the list, only which entry is marked. A screen
+     * asks for both the list and the root it hangs under, so the gate is walked
+     * once rather than once per question.
      *
      * Held for the life of this instance, which is one visitor's: the gate
      * answers for whoever is signed in, and that is settled before a screen is

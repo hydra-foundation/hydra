@@ -6,7 +6,7 @@ namespace Hydra\Admin;
 
 /**
  * What a write leaves behind for the next screen to say. A delete can be refused
- * with nowhere to put the message — there is no form to hang it off — so a
+ * with nowhere to put the message (there is no form to hang it off), so a
  * notice carries whether it is reporting success rather than assuming it.
  */
 final readonly class Notice
@@ -28,9 +28,9 @@ final readonly class Notice
 
     /**
      * The three a write leaves behind. The controller says what happened rather
-     * than what to print, which keeps the admin's own wording in one class —
-     * the whole of it, so translating the admin is a question about this file
-     * and not a search across the package.
+     * than what to print, which keeps the admin's own wording in one class, the
+     * whole of it, so translating the admin is a question about this file and
+     * not a search across the package.
      */
     public static function created(): self
     {

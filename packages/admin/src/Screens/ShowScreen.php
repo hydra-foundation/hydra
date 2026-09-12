@@ -9,7 +9,7 @@ use Hydra\Admin\Contracts\ScreenInterface;
 
 /**
  * One row, read-only. It renders the fields declared for {@see \Hydra\Admin\Surface::Show},
- * which is how a column too heavy for the table — an agent string, a referer —
+ * which is how a column too heavy for the table (an agent string, a referer)
  * gets somewhere to be read without widening every row.
  */
 final class ShowScreen implements ScreenInterface

@@ -11,6 +11,10 @@ use Hydra\Admin\Input;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\PageScreen;
 
+/**
+ * A module carrying both kinds of screen, so one fixture covers a generated form
+ * and a page screen naming its own template.
+ */
 final class EditableUsersModule implements ModuleInterface
 {
     public function define(): Definition

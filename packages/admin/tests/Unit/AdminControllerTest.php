@@ -80,7 +80,7 @@ final class AdminControllerTest extends TestCase
     public function test_an_htmx_create_hands_back_the_row_it_wrote(): void
     {
         // A redirect would be turned into a full page load, so the row itself
-        // comes back and the URL is pushed after it — in the body, which is the
+        // comes back and the URL is pushed after it, in the body, which is the
         // only thing an htmx 4 client reads.
         $response = $this->handle('store', 'POST', '/admin/users/new', $this->admin->frame(), ['username' => 'linus']);
 

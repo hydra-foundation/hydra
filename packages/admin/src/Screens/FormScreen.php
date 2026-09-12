@@ -12,8 +12,8 @@ use Hydra\Admin\Input;
 /**
  * A row, writable: create() opens a blank one, edit() opens one that exists. Its
  * controls are declared here rather than on the Definition because create and
- * edit are not the same form — a password is required on one and optional on the
- * other — and because an Input is not a display projection of a Field.
+ * edit are not the same form (a password is required on one and optional on the
+ * other) and because an Input is not a display projection of a Field.
  */
 final class FormScreen implements ScreenInterface, SubmittableInterface
 {

@@ -15,6 +15,11 @@ use Hydra\Admin\Tests\Support\SettingsController;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The screen an application brings its own template to: how it routes, that a
+ * module of page screens needs no source or fields, and that it answers no POST
+ * until it is given somewhere to send one.
+ */
 final class PageScreenTest extends TestCase
 {
     public function test_a_page_screen_renders_through_the_admin_controller_by_default(): void

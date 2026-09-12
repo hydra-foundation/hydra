@@ -10,6 +10,10 @@ use Hydra\Admin\Contracts\UpdateSourceInterface;
 use Hydra\Admin\Criteria;
 use Hydra\Admin\Page;
 
+/**
+ * The writable source, with its rows public so a test can assert on what a write
+ * actually left behind rather than only on the response.
+ */
 final class ArrayWritableSource implements SourceInterface, UpdateSourceInterface, CreateSourceInterface
 {
     /** @var array<string, array<string, mixed>> */

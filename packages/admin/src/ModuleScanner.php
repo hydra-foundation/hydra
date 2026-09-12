@@ -9,7 +9,7 @@ use Hydra\Admin\Contracts\SubmittableInterface;
 
 /**
  * Turns blueprints into the same plain route definitions RouteScanner emits for
- * controllers, so module screens are ordinary routes — listable and matchable
+ * controllers, so module screens are ordinary routes: listable and matchable
  * like any other.
  */
 final class ModuleScanner
@@ -56,7 +56,7 @@ final class ModuleScanner
     /**
      * Literal paths first. The router takes the first route whose path matches,
      * so a screen at "new" has to be registered ahead of one at "{id}" or it is
-     * never reached — and that must not depend on the order a module happened to
+     * never reached, and that must not depend on the order a module happened to
      * declare its screens in. Ties keep their declared order.
      *
      * @param list<ScreenInterface> $screens

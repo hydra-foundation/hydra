@@ -7,6 +7,7 @@ namespace Hydra\Admin\Tests\Support;
 use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Authorization\Exceptions\AuthorizationException;
 
+/** A gate whose answer is fixed at construction, so a test can choose the verdict. */
 final class AdminsOnlyGate implements GateInterface
 {
     public function __construct(private readonly bool $allowed) {}

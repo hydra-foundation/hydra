@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * The landing page an admin has before anybody writes one. It renders what the
- * package can know on its own — the modules this visitor may reach — so an
+ * package can know on its own (the modules this visitor may reach), so an
  * application that declares a page screen and no template still has a working
  * front door rather than a 500 on it.
  */
@@ -57,7 +57,7 @@ final class ShippedDashboardTest extends TestCase
     public function test_a_page_screen_is_handed_the_screen_at_every_depth(): void
     {
         // The contract the dashboard rests on: a body template receives the
-        // screen view model, not only whatever a presenter returned — and it
+        // screen view model, not only whatever a presenter returned, and it
         // cannot tell which depth it is being rendered at, so both must.
         $admin = $this->admin();
 

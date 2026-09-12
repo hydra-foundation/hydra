@@ -12,10 +12,9 @@ use Hydra\Admin\Contracts\SubmittableInterface;
  * A screen that is just a template: a dashboard, a report, a settings page.
  * Left alone it renders through the admin's own controller; handledBy() points it
  * at one of your controller actions instead, which keeps the layout, breadcrumbs
- * and ability while the action is ordinary Hydra code.
- *
- * A page that saves adds submittedTo(): the same URL then answers a POST too,
- * which is what a settings screen needs and a dashboard does not.
+ * and ability while the action is ordinary Hydra code. A page that saves adds
+ * submittedTo(): the same URL then answers a POST too, which is what a settings
+ * screen needs and a dashboard does not.
  */
 final class PageScreen implements ScreenInterface, SubmittableInterface
 {

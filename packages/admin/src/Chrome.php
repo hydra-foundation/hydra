@@ -63,7 +63,7 @@ final class Chrome
 
     /**
      * The sidebar heading a module sits under, as a crumb with nothing behind
-     * it — a group is a label, not a screen, so there is nowhere for it to go.
+     * it: a group is a label, not a screen, so there is nowhere for it to go.
      * A module that declared no group contributes no crumb.
      *
      * @return list<array{label: string, url: null}>
@@ -77,7 +77,7 @@ final class Chrome
 
     /**
      * The root crumb points at the landing module rather than the prefix, which
-     * only redirects there — and htmx answers a redirect by reloading the page.
+     * only redirects there, and htmx answers a redirect by reloading the page.
      *
      * @return array{label: string, url: string}
      */

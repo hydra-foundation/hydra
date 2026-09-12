@@ -10,6 +10,11 @@ use Hydra\View\HtmlView;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * A field declaration and how it renders: labels, which surfaces it appears on,
+ * and the formatter, including the cases where a bad one names itself rather
+ * than failing somewhere further down the render.
+ */
 final class FieldTest extends TestCase
 {
     public function test_it_humanizes_the_name_into_a_default_label(): void

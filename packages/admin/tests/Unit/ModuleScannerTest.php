@@ -13,6 +13,10 @@ use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Auth\AuthenticateMiddleware;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Modules compile to the same plain route definitions RouteScanner emits for
+ * controllers, under a configurable and normalized prefix.
+ */
 final class ModuleScannerTest extends TestCase
 {
     public function test_it_compiles_a_module_to_a_plain_route_definition(): void

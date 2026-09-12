@@ -16,6 +16,10 @@ use Hydra\Admin\Tests\Support\ArraySource;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The delete screen compiles to a POST and nothing else, so no link or prefetch
+ * can reach it, and it is refused where it is declared when its path names no row.
+ */
 final class DeleteScreenTest extends TestCase
 {
     public function test_it_is_a_post_and_nothing_else(): void

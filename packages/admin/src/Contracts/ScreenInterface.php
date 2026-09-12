@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Hydra\Admin\Contracts;
 
 /**
- * A thing at a URL under a module. Every screen — list, form, report, whatever
- * an application invents — is one of these, and names the controller method
+ * A thing at a URL under a module. Every screen (list, form, report, whatever
+ * an application invents) is one of these, and names the controller method
  * that answers it.
  */
 interface ScreenInterface

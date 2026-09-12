@@ -97,7 +97,7 @@ final class NavigationGroupTest extends TestCase
     public function test_a_heading_disappears_when_the_gate_empties_it(): void
     {
         // A group is only its modules; nothing about it is declared separately,
-        // so a visitor who may reach none of them sees no heading either — and
+        // so a visitor who may reach none of them sees no heading either, and
         // what they may still reach is unaffected.
         $admin = $this->admin(allowed: false);
         $groups = $admin->chrome->root('Admin')->groups();

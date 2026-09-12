@@ -16,6 +16,11 @@ use Hydra\Validation\Rules\MinLength;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * The create and edit screens: the routes each compiles to, that a literal path
+ * is registered ahead of the {id} that would otherwise swallow it, and that the
+ * two forms can differ on the same column.
+ */
 final class FormScreenTest extends TestCase
 {
     public function test_it_sits_at_a_parameterised_path_under_the_module(): void

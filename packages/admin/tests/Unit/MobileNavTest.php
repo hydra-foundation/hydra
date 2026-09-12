@@ -13,13 +13,11 @@ use Hydra\Admin\Tests\Support\SettingsModule;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The narrow-screen navigation.
- *
- * A rail cannot simply stack above the content: a deployment with thirty
- * modules would bury every page under its own menu. So the top bar is a
- * separate control, and the sidebar it opens is the same element the wide
- * layout renders as a rail — one nav, two shapes. What holds that together is
- * that neither the link list nor the module data is duplicated.
+ * The narrow-screen navigation. A rail cannot simply stack above the content: a
+ * deployment with thirty modules would bury every page under its own menu. So
+ * the top bar is a separate control, and the sidebar it opens is the same
+ * element the wide layout renders as a rail, one nav in two shapes. What holds
+ * that together is that neither the link list nor the module data is duplicated.
  */
 final class MobileNavTest extends TestCase
 {

@@ -42,10 +42,10 @@ final class Renderer
     ): Response {
         $target = Htmx::fromRequest($request)->targetId();
 
-        // The body renders inside this screen, so it is handed the screen —
-        // at every depth, since a body template cannot tell which one it is
-        // being rendered at. Applied last: it is structural, and a presenter
-        // returning "screen" does not get to shadow it.
+        // The body renders inside this screen, so it is handed the screen at
+        // every depth, since a body template cannot tell which one it is being
+        // rendered at. Applied last: it is structural, and a presenter returning
+        // "screen" does not get to shadow it.
         $data = [...$data, 'screen' => $screen];
 
         if ($target === self::BODY) {

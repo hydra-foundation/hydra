@@ -9,6 +9,10 @@ use Hydra\Admin\InputType;
 use Hydra\Validation\Rules\MinLength;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * A form control declaration: its rules, and which values it will and will not
+ * hand back to the template (never a password).
+ */
 final class InputTest extends TestCase
 {
     public function test_it_labels_itself_from_its_name(): void

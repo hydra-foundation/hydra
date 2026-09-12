@@ -192,7 +192,7 @@ final class AdminController
      * Where a new row leaves the visitor: on the row itself, which is what the id
      * {@see \Hydra\Admin\Contracts\CreateSourceInterface::create()} returns is
      * for. A module with no screen for one row has nowhere to open, and comes back
-     * to the list like any other write — as does a row the source cannot find
+     * to the list like any other write, as does a row the source cannot find
      * again, since the write did happen and the list is what can still be shown.
      */
     private function written(Request $request, Blueprint $blueprint, string $id): Response
@@ -233,7 +233,7 @@ final class AdminController
     }
 
     /**
-     * Back to the list once a write is finished — the same view of it the write
+     * Back to the list once a write is finished: the same view of it the write
      * was made from, not the first page of an unfiltered table. A plain redirect
      * would be turned into a client-side navigation and reload the whole page, so
      * an htmx client is handed the list it was going to fetch anyway, with the URL
@@ -261,8 +261,8 @@ final class AdminController
 
     /**
      * The list the write was made from. htmx reports the page the browser is on,
-     * which is where the criteria live; a write sent without it — a form posted
-     * with no htmx — has only its own URL to go on, and lands on the defaults.
+     * which is where the criteria live; a write sent without it (a form posted
+     * with no htmx) has only its own URL to go on, and lands on the defaults.
      */
     private function listState(Request $request, Blueprint $blueprint): Criteria
     {
@@ -274,8 +274,8 @@ final class AdminController
     }
 
     /**
-     * The rows for this view of the list. A delete can empty the page it was on —
-     * the last row of the last page — and an empty page is not what the visitor
+     * The rows for this view of the list. A delete can empty the page it was on
+     * (the last row of the last page), and an empty page is not what the visitor
      * asked to be shown, so the list falls back to its new end.
      */
     private function rows(Blueprint $blueprint, Criteria $criteria): Page

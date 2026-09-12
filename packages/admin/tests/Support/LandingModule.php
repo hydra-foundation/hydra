@@ -9,7 +9,7 @@ use Hydra\Admin\Definition;
 use Hydra\Admin\Screens\PageScreen;
 
 /**
- * A landing page and nothing else: no source, no fields, no presenter — the
+ * A landing page and nothing else: no source, no fields, no presenter. The
  * shape an application declares to get the shipped dashboard.
  */
 final class LandingModule implements ModuleInterface

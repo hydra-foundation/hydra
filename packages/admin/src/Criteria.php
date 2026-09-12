@@ -17,7 +17,7 @@ final readonly class Criteria
      * The furthest page a request may ask for.
      *
      * page becomes an OFFSET, and a large one makes the database walk every
-     * row it skips — so an unbounded page number is an unauthenticated way to
+     * row it skips, so an unbounded page number is an unauthenticated way to
      * turn one cheap request into a full table scan. This is a blast-radius
      * cap, not a correctness bound: a list with fewer pages still clamps to its
      * own last page when the total is known.
@@ -119,15 +119,15 @@ final readonly class Criteria
      * The search term as a LIKE pattern, or null when nothing was searched for.
      *
      * The term's own wildcards are escaped first. They are not an injection
-     * risk — the pattern is always bound as a parameter — but they are a cost
-     * one: a bare "%" matches every row, which turns a search box into a way to
-     * ask for a full scan on demand. Escaping is done here rather than in each
-     * source so that no source can forget, and so the SQL stays one shape.
+     * risk, since the pattern is always bound as a parameter, but they are a
+     * cost one: a bare "%" matches every row, which turns a search box into a
+     * way to ask for a full scan on demand. Escaping is done here rather than in
+     * each source so that no source can forget, and so the SQL stays one shape.
      *
      * The escape character is a backslash, and the LIKE that consumes this has
      * to name it: `LIKE ? ESCAPE '\'`. Only MySQL/MariaDB assume a backslash on
-     * their own, and only while NO_BACKSLASH_ESCAPES is off — SQLite assumes
-     * none at all, so without the clause an escaped term matches nothing.
+     * their own, and only while NO_BACKSLASH_ESCAPES is off; SQLite assumes none
+     * at all, so without the clause an escaped term matches nothing.
      */
     public function searchPattern(): ?string
     {

@@ -8,6 +8,7 @@ use Hydra\Admin\Contracts\SourceInterface;
 use Hydra\Admin\Criteria;
 use Hydra\Admin\Page;
 
+/** A read-only source over a fixed row list, paginated the way a real one would be. */
 final class ArraySource implements SourceInterface
 {
     /** @param list<array<string, mixed>> $rows */

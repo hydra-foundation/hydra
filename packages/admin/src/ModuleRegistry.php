@@ -114,8 +114,8 @@ final class ModuleRegistry
      * when a sibling sits at "{id}".
      *
      * The method is part of the question, not decoration: two screens may share a
-     * path under different verbs — a row that is read with GET and removed with
-     * POST — and compile() allows exactly that. Matching on the path alone would
+     * path under different verbs (a row read with GET and removed with POST) and
+     * compile() allows exactly that. Matching on the path alone would
      * hand the POST to the screen that answers the GET.
      */
     public function screenAt(Blueprint $blueprint, string $path, string $method): ?ScreenInterface

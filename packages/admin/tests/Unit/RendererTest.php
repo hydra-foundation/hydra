@@ -71,7 +71,7 @@ final class RendererTest extends TestCase
 
     public function test_an_htmx_request_at_an_unknown_target_is_answered_in_full(): void
     {
-        // Nothing says the target is one of ours — a page swapping the admin
+        // Nothing says the target is one of ours: a page swapping the admin
         // into itself asks for a page, not a fragment.
         $body = $this->render(['HX-Request' => 'true', 'HX-Target' => 'div#somewhere-else']);
 

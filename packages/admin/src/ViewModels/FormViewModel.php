@@ -10,8 +10,8 @@ use Hydra\Admin\Screens\FormScreen;
 
 /**
  * Everything a form reads: its controls, the values to put in them, and where to
- * post. Values come from one array whichever way the screen was reached — the
- * stored row on a GET, the rejected submission on a failed POST — so a form that
+ * post. Values come from one array whichever way the screen was reached (the
+ * stored row on a GET, the rejected submission on a failed POST), so a form that
  * comes back with errors comes back with what the user typed.
  */
 final readonly class FormViewModel
