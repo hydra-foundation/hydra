@@ -126,8 +126,10 @@ final readonly class Criteria
      * ask for a full scan on demand. Escaping is done here rather than in each
      * source so that no source can forget, and so the SQL stays one shape.
      *
-     * The escape character is a backslash, which is what MySQL/MariaDB and
-     * SQLite's LIKE use by default.
+     * The escape character is a backslash, and the LIKE that consumes this has
+     * to name it: `LIKE ? ESCAPE '\'`. Only MySQL/MariaDB assume a backslash on
+     * their own, and only while NO_BACKSLASH_ESCAPES is off — SQLite assumes
+     * none at all, so without the clause an escaped term matches nothing.
      */
     public function searchPattern(): ?string
     {
