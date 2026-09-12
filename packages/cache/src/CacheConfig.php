@@ -8,7 +8,8 @@ use Hydra\Core\Environment;
 use InvalidArgumentException;
 
 /**
- * Cache config
+ * Cache settings, validated at construction so a bad value fails at boot
+ * rather than at the first request that needed the store.
  */
 final readonly class CacheConfig
 {

@@ -59,8 +59,8 @@ final class Environment
 
     /**
      * The value from the real process environment ($_ENV, $_SERVER, getenv),
-     * or null when not set there. Only string values count — $_SERVER also
-     * holds non-environment entries such as the `argv` array.
+     * or null when not set there. Only string values count, since $_SERVER
+     * also holds non-environment entries such as the `argv` array.
      */
     private function fromProcess(string $key): ?string
     {
@@ -150,7 +150,7 @@ final class Environment
 
     /**
      * A comma-separated value as a list, with blank entries dropped. A missing
-     * or empty key is an empty list — "not configured" and "configured to
+     * or empty key is an empty list: "not configured" and "configured to
      * nothing" are the same answer for every setting shaped like this.
      *
      * @param list<string> $default

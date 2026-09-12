@@ -116,7 +116,7 @@ final class RulesTest extends TestCase
     {
         // HTTP input is attacker-shaped: `field[]=x` arrives as an array. A
         // (string) cast would warn and coerce to the literal "Array" (length
-        // 5 — which passes MinLength(3)/MaxLength(10)!). Wrong-shaped input
+        // 5, which passes MinLength(3)/MaxLength(10)). Wrong-shaped input
         // must fail cleanly instead. failOnWarning in phpunit.xml pins the
         // "no warning" half of this contract.
         $array = ['x'];
@@ -172,7 +172,7 @@ final class RulesTest extends TestCase
     public function testEndOfStringAnchorRejectsTrailingNewline(): void
     {
         // With the old '/^.+@.+$/' idiom, PCRE's $ tolerates a trailing
-        // newline, so "a@b\n" passes. \A/\z anchor the true string ends —
+        // newline, so "a@b\n" passes. \A/\z anchor the true string ends;
         // this pins the corrected README example.
         $legacy = new Pattern('/^.+@.+$/');
         $this->assertNull($legacy->validate("a@b\n")); // the trap the README warns about
@@ -184,7 +184,7 @@ final class RulesTest extends TestCase
 
     public function testPatternRejectsMalformedRegexAtConstruction(): void
     {
-        // A bad pattern is a developer error, surfaced immediately — not a
+        // A bad pattern is a developer error, surfaced immediately rather than as a
         // silent per-value "invalid" plus a runtime warning at match time.
         $this->expectException(InvalidArgumentException::class);
 
@@ -244,7 +244,7 @@ final class RulesTest extends TestCase
 
     public function testInListComparesStrictlyOnTheStringForm(): void
     {
-        // A loose comparison would let 0 match "asc" and true match "1" — the
+        // A loose comparison would let 0 match "asc" and true match "1", the
         // classic way an allow-list stops being one.
         $this->assertNotNull((new InList(['asc']))->validate(0));
         $this->assertNotNull((new InList(['1']))->validate(true));
@@ -254,7 +254,7 @@ final class RulesTest extends TestCase
     public function testInListRejectsAnEmptyAllowedSetAtConstruction(): void
     {
         // An empty set rejects everything, which is a caller passing through a
-        // list it meant to populate — a developer error, surfaced immediately.
+        // list it meant to populate. A developer error, surfaced immediately.
         $this->expectException(InvalidArgumentException::class);
 
         new InList([]);

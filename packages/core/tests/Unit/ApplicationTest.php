@@ -56,7 +56,7 @@ final class ApplicationTest extends TestCase
 
         $app = new Application($this->containerResolving($this->createStub(KernelInterface::class)));
         $app->register($provider);
-        // no run()/boot() — boot must not have fired yet
+        // no run()/boot(), so boot must not have fired yet
     }
 
     public function testProviderRegisteredAfterBootIsBootedImmediately(): void

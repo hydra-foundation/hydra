@@ -10,8 +10,8 @@ namespace Hydra\Cache\Contracts;
  * The counter methods are the reason this contract is narrow: anything that
  * budgets per client has to increment and expire as one step. Doing it in two
  * calls leaves a window where concurrent requests each see a fresh counter, and
- * a limiter with that window is a limiter that can be walked straight past — so
- * atomicity is part of the contract, not an implementation detail.
+ * a limiter with that window can be walked straight past. Atomicity is part of
+ * the contract, not an implementation detail.
  */
 interface StoreInterface
 {
@@ -32,9 +32,9 @@ interface StoreInterface
     public function increment(string $key, int $by = 1, int $ttl = 0): int;
 
     /**
-     * Seconds until $key expires. 0 when the key is absent, or present with no
-     * expiry — callers asking this want "how long until it clears", and both of
-     * those answer "it does not".
+     * Seconds until $key expires. 0 both when the key is absent and when it has
+     * no expiry: the question is "how long until it clears", and neither of
+     * those ever will.
      */
     public function ttl(string $key): int;
 }

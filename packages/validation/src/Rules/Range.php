@@ -10,7 +10,7 @@ use Hydra\Validation\Contracts\RuleInterface;
  * The value must be a whole number within $min..$max (both inclusive).
  *
  * Numbers that arrive from a query string are strings, and a string that is not
- * a number is out of range rather than zero — coercing "abc" to 0 would quietly
+ * a number is out of range rather than zero. Coercing "abc" to 0 would quietly
  * pass a rule whose whole job is to bound what reaches a query.
  */
 final class Range implements RuleInterface

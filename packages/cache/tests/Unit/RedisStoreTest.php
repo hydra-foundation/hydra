@@ -11,7 +11,7 @@ use RedisException;
 
 /**
  * The same contract against a real Redis. Skipped where there isn't one, so the
- * suite still runs on a bare checkout — but the store that production uses is
+ * suite still runs on a bare checkout. The store production uses is therefore
  * only actually covered where this runs.
  */
 final class RedisStoreTest extends StoreContractTestCase

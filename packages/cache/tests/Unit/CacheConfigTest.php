@@ -35,8 +35,8 @@ final class CacheConfigTest extends TestCase
         $this->dir = sys_get_temp_dir() . '/hydra-cache-' . uniqid('', true);
         mkdir($this->dir);
 
-        // These keys may be set for real — RedisStoreTest reads REDIS_HOST to
-        // find something to test against. Clearing them without putting them
+        // These keys may be set for real, since RedisStoreTest reads REDIS_HOST
+        // to find something to test against. Clearing them without putting them
         // back would silently skip that suite rather than fail here.
         foreach (self::KEYS as $key) {
             $value = getenv($key);

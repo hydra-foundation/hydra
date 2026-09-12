@@ -23,8 +23,8 @@ final class EnvironmentTest extends TestCase
     protected function tearDown(): void
     {
         // Environment exports .env values to the real process environment,
-        // and the real environment beats the file — so scrub every key this
-        // test wrote, or a stale export would leak into the next test.
+        // and the real environment beats the file, so scrub every key this
+        // test wrote or a stale export leaks into the next test.
         foreach ($this->written as $key) {
             putenv($key);
             unset($_ENV[$key], $_SERVER[$key]);
@@ -90,7 +90,7 @@ final class EnvironmentTest extends TestCase
 
     public function testHashInsideQuotedValueIsPreserved(): void
     {
-        // Inside quotes, # is data — not the start of a comment.
+        // Inside quotes, # is data, not the start of a comment.
         $env = $this->writeEnv("SECRET=\"abc#123 # not a comment\"\nALT='x # y'\n");
         $this->assertSame('abc#123 # not a comment', $env->get('SECRET'));
         $this->assertSame('x # y', $env->get('ALT'));
@@ -148,7 +148,7 @@ final class EnvironmentTest extends TestCase
     public function testRealEnvironmentBeatsDotEnvFile(): void
     {
         // A variable the process already has (container runtime, web server,
-        // an `export`) must override the .env file's value — and the file's
+        // an `export`) must override the .env file's value, and the file's
         // value must not be exported over it either.
         putenv('HYDRA_TEST_REAL=from-process');
         $_ENV['HYDRA_TEST_REAL'] = 'from-process';
@@ -224,8 +224,8 @@ final class EnvironmentTest extends TestCase
 
     public function testBoolAcceptedForms(): void
     {
-        // The documented contract: true/false, 1/0, yes/no, on/off — case-
-        // insensitively. Nothing else.
+        // The documented contract, case-insensitively and nothing else:
+        // true/false, 1/0, yes/no, on/off.
         $env = $this->writeEnv(
             "BT1=true\nBT2=1\nBT3=yes\nBT4=on\nBT5=TRUE\nBT6=Yes\n" .
             "BF1=false\nBF2=0\nBF3=no\nBF4=off\nBF5=FALSE\nBF6=Off\n"
@@ -245,7 +245,7 @@ final class EnvironmentTest extends TestCase
     public function testBoolRejectsGarbage(): void
     {
         // A present-but-non-boolean value is a config error, not a silent
-        // false — same policy as int().
+        // false. Same policy as int().
         $env = $this->writeEnv("FLAGGY=anything\n");
 
         $this->expectException(\InvalidArgumentException::class);
@@ -322,7 +322,7 @@ final class EnvironmentTest extends TestCase
 
     public function testMissingEnvFileDoesNotError(): void
     {
-        // No .env written — load() must no-op silently.
+        // No .env written: load() must no-op silently.
         $env = new Environment($this->dir);
         $this->assertSame('d', $env->get('ANYTHING', 'd'));
     }

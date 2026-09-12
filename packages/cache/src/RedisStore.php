@@ -23,9 +23,9 @@ final class RedisStore implements StoreInterface
      *
      * The check and the write have to happen together: between a separate INCR
      * and EXPIRE, a second request can increment the same key and find a TTL
-     * that is not there yet, leaving a counter that never expires — or, worse,
-     * one that both requests re-arm until the limit is unreachable. Redis runs
-     * a script atomically, so the pair cannot be interleaved.
+     * that is not there yet, leaving a counter that never expires, or one that
+     * both requests re-arm until the limit is unreachable. Redis runs a script
+     * atomically, so the pair cannot be interleaved.
      *
      * TTL returns -1 for a key with no expiry and -2 for one that does not
      * exist; either means "no window yet", hence < 0.

@@ -58,7 +58,7 @@ final class SignerServiceProviderTest extends TestCase
 
         (new SignerServiceProvider)->register($container);
 
-        // The requirement fails lazily, at first resolve — not at register().
+        // The requirement fails lazily, at first resolve, not at register().
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessageMatches('/APP_KEY/');
 

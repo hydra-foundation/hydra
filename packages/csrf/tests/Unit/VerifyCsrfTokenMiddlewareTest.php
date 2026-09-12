@@ -124,8 +124,8 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
     public function test_lowercase_unsafe_method_is_still_guarded(): void
     {
         // Method comparison must be case-insensitive (strtoupper is load-bearing):
-        // a lowercase 'post' must not be mistaken for a non-listed safe verb —
-        // and, symmetrically, a lowercase 'get' must not lose its exemption.
+        // a lowercase 'post' must not be mistaken for a non-listed safe verb,
+        // and symmetrically a lowercase 'get' must not lose its exemption.
         $guard = $this->guard();
         $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
@@ -180,8 +180,8 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
     public function test_an_empty_header_falls_back_to_the_form_field(): void
     {
         // getHeaderLine() returns '' for both absent and present-but-empty, so an
-        // empty header must not short-circuit the field lookup — otherwise a
-        // client that sends an empty X-CSRF-Token could never use the form field.
+        // empty header must not short-circuit the field lookup, or a client
+        // that sends an empty X-CSRF-Token could never use the form field.
         $guard = $this->guard();
         $token = $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
@@ -217,9 +217,9 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
 
     public function test_header_is_preferred_over_the_form_field(): void
     {
-        // A valid header wins even when the body field is junk — the htmx path
-        // (auto-header) should not be defeated by a stale field, and vice versa
-        // a valid field is enough when no header is sent (covered above).
+        // A valid header wins even when the body field is junk, so the htmx
+        // auto-header path is not defeated by a stale field. Symmetrically, a
+        // valid field is enough when no header is sent (covered above).
         $guard = $this->guard();
         $token = $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);

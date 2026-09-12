@@ -10,8 +10,8 @@ use Hydra\Session\Stores\ArraySessionStore;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The guard is exercised against the real in-memory ArraySessionStore — the same
- * reference backend the session package tests with — and a real {@see Signer}
+ * The guard is exercised against the real in-memory ArraySessionStore (the same
+ * reference backend the session package tests with) and a real {@see Signer}
  * under a fixed test key, so these prove the actual session read/write and
  * sign/verify paths, not mocks of them.
  */
@@ -30,7 +30,7 @@ final class CsrfGuardTest extends TestCase
         // Lazily minted, then stable for the life of the session.
         $this->assertNotSame('', $first);
         $this->assertSame($first, $second);
-        // Emitted as "<64-hex-hmac>.<64-hex-token>" — signed, not the bare token.
+        // Emitted as "<64-hex-hmac>.<64-hex-token>": signed, not the bare token.
         $this->assertSame(1, preg_match('/^[0-9a-f]{64}\.[0-9a-f]{64}$/', $first));
     }
 
@@ -74,7 +74,7 @@ final class CsrfGuardTest extends TestCase
     public function test_validate_rejects_a_tampered_token(): void
     {
         // A validly-signed token whose message half is swapped for another
-        // session's stored value must fail — the signature no longer matches.
+        // session's stored value must fail, because the signature no longer matches.
         $guard = $this->guard();
         $signed = $guard->token();
 
@@ -108,7 +108,7 @@ final class CsrfGuardTest extends TestCase
 
     public function test_validate_is_false_before_any_token_is_minted(): void
     {
-        // No token has been issued for this session, so nothing can validate —
+        // No token has been issued for this session, so nothing can validate,
         // not even a value validly signed under this key. validate() must not
         // mint one.
         $guard = $this->guard();

@@ -12,8 +12,8 @@ use PHPUnit\Framework\TestCase;
  *
  * Both stores are held to one set of expectations on purpose: a limiter tested
  * against ArrayStore and deployed against RedisStore is only meaningful if the
- * two agree, and the places they could drift — expiry, counter windows, what a
- * miss looks like — are exactly the places a limiter depends on.
+ * two agree, and the places they could drift (expiry, counter windows, what a
+ * miss looks like) are exactly the places a limiter depends on.
  */
 abstract class StoreContractTestCase extends TestCase
 {
@@ -42,7 +42,7 @@ abstract class StoreContractTestCase extends TestCase
 
         $this->assertSame(42, $store->get('int'));
         $this->assertSame(['a', 'b'], $store->get('list'));
-        // false is a value, not a miss — the distinction a naive store loses.
+        // false is a value, not a miss: the distinction a naive store loses.
         $this->assertFalse($store->get('bool'));
         $this->assertNotNull($store->get('bool'));
     }

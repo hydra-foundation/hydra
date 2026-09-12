@@ -12,7 +12,7 @@ use Stringable;
  * The value must be one of an explicit set.
  *
  * The comparison is strict on the string form, so "1" never matches 1 and a
- * value cannot slip in through PHP's looser comparisons — a rule that decides
+ * value cannot slip in through PHP's looser comparisons. A rule that decides
  * which column a query may sort by has to mean exactly what it lists.
  */
 final class InList implements RuleInterface

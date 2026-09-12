@@ -181,7 +181,7 @@ final class ValidatorTest extends TestCase
     {
         // Regression guard (2026-07-06): `field[]=x` arrives as an array. Run
         // through the whole Validator flow, wrong-shaped input must surface as
-        // a normal validation failure — never a cast warning (failOnWarning in
+        // a normal validation failure, never a cast warning (failOnWarning in
         // phpunit.xml pins that) or a thrown exception. The literal "Array"
         // must not slip past the length rules.
         $result = $this->validator->validate(

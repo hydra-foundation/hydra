@@ -211,7 +211,7 @@ final class FakeGuard implements GuardInterface
 
 /**
  * A container that returns registered instances and otherwise autowires a
- * no-arg class — enough to stand in for the app container's resolution of
+ * no-arg class, enough to stand in for the app container's resolution of
  * ability class-strings.
  */
 final class FakeContainer implements ContainerInterface
