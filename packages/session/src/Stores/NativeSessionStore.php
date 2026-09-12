@@ -7,8 +7,6 @@ namespace Hydra\Session\Stores;
 use Hydra\Session\SessionConfig;
 
 /**
- * Native session store
- *
  * The production session backend, built on PHP's native session.
  */
 final class NativeSessionStore extends AbstractSession

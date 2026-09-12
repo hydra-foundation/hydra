@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Validation;
 
 /**
- * Result
- *
  * The outcome of validating a set of fields.
  */
 final readonly class Result

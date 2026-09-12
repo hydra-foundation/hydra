@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Core\Security;
 
 /**
- * Signer
- *
  * HMAC-SHA256 message signing under an explicitly-injected key.
  */
 final class Signer
@@ -18,7 +16,7 @@ final class Signer
     private const MIN_KEY_BYTES = 32;
 
     /**
-     * @param non-empty-string       $key          raw key bytes (>= 32)
+     * @param non-empty-string $key raw key bytes (>= 32)
      * @param list<non-empty-string> $previousKeys raw key bytes tried on verify() only, for rotation
      */
     public function __construct(

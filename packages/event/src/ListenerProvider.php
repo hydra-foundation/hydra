@@ -7,8 +7,6 @@ namespace Hydra\Event;
 use Psr\EventDispatcher\ListenerProviderInterface;
 
 /**
- * Listener provider
- *
  * The mutable half of the event system: where listeners are registered and, at
  * dispatch time, matched to an event
  */

@@ -7,8 +7,6 @@ namespace Hydra\Http\Attributes;
 use Attribute;
 
 /**
- * Route group
- *
  * Declares a group on a controller class: a shared path prefix and/or shared
  * middleware applied to every #[Route] on the class's methods.
  */

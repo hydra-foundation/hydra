@@ -19,8 +19,6 @@ use LogicException;
 use RuntimeException;
 
 /**
- * Module registry
- *
  * Resolves the registered modules to their blueprints once per request, and
  * maps a request path back to the module that owns it.
  */

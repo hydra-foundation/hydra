@@ -11,8 +11,6 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Parse body middleware
- *
  * JSON (any method) and urlencoded forms on PUT/PATCH/DELETE
  */
 final class ParseBodyMiddleware implements MiddlewareInterface

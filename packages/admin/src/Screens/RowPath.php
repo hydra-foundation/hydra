@@ -7,8 +7,6 @@ namespace Hydra\Admin\Screens;
 use LogicException;
 
 /**
- * Row path
- *
  * Shared by the screens that answer for one row. A path with no {id} in it
  * cannot name the row the source will be asked for, and the screen would
  * compile to a route that only ever 404s — so the complaint belongs at the call

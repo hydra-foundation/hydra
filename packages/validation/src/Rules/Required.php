@@ -7,8 +7,6 @@ namespace Hydra\Validation\Rules;
 use Hydra\Validation\Contracts\RuleInterface;
 
 /**
- * Required
- *
  * The value must be present: not null, not an empty string, not an empty array.
  */
 final class Required implements RuleInterface

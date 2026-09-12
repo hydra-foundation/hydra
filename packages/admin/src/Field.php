@@ -9,8 +9,6 @@ use Hydra\View\HtmlView;
 use LogicException;
 
 /**
- * Field
- *
  * One column of a module, declared once and projected onto every surface that
  * wants it: a table cell, a detail row, an export column. Display rules are
  * declared per surface.
@@ -230,7 +228,7 @@ final class Field
     }
 
     /**
-     * @param  list<Surface> $on
+     * @param list<Surface> $on
      * @return list<Surface>
      */
     private function surfacesFor(array $on): array

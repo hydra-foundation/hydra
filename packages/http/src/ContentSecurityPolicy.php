@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Http;
 
 /**
- * Content Security Policy
- *
  * A policy as an ordered map of directive => source list, compiled to one
  * header value. Immutable: every builder hands back a new policy.
  */

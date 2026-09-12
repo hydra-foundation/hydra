@@ -25,8 +25,6 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
- * Admin controller
- *
  * The shared handler behind the generated screen routes. It resolves the module
  * and screen from the path, enforces the screen's ability, and renders.
  */
@@ -344,7 +342,7 @@ final class AdminController
     }
 
     /**
-     * @param array<string, mixed>  $values
+     * @param array<string, mixed> $values
      * @param array<string, string> $errors
      */
     private function form(

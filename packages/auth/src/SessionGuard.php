@@ -16,8 +16,6 @@ use Hydra\Session\Contracts\SessionInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Session guard
- *
  * The session-backed {@see GuardInterface}: authentication state lives in the
  * session as a single stored identifier
  */

@@ -10,8 +10,6 @@ use Hydra\Admin\Contracts\SubmittableInterface;
 use Hydra\Admin\Input;
 
 /**
- * Form screen
- *
  * A row, writable: create() opens a blank one, edit() opens one that exists. Its
  * controls are declared here rather than on the Definition because create and
  * edit are not the same form — a password is required on one and optional on the
@@ -116,7 +114,7 @@ final class FormScreen implements ScreenInterface, SubmittableInterface
      * The rule set {@see \Hydra\Validation\Validator} wants, keyed by input name.
      * Built against the submission because a blank optional control is exempt.
      *
-     * @param  array<string, mixed> $values
+     * @param array<string, mixed> $values
      * @return array<string, list<\Hydra\Validation\Contracts\RuleInterface>>
      */
     public function rulesFor(array $values): array

@@ -8,8 +8,6 @@ use Hydra\Admin\AdminController;
 use Hydra\Admin\Contracts\ScreenInterface;
 
 /**
- * List screen
- *
  * The module root: a paginated, sortable, filterable table of the source's rows.
  */
 final class ListScreen implements ScreenInterface

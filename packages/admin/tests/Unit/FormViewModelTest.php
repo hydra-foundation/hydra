@@ -70,7 +70,7 @@ final class FormViewModelTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed>  $values
+     * @param array<string, mixed> $values
      * @param array<string, string> $errors
      */
     private function viewModel(string $id, array $values = [], array $errors = []): FormViewModel

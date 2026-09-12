@@ -7,8 +7,6 @@ namespace Hydra\Admin\ViewModels;
 use Hydra\Admin\Notice;
 
 /**
- * Screen view model
- *
  * The chrome around any admin screen: sidebar, breadcrumbs, title, and the
  * notice a write leaves behind. It knows nothing about tables or forms, so a
  * plain controller action can render inside the admin layout without pretending
@@ -18,7 +16,7 @@ final readonly class ScreenViewModel
 {
     /**
      * @param list<array{slug: string, title: string, icon: ?string, group: ?string, url: string, active: bool}> $navigation
-     * @param list<array{label: string, url: ?string}>                                                          $breadcrumbs
+     * @param list<array{label: string, url: ?string}> $breadcrumbs
      */
     public function __construct(
         public string $title,

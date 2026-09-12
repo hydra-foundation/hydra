@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Session\Contracts;
 
 /**
- * Session lifecycle interface
- *
  * The lifecycle half of a session, held only by the framework's session
  * middleware and never handed to controllers
  */

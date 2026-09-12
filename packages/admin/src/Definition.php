@@ -12,8 +12,6 @@ use Hydra\Admin\Sources\CallableSource;
 use LogicException;
 
 /**
- * Definition
- *
  * The fluent half of a module: write-only, immutable, and compiled to a
  * Blueprint before anything else is allowed to read it.
  */

@@ -9,8 +9,6 @@ use Psr\Http\Message\ServerRequestInterface;
 use Throwable;
 
 /**
- * Error context
- *
  * Everything an {@see Contracts\ErrorRendererInterface} needs to turn a caught
  * throwable into a response, in one value object: the error, the request that
  * triggered it, the resolved HTTP status, and whether debug detail is allowed.

@@ -24,10 +24,7 @@ final class Pipeline implements RequestHandlerInterface
     /** @var list<MiddlewareInterface> */
     private readonly array $middleware;
 
-    /**
-     * @param iterable<MiddlewareInterface> $middleware  outermost first
-     * @param RequestHandlerInterface       $kernel      the innermost handler
-     */
+    /** @param iterable<MiddlewareInterface> $middleware outermost first */
     public function __construct(iterable $middleware, private readonly RequestHandlerInterface $kernel)
     {
         $this->middleware = array_values(

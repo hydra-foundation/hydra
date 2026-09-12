@@ -13,8 +13,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Route cache command
- *
  * Compiles the controller #[Route] attributes to the route cache file. This is
  * the sole writer of the cache — the web path only ever reads it (see
  * AppServiceProvider::compileRoutes). Run it at deploy time when ROUTE_CACHE is

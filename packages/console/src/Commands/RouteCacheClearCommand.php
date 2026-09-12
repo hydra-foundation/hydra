@@ -12,8 +12,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Route cache clear command
- *
  * Deletes the route cache file. After this the web path falls back to scanning
  * on every request until route:cache is run again. Clearing an already-cold
  * cache is success, not an error.

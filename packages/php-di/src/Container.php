@@ -11,8 +11,6 @@ use function DI\autowire;
 use function DI\factory;
 
 /**
- * Container
- *
  * The default adapter, backed by PHP-DI
  */
 final class Container implements ContainerInterface

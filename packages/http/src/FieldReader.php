@@ -7,8 +7,6 @@ namespace Hydra\Http;
 use Hydra\Http\Exceptions\BadRequestException;
 
 /**
- * Field reader
- *
  * Shared typed accessors over one request value bag.
  */
 abstract class FieldReader

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Admin\Contracts;
 
 /**
- * Create source interface
- *
  * How a module adds a row. Separate from {@see UpdateSourceInterface} because
  * the two are separate permissions in every application that has ever had them:
  * a table whose rows may be corrected is not thereby a table anyone may add to.

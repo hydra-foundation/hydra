@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Http;
 
 /**
- * Status
- *
  * HTTP status codes as a named, int-backed vocabulary
  */
 enum Status: int

@@ -10,8 +10,6 @@ use Nyholm\Psr7Server\ServerRequestCreator;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Nyholm request provider
- *
  * Adapts nyholm's ServerRequestCreator to Hydra's request-provider seam
  */
 final class NyholmRequestProvider implements ServerRequestProviderInterface

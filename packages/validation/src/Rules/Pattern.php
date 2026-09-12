@@ -9,8 +9,6 @@ use InvalidArgumentException;
 use Stringable;
 
 /**
- * Pattern
- *
  * The value, as a string, must match a PCRE pattern.
  */
 final class Pattern implements RuleInterface

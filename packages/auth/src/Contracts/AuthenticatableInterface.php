@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Auth\Contracts;
 
 /**
- * Authenticatable interface
- *
  * What a user must expose for authentication
  */
 interface AuthenticatableInterface

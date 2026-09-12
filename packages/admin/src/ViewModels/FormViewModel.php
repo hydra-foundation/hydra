@@ -9,8 +9,6 @@ use Hydra\Admin\Input;
 use Hydra\Admin\Screens\FormScreen;
 
 /**
- * Form view model
- *
  * Everything a form reads: its controls, the values to put in them, and where to
  * post. Values come from one array whichever way the screen was reached — the
  * stored row on a GET, the rejected submission on a failed POST — so a form that
@@ -19,7 +17,7 @@ use Hydra\Admin\Screens\FormScreen;
 final readonly class FormViewModel
 {
     /**
-     * @param array<string, mixed>  $values
+     * @param array<string, mixed> $values
      * @param array<string, string> $errors
      */
     public function __construct(

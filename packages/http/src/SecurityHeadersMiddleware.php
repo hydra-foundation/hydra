@@ -10,8 +10,6 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Security headers middleware
- *
  * Stamps a small set of conservative security headers onto every response.
  */
 final class SecurityHeadersMiddleware implements MiddlewareInterface

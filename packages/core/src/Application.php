@@ -9,8 +9,6 @@ use Hydra\Core\Contracts\KernelInterface;
 use Hydra\Core\Contracts\ServiceProviderInterface;
 
 /**
- * Application
- *
  * The core application
  */
 final class Application

@@ -12,8 +12,6 @@ use Hydra\Admin\Surface;
 use Hydra\View\HtmlView;
 
 /**
- * Show view model
- *
  * Everything a detail screen reads: the fields that surface here, the row's
  * value for each, and the way on to editing it when the module allows that.
  */

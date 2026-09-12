@@ -9,8 +9,6 @@ use Stringable;
 use Throwable;
 
 /**
- * Stream logger
- *
  * A minimal PSR-3 logger that writes one plain-text line per record to a
  * writable stream
  */

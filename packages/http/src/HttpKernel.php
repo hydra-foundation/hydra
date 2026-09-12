@@ -11,8 +11,6 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Throwable;
 
 /**
- * HTTP Kernel
- *
  * Drives the HTTP request lifecycle
  */
 final class HttpKernel implements KernelInterface

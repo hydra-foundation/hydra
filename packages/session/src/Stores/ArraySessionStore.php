@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Session\Stores;
 
 /**
- * Array session store
- *
  * A pure, in-memory session store.
  */
 final class ArraySessionStore extends AbstractSession

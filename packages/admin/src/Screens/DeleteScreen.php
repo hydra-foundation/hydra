@@ -8,8 +8,6 @@ use Hydra\Admin\AdminController;
 use Hydra\Admin\Contracts\ScreenInterface;
 
 /**
- * Delete screen
- *
  * The one screen with nothing to look at: it is a POST and an answer. A GET that
  * removed a row would be followed by anything that crawls links, so the button
  * that reaches this is a form, and the confirmation is the client's job.

@@ -11,8 +11,6 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Start session middleware
- *
  * Brackets the request with the session lifecycle: open it on the way in, save
  * it on the way out.
  */

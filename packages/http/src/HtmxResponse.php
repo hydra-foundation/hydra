@@ -8,8 +8,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
- * HTMX Response
- *
  * The things a server used to say in HX-* response headers, said in the only
  * channel htmx 4 still listens to: the body it swaps. The 4.x client reads no
  * response header at all — every capitalised HX-* token in the bundle is one it

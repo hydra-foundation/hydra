@@ -9,8 +9,6 @@ use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Contracts\SubmittableInterface;
 
 /**
- * Page screen
- *
  * A screen that is just a template: a dashboard, a report, a settings page.
  * Left alone it renders through the admin's own controller; handledBy() points it
  * at one of your controller actions instead, which keeps the layout, breadcrumbs

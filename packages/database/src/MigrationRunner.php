@@ -9,8 +9,6 @@ use PDOException;
 use RuntimeException;
 
 /**
- * Migration Runner
- *
  * Applies raw .sql migration files and records which have run
  */
 final class MigrationRunner

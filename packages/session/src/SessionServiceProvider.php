@@ -12,8 +12,6 @@ use Hydra\Session\Contracts\SessionLifecycleInterface;
 use Hydra\Session\Stores\NativeSessionStore;
 
 /**
- * Session service provider
- *
  * Wires the session package into an application.
  */
 final class SessionServiceProvider extends ServiceProvider

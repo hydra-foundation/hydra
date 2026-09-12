@@ -12,8 +12,6 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
- * Nyholm service provider
- *
  * Fills Hydra's PSR-7/17 seams with nyholm
  */
 final class NyholmServiceProvider extends ServiceProvider

@@ -10,8 +10,6 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Callable handler
- *
  * Adapts a callable into a PSR-15 request handler
  */
 final class CallableHandler implements RequestHandlerInterface

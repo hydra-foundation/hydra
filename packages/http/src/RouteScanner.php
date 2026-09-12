@@ -10,8 +10,6 @@ use ReflectionClass;
 use ReflectionMethod;
 
 /**
- * Route scanner
- *
  * Reflects over controller classes and turns their #[Route] attributes into a
  * plain, cacheable list of route definitions.
  */

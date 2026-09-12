@@ -10,8 +10,6 @@ use Hydra\View\Contracts\ViewInterface;
 use RuntimeException;
 
 /**
- * PHP View
- *
  * Native PHP template renderer.
  *
  * A template name is looked for in the base path first and in the fallbacks
@@ -25,12 +23,8 @@ final class PhpView implements ViewInterface
     private readonly array $paths;
 
     /**
-     * @param list<string> $fallbacks views directories to search when the base
-     *                                path does not have the template
-     */
-    /**
-     * @param list<string>         $fallbacks searched in order when the base path has no such template
-     * @param array<string, mixed> $shared    data every render begins with
+     * @param list<string> $fallbacks searched in order when the base path has no such template
+     * @param array<string, mixed> $shared data every render begins with
      */
     public function __construct(
         string $basePath,

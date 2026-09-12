@@ -10,8 +10,6 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Content Security Policy middleware
- *
  * Compiles the policy against this request's nonce and stamps it on the way
  * out. Reading the nonce after the handler has run is deliberate: the page
  * mints it while it renders, and both sides end up naming the same token.

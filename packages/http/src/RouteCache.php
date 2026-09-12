@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Http;
 
 /**
- * Route cache
- *
  * Reads and writes the compiled route cache: the plain array produced by
  * RouteScanner::scan(), written as a PHP file that `return`s it alongside a
  * fingerprint of the controllers list it was compiled from.

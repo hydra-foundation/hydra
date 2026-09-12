@@ -9,8 +9,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
- * Responder
- *
  * Builds common PSR-7 responses from the PSR-17 factories
  */
 final class Responder

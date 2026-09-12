@@ -12,8 +12,6 @@ use Hydra\Core\Contracts\ContainerInterface;
 use InvalidArgumentException;
 
 /**
- * Gate
- *
  * The shipped {@see GateInterface}: composes an app-supplied ability with the
  * user the auth guard reports for this request.
  */

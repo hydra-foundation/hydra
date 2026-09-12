@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Http;
 
 /**
- * Route
- *
  * A single registered route: an HTTP method, a path, and a handler target
  */
 final class Route
@@ -14,7 +12,7 @@ final class Route
     /** Compiled regex with named groups, anchored to the full path. */
     private readonly string $pattern;
 
-    /** @param list<class-string> $middleware  PSR-15 middleware for this route, outermost first */
+    /** @param list<class-string> $middleware PSR-15 middleware for this route, outermost first */
     public function __construct(
         public readonly string $method,
         public readonly string $path,
@@ -27,7 +25,7 @@ final class Route
     /**
      * Match a (already-normalized) request path against this route.
      *
-     * @return array<string, string>|null  extracted params on match, null otherwise.
+     * @return array<string, string>|null extracted params on match, null otherwise.
      *         Static routes return an empty array.
      */
     public function matchPath(string $path): ?array

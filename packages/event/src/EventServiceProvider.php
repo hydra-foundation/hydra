@@ -10,8 +10,6 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
 
 /**
- * Event service provider
- *
  * Wires the event system into an application.
  */
 final class EventServiceProvider extends ServiceProvider

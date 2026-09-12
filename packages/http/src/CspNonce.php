@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Http;
 
 /**
- * CSP nonce
- *
  * One random token per request, minted on first use and the same for every
  * reader after it. The page stamps it on the markup it vouches for and the
  * policy header names it; the two only agree while both read one value.

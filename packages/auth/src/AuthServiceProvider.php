@@ -14,8 +14,6 @@ use Hydra\Session\Contracts\SessionInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Auth service provider
- *
  * Wires the auth package into an application
  */
 final class AuthServiceProvider extends ServiceProvider

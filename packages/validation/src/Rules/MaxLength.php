@@ -8,8 +8,6 @@ use Hydra\Validation\Contracts\RuleInterface;
 use Stringable;
 
 /**
- * Max Length
- *
  * The value, as a string, must be at most $max characters long (multibyte-aware).
  */
 final class MaxLength implements RuleInterface

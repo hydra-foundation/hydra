@@ -7,8 +7,6 @@ namespace Hydra\Http;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * HTMX
- *
  * Typed reader for the HX-* request headers htmx sends.
  *
  * Only for headers htmx actually sends: HX-Trigger, HX-Trigger-Name and

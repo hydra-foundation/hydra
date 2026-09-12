@@ -9,8 +9,6 @@ use InvalidArgumentException;
 use Stringable;
 
 /**
- * In list
- *
  * The value must be one of an explicit set.
  *
  * The comparison is strict on the string form, so "1" never matches 1 and a

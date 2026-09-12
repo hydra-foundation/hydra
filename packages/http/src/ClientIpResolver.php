@@ -7,8 +7,6 @@ namespace Hydra\Http;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Client IP resolver
- *
  * Answers "who sent this request?" — the one question anything that counts per
  * client has to get right.
  *

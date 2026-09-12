@@ -10,8 +10,6 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Force HTTPS middleware
- *
  * Forces every request onto HTTPS when the app opts in
  */
 final class ForceHttpsMiddleware implements MiddlewareInterface

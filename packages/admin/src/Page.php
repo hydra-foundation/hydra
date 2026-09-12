@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Admin;
 
 /**
- * Page
- *
  * One slice of a source's rows, plus the criteria that produced it.
  */
 final readonly class Page

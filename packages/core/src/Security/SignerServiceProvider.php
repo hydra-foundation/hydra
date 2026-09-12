@@ -9,8 +9,6 @@ use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
 
 /**
- * Signer service provider
- *
  * Binds the application APP_KEY
  */
 final class SignerServiceProvider extends ServiceProvider

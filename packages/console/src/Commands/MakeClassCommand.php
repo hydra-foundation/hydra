@@ -12,8 +12,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Make class command
- *
  * Shared base for the class-emitting stub generators (make:controller,
  * make:ability)
  */

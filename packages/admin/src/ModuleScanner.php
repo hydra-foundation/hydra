@@ -8,8 +8,6 @@ use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Contracts\SubmittableInterface;
 
 /**
- * Module scanner
- *
  * Turns blueprints into the same plain route definitions RouteScanner emits for
  * controllers, so module screens are ordinary routes — listable and matchable
  * like any other.
@@ -17,8 +15,8 @@ use Hydra\Admin\Contracts\SubmittableInterface;
 final class ModuleScanner
 {
     /**
-     * @param iterable<Blueprint>    $blueprints
-     * @param list<class-string>     $middleware
+     * @param iterable<Blueprint> $blueprints
+     * @param list<class-string> $middleware
      */
     public function scan(iterable $blueprints, string $prefix, array $middleware = []): array
     {
@@ -60,7 +58,7 @@ final class ModuleScanner
      * never reached — and that must not depend on the order a module happened to
      * declare its screens in. Ties keep their declared order.
      *
-     * @param  list<ScreenInterface> $screens
+     * @param list<ScreenInterface> $screens
      * @return list<ScreenInterface>
      */
     private function ordered(array $screens): array

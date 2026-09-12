@@ -12,8 +12,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Migrate run command
- *
  * Applies every pending .sql migration in order. Forward-only: migrations
  * already recorded in the `migrations` table are skipped, so re-running is safe.
  */

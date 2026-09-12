@@ -7,8 +7,6 @@ namespace Hydra\Auth\Events;
 use Hydra\Auth\Contracts\AuthenticatableInterface;
 
 /**
- * Logged in
- *
  * A user was authenticated for subsequent requests
  */
 final class LoggedIn

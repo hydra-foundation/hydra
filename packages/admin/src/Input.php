@@ -8,8 +8,6 @@ use Hydra\Validation\Contracts\RuleInterface;
 use Hydra\Validation\Rules\Required;
 
 /**
- * Input
- *
  * One writable control on a form screen. The counterpart to {@see Field}, and
  * deliberately not the same object: a Field formats a value for reading, an
  * Input has to hand the stored value back unchanged so a submit round-trips.

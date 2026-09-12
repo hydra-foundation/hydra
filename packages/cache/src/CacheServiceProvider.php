@@ -13,8 +13,6 @@ use RedisException;
 use RuntimeException;
 
 /**
- * Cache service provider
- *
  * Wires the cache package into an application.
  */
 final class CacheServiceProvider extends ServiceProvider

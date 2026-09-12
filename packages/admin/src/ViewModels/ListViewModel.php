@@ -14,8 +14,6 @@ use Hydra\Admin\Surface;
 use Hydra\View\HtmlView;
 
 /**
- * List view model
- *
  * Everything a table reads: its columns, its rows, and the links that carry list
  * state through the query string so every view of the table is its own URL. The
  * surrounding chrome is {@see ScreenViewModel}'s job.

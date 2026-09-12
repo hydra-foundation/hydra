@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Auth\Contracts;
 
 /**
- * User provider interface
- *
  * Where users come from (fulfilled by the application)
  */
 interface UserProviderInterface

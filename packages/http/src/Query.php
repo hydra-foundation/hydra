@@ -7,8 +7,6 @@ namespace Hydra\Http;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Query
- *
  * Typed reader for a request's query string
  */
 final class Query extends FieldReader

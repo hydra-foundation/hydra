@@ -8,8 +8,6 @@ use Hydra\Validation\Contracts\RuleInterface;
 use Stringable;
 
 /**
- * Min Length
- *
  * The value, as a string, must be at least $min characters long (multibyte-aware).
  */
 final class MinLength implements RuleInterface

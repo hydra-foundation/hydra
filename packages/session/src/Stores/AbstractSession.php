@@ -9,8 +9,6 @@ use Hydra\Session\Contracts\SessionLifecycleInterface;
 use LogicException;
 
 /**
- * Abstract session
- *
  * Shared session semantics: the data and flash behaviour every backend has in
  * common, with no opinion on where the bytes live.
  */

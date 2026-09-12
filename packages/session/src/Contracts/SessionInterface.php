@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Session\Contracts;
 
 /**
- * Session interface
- *
  * The everyday, controller-facing session: a request-scoped key/value store
  * that persists across requests for one client.
  */

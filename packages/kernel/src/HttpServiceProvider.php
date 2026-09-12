@@ -24,8 +24,6 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * HTTP service provider
- *
  * Binds the framework's HTTP plumbing
  */
 final class HttpServiceProvider extends ServiceProvider

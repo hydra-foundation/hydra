@@ -10,8 +10,6 @@ use Hydra\Admin\Criteria;
 use Hydra\Admin\Page;
 
 /**
- * Callable source
- *
  * Adapts a plain callable into a source, for modules that would rather write
  * four lines than implement the interface.
  */

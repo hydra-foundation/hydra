@@ -12,8 +12,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Key generate command
- *
  * Generates a 256-bit application key (64 hex chars) and writes it to APP_KEY
  * in the .env file
  */

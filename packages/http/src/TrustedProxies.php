@@ -7,8 +7,6 @@ namespace Hydra\Http;
 use InvalidArgumentException;
 
 /**
- * Trusted proxies
- *
  * The set of addresses whose forwarding headers the application believes.
  *
  * Everything about `X-Forwarded-For` and `X-Forwarded-Proto` hinges on this

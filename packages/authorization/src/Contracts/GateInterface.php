@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Authorization\Contracts;
 
 /**
- * Gate interface
- *
  * Decides whether the current user is allowed to do something
  */
 interface GateInterface

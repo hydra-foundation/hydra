@@ -8,8 +8,6 @@ use Hydra\Http\Exceptions\HttpException;
 use Throwable;
 
 /**
- * Authorization exception
- *
  * The authenticated user is not allowed to perform the attempted action: HTTP 403.
  */
 final class AuthorizationException extends HttpException

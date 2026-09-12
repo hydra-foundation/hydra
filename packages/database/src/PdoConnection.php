@@ -10,8 +10,6 @@ use PDOException;
 use Throwable;
 
 /**
- * PDO Connection
- *
  * Wraps a configured PDO handle and prepares every statement, so all values
  * reach the driver as bound parameters — the connection has no string-built
  * SQL path. The PDO is constructed elsewhere (the service provider) so this

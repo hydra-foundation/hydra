@@ -13,8 +13,6 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
- * Renderer
- *
  * One screen, three depths: the whole page, the frame a sidebar click swaps, or
  * just the body a filter or a page link swaps. The htmx target picks the depth.
  */
@@ -29,9 +27,10 @@ final class Renderer
     ) {}
 
     /**
-     * @param array<string, mixed> $data    the body and toolbar templates' payload
-     * @param string|null          $toolbar rendered above the swappable body, so a
-     *                                      filter input keeps focus across a swap
+     * $toolbar renders above the swappable body rather than inside it, so a
+     * filter input keeps focus across a swap.
+     *
+     * @param array<string, mixed> $data the body and toolbar templates' payload
      */
     public function screen(
         Request $request,

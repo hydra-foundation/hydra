@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Auth\Events;
 
 /**
- * Logged out
- *
  * The authenticated user was forgotten
  */
 final class LoggedOut

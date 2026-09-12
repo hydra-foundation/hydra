@@ -17,8 +17,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Admin routes command
- *
  * Prints what the modules compiled to: the receipt for everything the admin
  * generated on your behalf.
  *

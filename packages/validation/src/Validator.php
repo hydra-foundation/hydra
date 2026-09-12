@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Validation;
 
 /**
- * Validator
- *
  * Validates a set of input values against a per-field list of rules.
  */
 final class Validator

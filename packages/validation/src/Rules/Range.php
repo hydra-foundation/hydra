@@ -7,8 +7,6 @@ namespace Hydra\Validation\Rules;
 use Hydra\Validation\Contracts\RuleInterface;
 
 /**
- * Range
- *
  * The value must be a whole number within $min..$max (both inclusive).
  *
  * Numbers that arrive from a query string are strings, and a string that is not

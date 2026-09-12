@@ -11,8 +11,6 @@ use Stringable;
 use Throwable;
 
 /**
- * Template
- *
  * One render in progress: the `$this` a template file sees.
  */
 final class Template

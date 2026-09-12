@@ -9,8 +9,6 @@ use Psr\EventDispatcher\ListenerProviderInterface;
 use Psr\EventDispatcher\StoppableEventInterface;
 
 /**
- * Dispatcher
- *
  * The read side of the event system: hand it an event object and it calls every
  * listener the provider matched, in order
  */

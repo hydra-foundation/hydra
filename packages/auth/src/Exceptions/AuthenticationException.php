@@ -8,8 +8,6 @@ use Hydra\Http\Exceptions\HttpException;
 use Throwable;
 
 /**
- * Authentication exception
- *
  * A request reached a guarded route without an authenticated user: HTTP 401
  */
 final class AuthenticationException extends HttpException

@@ -10,8 +10,6 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Providers\ServiceProvider;
 
 /**
- * Authorization service provider
- *
  * Wires the authorization package into an application
  */
 final class AuthorizationServiceProvider extends ServiceProvider

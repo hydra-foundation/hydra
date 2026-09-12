@@ -14,8 +14,6 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Router
- *
  * The innermost handler of the pipeline: matches a request to a route, then
  * resolves and invokes its target.
  */

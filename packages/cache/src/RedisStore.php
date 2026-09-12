@@ -10,8 +10,6 @@ use RedisException;
 use RuntimeException;
 
 /**
- * Redis store
- *
  * The store every php-fpm worker shares, which is what makes a per-client
  * budget mean one budget rather than one per worker.
  *

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Cache\Contracts;
 
 /**
- * Store interface
- *
  * A key/value store with expiry.
  *
  * The counter methods are the reason this contract is narrow: anything that

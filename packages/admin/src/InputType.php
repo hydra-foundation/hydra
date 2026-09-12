@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Admin;
 
 /**
- * Input type
- *
  * The control a writable field renders as.
  */
 enum InputType: string

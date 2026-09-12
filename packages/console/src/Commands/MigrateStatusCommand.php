@@ -12,8 +12,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Migrate status command
- *
  * Lists every migration on disk and whether it has been applied — a read-only
  * view of where the database stands relative to the migrations directory.
  */

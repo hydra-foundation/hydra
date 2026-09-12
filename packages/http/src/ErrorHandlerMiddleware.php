@@ -15,8 +15,6 @@ use Psr\Log\NullLogger;
 use Throwable;
 
 /**
- * Error handler middleware
- *
  * Outermost middleware and the single authority that turns errors into
  * responses, so every failure in the app gets a consistent shape
  */

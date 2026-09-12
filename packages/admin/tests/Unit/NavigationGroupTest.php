@@ -125,7 +125,7 @@ final class NavigationGroupTest extends TestCase
     }
 
     /**
-     * @param  array{items: list<array<string, mixed>>} $group
+     * @param array{items: list<array<string, mixed>>} $group
      * @return list<string>
      */
     private function titles(array $group): array

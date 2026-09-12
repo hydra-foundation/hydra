@@ -7,8 +7,6 @@ namespace Hydra\Http\Contracts;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Argument resolver interface
- *
  * Resolves the positional arguments to invoke a route target with, by
  * inspecting the target's signature
  */

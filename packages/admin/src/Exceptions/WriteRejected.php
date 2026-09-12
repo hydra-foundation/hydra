@@ -7,8 +7,6 @@ namespace Hydra\Admin\Exceptions;
 use RuntimeException;
 
 /**
- * Write rejected
- *
  * A source refusing a write for a reason only it can know — a unique column
  * already taken, a row another process moved. Thrown, not returned, so a source
  * that has nothing to say about a write still has nothing to return.

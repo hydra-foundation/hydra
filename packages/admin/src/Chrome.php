@@ -7,8 +7,6 @@ namespace Hydra\Admin;
 use Hydra\Admin\ViewModels\ScreenViewModel;
 
 /**
- * Chrome
- *
  * Builds the frame around a screen. Modules get it automatically; an ordinary
  * controller asks for one and renders into the same layout.
  */

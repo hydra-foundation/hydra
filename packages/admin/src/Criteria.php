@@ -7,8 +7,6 @@ namespace Hydra\Admin;
 use Hydra\Http\Query;
 
 /**
- * Criteria
- *
  * A list screen's request state: which page, which order, which filters. The
  * constructor normalises what a source interpolates rather than binds; only
  * fromQuery() can whitelist sort and filter keys against the blueprint.

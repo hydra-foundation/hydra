@@ -14,8 +14,6 @@ use ReflectionNamedType;
 use ReflectionParameter;
 
 /**
- * Argument resolver
- *
  * Default resolver: reflects the target's signature and fills each parameter
  */
 final class ArgumentResolver implements ArgumentResolverInterface

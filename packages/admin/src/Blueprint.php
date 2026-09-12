@@ -8,15 +8,13 @@ use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Contracts\SourceInterface;
 
 /**
- * Blueprint
- *
  * The compiled, read-only form of a Definition: the receipt. Routes, navigation,
  * criteria whitelisting and `admin:routes` all read this and nothing else.
  */
 final readonly class Blueprint
 {
     /**
-     * @param list<Field>           $fields
+     * @param list<Field> $fields
      * @param list<ScreenInterface> $screens
      */
     public function __construct(

@@ -23,8 +23,6 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Admin harness
- *
  * The admin wired the way an application wires it, with the package's own
  * templates and a stand-in for the two layouts an application supplies. Real
  * collaborators throughout: a request goes in and rendered HTML comes out, so
@@ -41,7 +39,7 @@ final class AdminHarness
     public readonly AdminController $controller;
 
     /**
-     * @param array<string, object>              $services sources and modules, by service id
+     * @param array<string, object> $services sources and modules, by service id
      * @param list<class-string<ModuleInterface>> $modules
      */
     public function __construct(array $services, array $modules, bool $allowed = true, string $prefix = '/admin')

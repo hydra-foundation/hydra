@@ -12,8 +12,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Make migration command
- *
  * Scaffolds an empty migration file: {Ymd_His}_{slug}.sql with a header comment
  */
 #[AsCommand(

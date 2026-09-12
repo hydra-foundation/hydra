@@ -7,8 +7,6 @@ namespace Hydra\Admin;
 use Hydra\Authorization\Contracts\GateInterface;
 
 /**
- * Navigation
- *
  * The sidebar, built from the same blueprints the routes came from and filtered
  * through the gate — so a link can never appear for a screen that would 403.
  */

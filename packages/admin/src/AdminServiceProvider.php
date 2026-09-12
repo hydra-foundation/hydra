@@ -13,8 +13,6 @@ use Hydra\Http\Router;
 use Hydra\View\Contracts\ViewInterface;
 
 /**
- * Admin service provider
- *
  * Binds the admin services and, at boot, loads the module screens into the
  * router as ordinary routes.
  */
@@ -22,7 +20,7 @@ final class AdminServiceProvider extends ServiceProvider
 {
     /**
      * @param list<class-string<ModuleInterface>> $modules
-     * @param list<class-string>                  $middleware
+     * @param list<class-string> $middleware
      */
     public function __construct(
         private readonly array $modules,

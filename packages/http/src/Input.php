@@ -7,8 +7,6 @@ namespace Hydra\Http;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Input
- *
  * Typed reader for a request's parsed body (form fields)
  */
 final class Input extends FieldReader

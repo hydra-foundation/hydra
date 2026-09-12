@@ -6,7 +6,7 @@
 > repository is overwritten by the next one; issues are disabled for that
 > reason, and a pull request opened here cannot be merged. Both belong upstream.
 
-A composable admin backend for Hydra apps. Modules declare *what* they are (fields, a source, screens, etc) 
+A composable admin backend for Hydra apps. Modules declare *what* they are (fields, a source, screens, etc)
 and the package compiles that into ordinary routes, a gate-filtered sidebar, and htmx-driven screens.
 
 ## Views

@@ -12,8 +12,6 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Authenticate middleware
- *
  * Guards a route: lets the request through only when a user is authenticated,
  * otherwise throws a 401 {@see AuthenticationException} before the controller runs.
  */

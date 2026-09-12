@@ -8,8 +8,6 @@ use Hydra\Core\Security\Signer;
 use Hydra\Session\Contracts\SessionInterface;
 
 /**
- * CSRF Guard
- *
  * The synchronizer-token guard: one secret token per session, compared in
  * constant time against whatever an unsafe request submits
  */

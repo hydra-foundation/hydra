@@ -7,8 +7,6 @@ namespace Hydra\Cache;
 use Hydra\Cache\Contracts\StoreInterface;
 
 /**
- * Array store
- *
  * The store that lives and dies with the process.
  *
  * It exists for tests and for single-process tooling, and it is deliberately

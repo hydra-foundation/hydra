@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Admin;
 
 /**
- * Notice
- *
  * What a write leaves behind for the next screen to say. A delete can be refused
  * with nowhere to put the message — there is no form to hang it off — so a
  * notice carries whether it is reporting success rather than assuming it.
