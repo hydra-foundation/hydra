@@ -26,6 +26,7 @@ final readonly class CacheConfig
         public int $database = 0,
         public string $prefix = '',
         public float $timeout = 1.0,
+        public float $readTimeout = 1.0,
     ) {
         // Same fail-loud discipline as SessionConfig: a driver nobody
         // implements would otherwise surface as a container error far from the
@@ -48,6 +49,14 @@ final readonly class CacheConfig
         if ($timeout <= 0) {
             throw new InvalidArgumentException("Cache timeout must be greater than 0; got {$timeout}.");
         }
+
+        // And the same again for the reply. A connect timeout only covers the
+        // handshake: a server that accepts the connection and then stops
+        // answering holds the worker until the socket dies, which with a
+        // limiter on every request is the whole pool.
+        if ($readTimeout <= 0) {
+            throw new InvalidArgumentException("Cache read timeout must be greater than 0; got {$readTimeout}.");
+        }
     }
 
     public static function fromEnvironment(Environment $env): self
@@ -60,6 +69,7 @@ final readonly class CacheConfig
             database: $env->int('REDIS_DATABASE', 0),
             prefix: $env->string('REDIS_PREFIX', ''),
             timeout: (float) $env->string('REDIS_TIMEOUT', '1.0'),
+            readTimeout: (float) $env->string('REDIS_READ_TIMEOUT', '1.0'),
         );
     }
 }

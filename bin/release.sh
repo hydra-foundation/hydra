@@ -231,7 +231,7 @@ echo "  hydra $TAG pushed — the split workflow is regenerating the package rep
 echo
 echo "Waiting for Packagist to index $TAG ..."
 PACKAGES=(admin auth authorization cache console core csrf database event http
-          kernel log nyholm php-di session validation view)
+          kernel log nyholm php-di session throttle validation view)
 deadline=$(( SECONDS + 600 ))
 
 for pkg in "${PACKAGES[@]}"; do

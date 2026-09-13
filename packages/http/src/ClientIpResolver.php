@@ -35,6 +35,15 @@ final readonly class ClientIpResolver
         }
 
         foreach ($this->chain($request) as $hop) {
+            // The header is bytes a caller chose, so a hop that is not an
+            // address is not an identity: returning it puts arbitrary text
+            // wherever the client is recorded, and `activity.ip` is a
+            // VARCHAR(45) whose insert an oversized one fails. Everything left
+            // of a hop we cannot read is unverifiable anyway, so the walk stops.
+            if (filter_var($hop, FILTER_VALIDATE_IP) === false) {
+                return $peer;
+            }
+
             if (!$this->proxies->contains($hop)) {
                 return $hop;
             }

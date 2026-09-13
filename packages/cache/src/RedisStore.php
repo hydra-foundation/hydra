@@ -79,29 +79,99 @@ final class RedisStore implements StoreInterface
             1,
         ));
 
-        return (int) $total;
+        return $this->counter($total, 'INCRBY ' . $key);
     }
 
     public function ttl(string $key): int
     {
-        $ttl = (int) $this->call(fn (): mixed => $this->redis->ttl($this->prefix . $key));
+        $ttl = $this->counter($this->call(fn (): mixed => $this->redis->ttl($this->prefix . $key)), 'TTL ' . $key);
 
         // -1 (no expiry) and -2 (no key) both mean "nothing is going to clear".
         return $ttl < 0 ? 0 : $ttl;
     }
 
     /**
+     * Every key this store wrote, and nothing else. FLUSHDB would take the
+     * sessions and any other application sharing the instance with it, so the
+     * prefix is the boundary, and without one there is nothing to tell our
+     * keys from theirs, so that case is a refusal rather than a guess.
+     *
+     * SCAN rather than KEYS: the counters are one key per client per window, so
+     * the set is large exactly when the server can least afford a blocking scan
+     * of the whole keyspace.
+     */
+    public function flush(): void
+    {
+        if ($this->prefix === '') {
+            throw new RuntimeException(
+                'Refusing to flush a RedisStore with no prefix: every other key in the database'
+                . ' would go with it. Configure REDIS_PREFIX.'
+            );
+        }
+
+        $cursor = null;
+
+        do {
+            // By reference: phpredis advances the cursor through the argument,
+            // and an arrow function would only ever hand it a copy of null.
+            $keys = $this->call(function () use (&$cursor): mixed {
+                return $this->redis->scan($cursor, $this->prefix . '*', 1000);
+            });
+
+            // A page of the keyspace that matched nothing is normal, and it is
+            // not the end of the scan: only the cursor says that.
+            if (is_array($keys) && $keys !== []) {
+                $this->call(fn () => $this->redis->del($keys));
+            }
+        } while ((int) $cursor !== 0);
+    }
+
+    /**
      * A store that cannot be reached must fail loudly. Anything counting
      * against it would otherwise carry on with a count of zero, which reads as
      * "under the limit" for every request that arrives while Redis is down.
+     *
+     * An unreachable server throws. A server that answers with an error does
+     * not: OOM under maxmemory, READONLY on a demoted replica, NOAUTH and
+     * WRONGTYPE all come back as false with the message left in getLastError(),
+     * which is cleared before the command so it can be read after it.
      */
     private function call(callable $operation): mixed
     {
         try {
-            return $operation();
+            $this->redis->clearLastError();
+            $result = $operation();
         } catch (RedisException $e) {
             throw new RuntimeException('Cache store is unavailable: ' . $e->getMessage(), previous: $e);
         }
+
+        $error = $this->redis->getLastError();
+
+        if ($error !== null) {
+            $this->redis->clearLastError();
+
+            throw new RuntimeException('Cache store refused the command: ' . $error);
+        }
+
+        return $result;
+    }
+
+    /**
+     * A counter reply that is not an integer is a failure, and casting one is
+     * how a limiter fails open: `(int) false` is 0, which reads as "no requests
+     * yet" for every caller that arrives while the store is answering errors.
+     */
+    private function counter(mixed $reply, string $command): int
+    {
+        if (!is_int($reply)) {
+            throw new RuntimeException(sprintf(
+                'Cache store returned %s for %s, expected an integer.',
+                get_debug_type($reply),
+                $command,
+            ));
+        }
+
+        return $reply;
     }
 
     private function encode(mixed $value): string

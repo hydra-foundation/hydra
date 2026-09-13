@@ -52,6 +52,9 @@
         <testsuite name="session">
             <directory>packages/session/tests</directory>
         </testsuite>
+        <testsuite name="throttle">
+            <directory>packages/throttle/tests</directory>
+        </testsuite>
         <testsuite name="validation">
             <directory>packages/validation/tests</directory>
         </testsuite>
@@ -75,6 +78,7 @@
             <directory>packages/nyholm/src</directory>
             <directory>packages/php-di/src</directory>
             <directory>packages/session/src</directory>
+            <directory>packages/throttle/src</directory>
             <directory>packages/validation/src</directory>
             <directory>packages/view/src</directory>
         </include>

@@ -50,6 +50,7 @@ jobs:
           - nyholm
           - php-di
           - session
+          - throttle
           - validation
           - view
 

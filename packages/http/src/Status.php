@@ -20,6 +20,7 @@ enum Status: int
     case NotFound = 404;
     case MethodNotAllowed = 405;
     case UnprocessableEntity = 422;
+    case TooManyRequests = 429;
     case InternalServerError = 500;
     case ServiceUnavailable = 503;
 
@@ -38,6 +39,7 @@ enum Status: int
             self::NotFound => 'Not Found',
             self::MethodNotAllowed => 'Method Not Allowed',
             self::UnprocessableEntity => 'Unprocessable Entity',
+            self::TooManyRequests => 'Too Many Requests',
             self::InternalServerError => 'Internal Server Error',
             self::ServiceUnavailable => 'Service Unavailable',
         };

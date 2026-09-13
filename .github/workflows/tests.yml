@@ -18,13 +18,26 @@ jobs:
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
 
+    # The counter store the rate limiter rests on is RedisStore, and its
+    # atomicity lives in a Lua script no other driver runs. Without a server
+    # here that suite skips, and a green build says nothing about it.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo, pdo_sqlite
+          extensions: pdo, pdo_sqlite, redis
           coverage: none
 
       - name: Validate the root manifest
@@ -44,6 +57,13 @@ jobs:
       # Randomised order so cross-package pollution through putenv()/$_ENV
       # fails the build instead of depending on declaration order.
       - name: PHPUnit
+        env:
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          # Turns "no Redis, skipped" into a failure. The skip is for a bare
+          # checkout; here the server is declared above, so its absence is a
+          # broken workflow rather than an environment without one.
+          REDIS_REQUIRED: '1'
         run: vendor/bin/phpunit --order-by=random
 
   quality:

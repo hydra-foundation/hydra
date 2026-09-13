@@ -79,6 +79,28 @@ final class ClientIpResolverTest extends TestCase
         $this->assertSame('198.51.100.7', $resolver->resolve($request));
     }
 
+    public function test_a_hop_that_is_not_an_address_is_never_handed_back(): void
+    {
+        // The nearest hop is whatever the caller typed. Returning it puts
+        // arbitrary text wherever the client is recorded, and `activity.ip` is
+        // a VARCHAR(45) whose insert an oversized one fails, taking the
+        // request's own audit row with it.
+        $resolver = new ClientIpResolver(new TrustedProxies(['10.0.0.0/8']));
+        $request = $this->request('10.0.0.1', str_repeat('a', 200));
+
+        $this->assertSame('10.0.0.1', $resolver->resolve($request));
+    }
+
+    public function test_the_walk_stops_at_a_hop_it_cannot_read(): void
+    {
+        // Nothing to the left of an unreadable hop can be vouched for, so the
+        // peer stands rather than the next address along.
+        $resolver = new ClientIpResolver(new TrustedProxies(['10.0.0.0/8']));
+        $request = $this->request('10.0.0.1', '198.51.100.7, unknown, 10.0.0.2');
+
+        $this->assertSame('10.0.0.1', $resolver->resolve($request));
+    }
+
     public function test_when_every_hop_is_ours_the_peer_stands(): void
     {
         $resolver = new ClientIpResolver(new TrustedProxies(['10.0.0.0/8']));

@@ -8,8 +8,9 @@ use Hydra\Cache\ArrayStore;
 use Hydra\Cache\Contracts\StoreInterface;
 
 /**
- * The in-memory store's own behaviour. Everything it shares with the other
- * drivers is covered by the shared contract case it extends.
+ * The in-memory store against the shared contract. It has no behaviour of its
+ * own left to cover: everything it does, the store that ships has to do too,
+ * which is the whole reason the contract case is shared.
  */
 final class ArrayStoreTest extends StoreContractTestCase
 {
@@ -23,15 +24,5 @@ final class ArrayStoreTest extends StoreContractTestCase
     protected function store(): StoreInterface
     {
         return $this->store;
-    }
-
-    public function test_flush_empties_the_whole_store(): void
-    {
-        $this->store->put('a', 1);
-        $this->store->put('b', 2);
-        $this->store->flush();
-
-        $this->assertNull($this->store->get('a'));
-        $this->assertNull($this->store->get('b'));
     }
 }

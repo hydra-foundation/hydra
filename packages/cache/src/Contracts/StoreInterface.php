@@ -36,4 +36,12 @@ interface StoreInterface
      * those ever will.
      */
     public function ttl(string $key): int;
+
+    /**
+     * Drop everything this store owns. Part of the contract because the tests
+     * that stand in for a shared store reset between cases, and a method only
+     * one implementation has is a hole in the premise those tests rest on: that
+     * what passes against ArrayStore describes the store that ships.
+     */
+    public function flush(): void;
 }

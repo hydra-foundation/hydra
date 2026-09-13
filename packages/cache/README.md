@@ -16,3 +16,11 @@ request rather than one a steady stream can hold open indefinitely. `ArrayStore`
 is deliberately **not** a fallback for an unreachable Redis: it is per-process,
 so behind a worker pool it would give each worker its own counters and multiply
 every limit by the pool size.
+
+A store that cannot answer must say so. An unreachable Redis raises, and so does
+one that answers with an error: phpredis reports OOM, READONLY, NOAUTH and
+WRONGTYPE by returning `false`, and `(int) false` is `0`, which any limiter
+reads as "no requests yet". Deploy Redis with `maxmemory-policy noeviction` for
+the same reason, since an evictable counter is a budget that memory pressure,
+or anyone able to create it, can clear. `REDIS_READ_TIMEOUT` bounds the wait for
+a reply; the connect timeout covers only the handshake.

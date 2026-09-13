@@ -8,9 +8,6 @@ use Hydra\Cache\Contracts\StoreInterface;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
-use Redis;
-use RedisException;
-use RuntimeException;
 
 /**
  * Wires the cache package into an application.
@@ -36,38 +33,7 @@ final class CacheServiceProvider extends ServiceProvider
                 return new ArrayStore;
             }
 
-            return new RedisStore($this->connect($config), $config->prefix);
+            return new RedisStore(RedisConnection::open($config), $config->prefix);
         });
-    }
-
-    private function connect(CacheConfig $config): Redis
-    {
-        if (!extension_loaded('redis')) {
-            throw new RuntimeException(
-                'CACHE_STORE=redis requires ext-redis. Install it, or set CACHE_STORE=array'
-                . ' (single-process only — see Hydra\Cache\ArrayStore).'
-            );
-        }
-
-        $redis = new Redis;
-
-        try {
-            $redis->connect($config->host, $config->port, $config->timeout);
-
-            if ($config->password !== '') {
-                $redis->auth($config->password);
-            }
-
-            if ($config->database !== 0) {
-                $redis->select($config->database);
-            }
-        } catch (RedisException $e) {
-            throw new RuntimeException(
-                sprintf('Could not connect to Redis at %s:%d: %s', $config->host, $config->port, $e->getMessage()),
-                previous: $e,
-            );
-        }
-
-        return $redis;
     }
 }

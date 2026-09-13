@@ -119,6 +119,18 @@ abstract class StoreContractTestCase extends TestCase
         $this->assertSame(0, $store->ttl('hits'));
     }
 
+    public function test_flush_empties_the_whole_store(): void
+    {
+        $store = $this->store();
+        $store->put('a', 1);
+        $store->increment('hits', 1, ttl: 60);
+        $store->flush();
+
+        $this->assertNull($store->get('a'));
+        $this->assertNull($store->get('hits'));
+        $this->assertSame(0, $store->ttl('hits'));
+    }
+
     public function test_an_absent_key_has_no_time_left(): void
     {
         // Not an error and not a negative: "nothing is going to clear" is the

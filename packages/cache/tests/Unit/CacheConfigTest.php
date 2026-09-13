@@ -25,6 +25,7 @@ final class CacheConfigTest extends TestCase
         'REDIS_DATABASE',
         'REDIS_PREFIX',
         'REDIS_TIMEOUT',
+        'REDIS_READ_TIMEOUT',
     ];
 
     private string $dir;
@@ -92,7 +93,9 @@ final class CacheConfigTest extends TestCase
             "REDIS_PORT=6380\n" .
             "REDIS_PASSWORD=s3cret\n" .
             "REDIS_DATABASE=3\n" .
-            "REDIS_PREFIX=hydra:\n"
+            "REDIS_PREFIX=hydra:\n" .
+            "REDIS_TIMEOUT=2.5\n" .
+            "REDIS_READ_TIMEOUT=0.5\n"
         );
 
         $this->assertSame('redis', $config->host);
@@ -100,6 +103,8 @@ final class CacheConfigTest extends TestCase
         $this->assertSame('s3cret', $config->password);
         $this->assertSame(3, $config->database);
         $this->assertSame('hydra:', $config->prefix);
+        $this->assertSame(2.5, $config->timeout);
+        $this->assertSame(0.5, $config->readTimeout);
     }
 
     public function test_an_unknown_driver_is_refused(): void
@@ -117,6 +122,16 @@ final class CacheConfigTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         new CacheConfig(timeout: 0);
+    }
+
+    public function test_a_blocking_read_timeout_is_refused(): void
+    {
+        // The one the connect timeout does not cover: a server that completes
+        // the handshake and then goes quiet holds the worker until the socket
+        // dies, and with a limiter on every request that is the whole pool.
+        $this->expectException(InvalidArgumentException::class);
+
+        new CacheConfig(readTimeout: 0);
     }
 
     public function test_a_negative_database_is_refused(): void

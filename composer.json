@@ -46,6 +46,7 @@
         "hydrakit/nyholm": "self.version",
         "hydrakit/php-di": "self.version",
         "hydrakit/session": "self.version",
+        "hydrakit/throttle": "self.version",
         "hydrakit/validation": "self.version",
         "hydrakit/view": "self.version"
     },
@@ -66,6 +67,7 @@
             "Hydra\\Nyholm\\": "packages/nyholm/src",
             "Hydra\\PhpDi\\": "packages/php-di/src",
             "Hydra\\Session\\": "packages/session/src",
+            "Hydra\\Throttle\\": "packages/throttle/src",
             "Hydra\\Validation\\": "packages/validation/src",
             "Hydra\\View\\": "packages/view/src"
         }
@@ -87,6 +89,7 @@
             "Hydra\\Nyholm\\Tests\\": "packages/nyholm/tests",
             "Hydra\\PhpDi\\Tests\\": "packages/php-di/tests",
             "Hydra\\Session\\Tests\\": "packages/session/tests",
+            "Hydra\\Throttle\\Tests\\": "packages/throttle/tests",
             "Hydra\\Validation\\Tests\\": "packages/validation/tests",
             "Hydra\\View\\Tests\\": "packages/view/tests"
         }
