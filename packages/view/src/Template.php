@@ -28,10 +28,10 @@ final class Template
     public function __construct(
         private readonly PhpView $engine,
         private array $data,
+        private readonly CspNonce $cspNonce,
         private readonly bool $wrapLayout = true,
         private readonly ?CsrfGuard $csrf = null,
         private readonly ?string $baseUrl = null,
-        private readonly ?CspNonce $cspNonce = null,
     ) {}
 
     public function resolve(string $template): string
@@ -157,10 +157,6 @@ final class Template
      */
     public function cspNonce(): string
     {
-        if ($this->cspNonce === null) {
-            throw new RuntimeException('CSP is not configured for this view (no CspNonce was provided).');
-        }
-
         return $this->cspNonce->value();
     }
 

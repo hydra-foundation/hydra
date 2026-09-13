@@ -15,8 +15,18 @@ use Psr\Log\NullLogger;
 use Throwable;
 
 /**
- * Outermost middleware and the single authority that turns errors into
- * responses, so every failure in the app gets a consistent shape
+ * The error boundary: the single authority that turns a throwable into a
+ * response, so every failure gets a consistent shape.
+ *
+ * Not the outermost middleware, deliberately. The ones that stamp headers on
+ * the way back out — the security headers, the policy — have to sit OUTSIDE
+ * this one, or the response it renders for an error is the one response in the
+ * application that carries neither. What that costs is that a throwable from
+ * one of those few escapes the boundary; {@see HttpKernel::panic()} answers
+ * that with a logged plain-text 500 rather than letting it reach the client.
+ *
+ * Everything that can actually fail — the router, the session, the body parser,
+ * the database, every controller — belongs inside it.
  */
 final class ErrorHandlerMiddleware implements MiddlewareInterface
 {

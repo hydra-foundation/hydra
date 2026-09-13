@@ -113,13 +113,15 @@ final class ShippedViewsTest extends TestCase
         $this->assertNotEmpty($elements, 'the element scan found nothing it should have');
 
         foreach ($elements as [$file, $tag, $attributes]) {
-            if (preg_match('~\bhx-(?!swap-oob)[a-z]~', $attributes) !== 1) {
+            $names = $this->names($attributes);
+
+            if (preg_match('~\bhx-(?!swap-oob)[a-z]~', $names) !== 1) {
                 continue;
             }
 
             $this->assertStringContainsString(
                 'hx-nonce',
-                $attributes,
+                $names,
                 "<{$tag}> in {$file} takes htmx attributes without an hx-nonce",
             );
         }
@@ -154,13 +156,25 @@ final class ShippedViewsTest extends TestCase
             foreach ($matches[2] as $index => [, $offset]) {
                 $attributes = substr($source, $offset, strlen($matches[2][$index][0]));
 
-                if (preg_match('~\bhx-[a-z]~', $attributes) === 1) {
+                if (preg_match('~\bhx-[a-z]~', $this->names($attributes)) === 1) {
                     $found[] = [basename($file), $matches[1][$index][0], $attributes];
                 }
             }
         }
 
         return $found;
+    }
+
+    /**
+     * The attribute string with every value blanked, leaving the names. What an
+     * attribute is called and what it happens to contain are different
+     * questions, and only the first is being asked here: a
+     * `content='extensions:"hx-csp"'` meta tag configures htmx, it is not an
+     * element htmx will ever initialise.
+     */
+    private function names(string $attributes): string
+    {
+        return (string) preg_replace('~=\s*("[^"]*"|\'[^\']*\'|[^\s"\'<>`]+)~', '=', $attributes);
     }
 
     /** @return list<string> */

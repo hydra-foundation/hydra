@@ -13,6 +13,7 @@ use Hydra\View\PhpView;
 use Hydra\View\Contracts\ViewInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use RuntimeException;
 
 /**
@@ -36,7 +37,7 @@ final class PhpViewTest extends TestCase
         $this->dir = $this->root . '/views';
         mkdir($this->dir, 0777, true);
         file_put_contents($this->root . '/secret.php', '<?php echo "TOP-SECRET";');
-        $this->view = new PhpView($this->dir);
+        $this->view = new PhpView($this->dir, new CspNonce);
     }
 
     protected function tearDown(): void
@@ -87,7 +88,7 @@ final class PhpViewTest extends TestCase
 
     private function viewWithFallback(): PhpView
     {
-        return new PhpView($this->dir, fallbacks: [$this->packageDir()]);
+        return new PhpView($this->dir, new CspNonce, fallbacks: [$this->packageDir()]);
     }
 
     public function test_is_view_interface(): void
@@ -362,7 +363,7 @@ final class PhpViewTest extends TestCase
     public function test_site_url_builds_an_absolute_url_from_the_base_url(): void
     {
         // A trailing slash on the base URL must not double up against the path.
-        $view = new PhpView($this->dir, null, 'https://example.com/');
+        $view = new PhpView($this->dir, new CspNonce, null, 'https://example.com/');
         $this->writeTemplate('x', '<?= $this->siteUrl("/blog") ?>|<?= $this->siteUrl() ?>');
 
         $this->assertSame('https://example.com/blog|https://example.com', $view->render('x'));
@@ -381,7 +382,7 @@ final class PhpViewTest extends TestCase
         $store = new ArraySessionStore;
         $store->start();
         $guard = new CsrfGuard($store, Signer::fromHex(str_repeat('ab', 32)));
-        $view = new PhpView($this->dir, $guard);
+        $view = new PhpView($this->dir, new CspNonce, $guard);
         $this->writeTemplate('form', '<?= $this->csrf() ?>');
 
         $out = $view->render('form');
@@ -390,18 +391,24 @@ final class PhpViewTest extends TestCase
         $this->assertStringContainsString('value="' . $guard->token() . '"', $out);
     }
 
-    public function test_csp_nonce_throws_when_no_nonce_is_configured(): void
+    /**
+     * The nonce is not optional. A view built without one used to throw the
+     * first time a template asked for it, which put the failure on whoever
+     * opened the screen rather than on whoever wired the view up.
+     */
+    public function test_a_view_cannot_be_built_without_a_nonce(): void
     {
-        $this->writeTemplate('x', '<?= $this->cspNonce() ?>');
+        $constructor = (new ReflectionClass(PhpView::class))->getConstructor();
+        $nonce = $constructor?->getParameters()[1] ?? null;
 
-        $this->expectException(RuntimeException::class);
-        $this->view->render('x');
+        $this->assertSame('cspNonce', $nonce?->getName());
+        $this->assertFalse($nonce?->isOptional(), 'the nonce has gone back to being optional');
     }
 
     public function test_csp_nonce_renders_the_requests_token(): void
     {
         $nonce = new CspNonce;
-        $view = new PhpView($this->dir, cspNonce: $nonce);
+        $view = new PhpView($this->dir, $nonce);
         $this->writeTemplate('x', '<?= $this->cspNonce() ?>');
 
         $this->assertSame($nonce->value(), $view->render('x'));
@@ -411,7 +418,7 @@ final class PhpViewTest extends TestCase
     {
         // The page stamps it in several places and a fragment swapped into that
         // page has to match; two tokens in one render would block one of them.
-        $view = new PhpView($this->dir, cspNonce: new CspNonce, fallbacks: []);
+        $view = new PhpView($this->dir, new CspNonce, fallbacks: []);
         $this->writeTemplate('partial', '<?= $this->cspNonce() ?>');
         $this->writeTemplate('x', '<?= $this->cspNonce() ?>|<?= $this->partial("partial") ?>');
 

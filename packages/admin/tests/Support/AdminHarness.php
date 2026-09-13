@@ -54,9 +54,9 @@ final class AdminHarness
         $this->responder = new Responder($psr17, $psr17);
         $this->view = new PhpView(
             dirname(__DIR__) . '/views',
+            new CspNonce,
             new CsrfGuard($session, Signer::fromHex(str_repeat('ab', 32))),
             fallbacks: [AdminServiceProvider::views()],
-            cspNonce: new CspNonce,
         );
         $this->renderer = new Renderer($this->responder, $this->view);
         $this->controller = new AdminController(

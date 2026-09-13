@@ -95,7 +95,7 @@ final class AdminServiceProviderTest extends TestCase
             ArraySource::class => new ArraySource,
             GateInterface::class => new AdminsOnlyGate(true),
             Responder::class => new Responder($psr17, $psr17),
-            ViewInterface::class => new PhpView(AdminServiceProvider::views(), cspNonce: new CspNonce),
+            ViewInterface::class => new PhpView(AdminServiceProvider::views(), new CspNonce),
         ]);
     }
 }

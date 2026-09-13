@@ -117,7 +117,7 @@ final class AdminRoutesCommandTest extends TestCase
     {
         return new CommandTester(new AdminRoutesCommand(
             $this->registry($module),
-            new PhpView(AdminServiceProvider::views(), cspNonce: new CspNonce),
+            new PhpView(AdminServiceProvider::views(), new CspNonce),
         ));
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\View\Tests\Unit;
 
+use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -22,7 +23,7 @@ final class ViewInheritanceTest extends TestCase
     {
         $this->dir = sys_get_temp_dir() . '/hydra-inherit-' . uniqid('', true);
         mkdir($this->dir);
-        $this->view = new PhpView($this->dir);
+        $this->view = new PhpView($this->dir, new CspNonce);
     }
 
     protected function tearDown(): void
@@ -173,7 +174,7 @@ final class ViewInheritanceTest extends TestCase
 
     public function test_shared_data_reaches_every_render_and_its_partials(): void
     {
-        $view = new PhpView($this->dir, shared: ['theme' => 'paper']);
+        $view = new PhpView($this->dir, new CspNonce, shared: ['theme' => 'paper']);
 
         $this->writeTemplate('shell', '<?= $this->e($theme) ?>|<?= $this->partial("inner") ?>');
         $this->writeTemplate('inner', '<?= $this->e($theme) ?>');
@@ -183,7 +184,7 @@ final class ViewInheritanceTest extends TestCase
 
     public function test_a_renders_own_data_wins_over_the_shared(): void
     {
-        $view = new PhpView($this->dir, shared: ['theme' => 'paper']);
+        $view = new PhpView($this->dir, new CspNonce, shared: ['theme' => 'paper']);
 
         $this->writeTemplate('shell', '<?= $this->e($theme) ?>');
 

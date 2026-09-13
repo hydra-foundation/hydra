@@ -22,16 +22,23 @@ final class PhpView implements ViewInterface
     private readonly array $paths;
 
     /**
+     * The nonce is required rather than optional because a template that asks
+     * for one cannot carry on without it: every htmx element the admin package
+     * ships stamps `hx-nonce`, and a view built without a nonce answers that
+     * with a throw on every screen that renders one. Demanding it here turns
+     * that into one failure at construction — the application boots or it does
+     * not — instead of a 500 the first time somebody opens the page.
+     *
      * @param list<string> $fallbacks searched in order when the base path has no such template
      * @param array<string, mixed> $shared data every render begins with
      */
     public function __construct(
         string $basePath,
+        private readonly CspNonce $cspNonce,
         private readonly ?CsrfGuard $csrf = null,
         private readonly ?string $baseUrl = null,
         array $fallbacks = [],
         private readonly array $shared = [],
-        private readonly ?CspNonce $cspNonce = null,
     ) {
         $this->paths = [$basePath, ...array_values($fallbacks)];
     }
@@ -48,7 +55,7 @@ final class PhpView implements ViewInterface
     {
         $data = [...$this->shared, ...$data];
 
-        return (new Template($this, $data, $layout, $this->csrf, $this->baseUrl, $this->cspNonce))->resolve($template);
+        return (new Template($this, $data, $this->cspNonce, $layout, $this->csrf, $this->baseUrl))->resolve($template);
     }
 
     public function has(string $template): bool
