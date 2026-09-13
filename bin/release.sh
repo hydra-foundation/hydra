@@ -7,7 +7,7 @@
 #   bin/release.sh 0.4.0 --minor --push  # also rewrite the ^0.3 constraints first
 #
 # Two repositories are tagged: the hydra monorepo and the app skeleton. The
-# seventeen hydrakit/* package repositories are not touched here — the split
+# eighteen hydrakit/* package repositories are not touched here — the split
 # workflow regenerates them from the monorepo tag, and pushing to them by
 # hand would be overwritten.
 #
@@ -32,6 +32,13 @@ set -euo pipefail
 DIR="${HYDRA_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 BRANCH="main"
 REPOS=(hydra app)
+
+# Every package repository the split regenerates. Declared here rather than
+# beside the wait loop because the plan counts it before printing, and a count
+# that has to be kept in step by hand is one that drifts the next time a
+# package is added.
+PACKAGES=(admin auth authorization cache console core csrf database event http
+          kernel log nyholm php-di session throttle validation view)
 
 VERSION=""
 DO_PUSH=0
@@ -172,8 +179,8 @@ echo "Plan for $TAG:"
     echo "  1. rewrite ^$OLD_SERIES -> ^$NEW_SERIES across hydra/packages/*, hydra/ and app/, and commit"
 n=$([ "$DO_MINOR" -eq 1 ] && echo 1 || echo 0)
 echo "  $((n + 1)). tag hydra $TAG and push $BRANCH + tag"
-echo "  $((n + 2)). the split workflow regenerates the 17 package repos at $TAG"
-echo "  $((n + 3)). wait for Packagist to index all 17 at $TAG"
+echo "  $((n + 2)). the split workflow regenerates the ${#PACKAGES[@]} package repos at $TAG"
+echo "  $((n + 3)). wait for Packagist to index all ${#PACKAGES[@]} at $TAG"
 echo "  $((n + 4)). refresh app's lock onto $TAG and verify the skeleton against it"
 echo "  $((n + 5)). commit the lock, tag app $TAG and push"
 
@@ -230,8 +237,6 @@ echo "  hydra $TAG pushed — the split workflow is regenerating the package rep
 # whole reason the two tags are no longer cut together.
 echo
 echo "Waiting for Packagist to index $TAG ..."
-PACKAGES=(admin auth authorization cache console core csrf database event http
-          kernel log nyholm php-di session throttle validation view)
 deadline=$(( SECONDS + 600 ))
 
 for pkg in "${PACKAGES[@]}"; do
