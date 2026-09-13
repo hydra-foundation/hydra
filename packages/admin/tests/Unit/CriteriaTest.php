@@ -147,8 +147,20 @@ final class CriteriaTest extends TestCase
         // A bare "%" would otherwise match every row: not an injection (the
         // pattern is bound), but a way to turn the search box into a request
         // for a full scan.
-        $this->assertSame('%\\%%', $this->criteria(['q' => '%'])->searchPattern());
-        $this->assertSame('%a\\_b%', $this->criteria(['q' => 'a_b'])->searchPattern());
-        $this->assertSame('%\\\\%', $this->criteria(['q' => '\\'])->searchPattern());
+        $this->assertSame('%!%%', $this->criteria(['q' => '%'])->searchPattern());
+        $this->assertSame('%a!_b%', $this->criteria(['q' => 'a_b'])->searchPattern());
+        $this->assertSame('%!!%', $this->criteria(['q' => '!'])->searchPattern(), 'and the escape character escapes itself');
+        $this->assertSame('%\\%', $this->criteria(['q' => '\\'])->searchPattern(), 'while a backslash is an ordinary character');
+    }
+
+    /**
+     * The escape character is not a backslash because a backslash cannot be
+     * written once for both engines: MySQL/MariaDB read `'\'` as an
+     * unterminated string literal and want `'\\'`, which is two characters to
+     * SQLite. A search on MariaDB was a 500 until this shape was the one shape.
+     */
+    public function test_the_like_condition_names_the_escape_character(): void
+    {
+        $this->assertSame("username LIKE ? ESCAPE '!'", Criteria::like('username'));
     }
 }

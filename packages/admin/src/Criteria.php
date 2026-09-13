@@ -27,6 +27,16 @@ final readonly class Criteria
     /** Longer than any real search, and short enough to stay cheap to match. */
     public const MAX_SEARCH = 128;
 
+    /**
+     * The character that escapes a wildcard inside a search pattern.
+     *
+     * Not a backslash: MySQL/MariaDB read one inside a string literal as an
+     * escape of its own, so `ESCAPE '\'` is an unterminated literal there, and
+     * the doubled form it needs instead is two characters to SQLite. A
+     * character neither dialect touches spells the same in both.
+     */
+    public const SEARCH_ESCAPE = '!';
+
     public int $page;
     public int $perPage;
     public ?string $sort;
@@ -124,10 +134,9 @@ final readonly class Criteria
      * way to ask for a full scan on demand. Escaping is done here rather than in
      * each source so that no source can forget, and so the SQL stays one shape.
      *
-     * The escape character is a backslash, and the LIKE that consumes this has
-     * to name it: `LIKE ? ESCAPE '\'`. Only MySQL/MariaDB assume a backslash on
-     * their own, and only while NO_BACKSLASH_ESCAPES is off; SQLite assumes none
-     * at all, so without the clause an escaped term matches nothing.
+     * The LIKE that consumes this has to name the escape character, which is
+     * what like() is for: no dialect assumes SEARCH_ESCAPE on its own, so
+     * without the clause an escaped term matches nothing.
      */
     public function searchPattern(): ?string
     {
@@ -135,7 +144,20 @@ final readonly class Criteria
             return null;
         }
 
-        return '%' . addcslashes($this->search, '%_\\') . '%';
+        $escape = self::SEARCH_ESCAPE;
+        $pattern = str_replace(
+            [$escape, '%', '_'],
+            [$escape . $escape, $escape . '%', $escape . '_'],
+            $this->search,
+        );
+
+        return '%' . $pattern . '%';
+    }
+
+    /** The condition a source binds searchPattern() to, escape character named. */
+    public static function like(string $column): string
+    {
+        return "{$column} LIKE ? ESCAPE '" . self::SEARCH_ESCAPE . "'";
     }
 
     /** @return array<string, string> */
