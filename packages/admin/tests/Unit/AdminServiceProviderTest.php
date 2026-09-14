@@ -20,12 +20,14 @@ use Hydra\Http\Responder;
 use Hydra\View\Contracts\ViewInterface;
 use Hydra\View\PhpView;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * What an application gets for registering the provider: the services the admin
  * needs, and the routes its modules compile to.
  */
+#[CoversClass(AdminServiceProvider::class)]
 final class AdminServiceProviderTest extends TestCase
 {
     public function test_it_binds_what_the_generated_routes_will_ask_for(): void

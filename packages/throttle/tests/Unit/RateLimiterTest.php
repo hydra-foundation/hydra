@@ -12,6 +12,7 @@ use Hydra\Throttle\Exceptions\TooManyRequestsException;
 use Hydra\Throttle\RateLimiter;
 use Hydra\Throttle\RateLimitPolicy;
 use Nyholm\Psr7\ServerRequest;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
@@ -59,13 +60,17 @@ final class UnreachableStore implements StoreInterface
  * budget is only worth the identity it is keyed on: if a caller can vary that,
  * the limit is a formality.
  */
+#[CoversClass(RateLimiter::class)]
 final class RateLimiterTest extends TestCase
 {
     private ArrayStore $store;
 
+    private float $now;
+
     protected function setUp(): void
     {
-        $this->store = new ArrayStore;
+        $this->now = microtime(true);
+        $this->store = new ArrayStore(fn (): float => $this->now);
     }
 
     public function test_requests_inside_the_budget_are_allowed(): void
@@ -176,7 +181,7 @@ final class RateLimiterTest extends TestCase
         $policy = new RateLimitPolicy('login', 1, 2);
 
         $limiter->enforce($this->request('198.51.100.7'), $policy);
-        sleep(1);
+        $this->advance(1);
 
         try {
             $limiter->enforce($this->request('198.51.100.7'), $policy);
@@ -186,7 +191,7 @@ final class RateLimiterTest extends TestCase
             $this->assertLessThanOrEqual(1, $e->retryAfter());
         }
 
-        sleep(2);
+        $this->advance(2);
 
         $this->assertTrue($limiter->enforce($this->request('198.51.100.7'), $policy)->allowed);
     }
@@ -201,6 +206,16 @@ final class RateLimiterTest extends TestCase
         $this->expectException(RuntimeException::class);
 
         $limiter->enforce($this->request('198.51.100.7'), new RateLimitPolicy('login', 1, 60));
+    }
+
+    /**
+     * Move the store's clock on. The limiter keeps no clock of its own: every
+     * window it reports is the store's TTL, so advancing that advances the
+     * limiter's whole view of time.
+     */
+    private function advance(int $seconds): void
+    {
+        $this->now += $seconds;
     }
 
     private function limiter(?TrustedProxies $proxies = null): RateLimiter

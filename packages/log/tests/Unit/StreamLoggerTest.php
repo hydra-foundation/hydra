@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Log\Tests\Unit;
 
 use Hydra\Log\StreamLogger;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
@@ -14,6 +15,7 @@ use RuntimeException;
  * The PSR-3 logger's line format and context interpolation, and the cases where
  * logging must not become the failure: a non-stringable value, a closed stream.
  */
+#[CoversClass(StreamLogger::class)]
 final class StreamLoggerTest extends TestCase
 {
     /** @var resource */

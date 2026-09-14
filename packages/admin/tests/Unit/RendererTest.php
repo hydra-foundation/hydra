@@ -12,6 +12,7 @@ use Hydra\Admin\Tests\Support\CrudUserSource;
 use Hydra\Admin\Tests\Support\CrudUsersModule;
 use Hydra\Admin\ViewModels\ListViewModel;
 use Hydra\Http\Status;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Psr\Http\Message\ResponseInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
  * each depth owes the client is different: a whole page, a frame carrying a new
  * title and an out-of-band sidebar, or a bare body.
  */
+#[CoversClass(Renderer::class)]
 final class RendererTest extends TestCase
 {
     private AdminHarness $admin;

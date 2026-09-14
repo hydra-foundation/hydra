@@ -10,6 +10,7 @@ use Hydra\Admin\Tests\Support\AuditModule;
 use Hydra\Admin\Tests\Support\OverviewModule;
 use Hydra\Admin\Tests\Support\PeopleModule;
 use Hydra\Admin\Tests\Support\SettingsModule;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use PHPUnit\Framework\TestCase;
  * element the wide layout renders as a rail, one nav in two shapes. What holds
  * that together is that neither the link list nor the module data is duplicated.
  */
+#[CoversNothing]
 final class MobileNavTest extends TestCase
 {
     public function test_the_top_bar_ships_with_the_page(): void

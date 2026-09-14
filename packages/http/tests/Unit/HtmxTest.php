@@ -6,6 +6,7 @@ namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\Htmx;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -13,6 +14,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * The htmx 4 request headers as this reader sees them, including HX-Target's
  * "tag#id" spelling and an absent header reading as null rather than "".
  */
+#[CoversClass(Htmx::class)]
 final class HtmxTest extends TestCase
 {
     /** @param array<string, string> $headers */

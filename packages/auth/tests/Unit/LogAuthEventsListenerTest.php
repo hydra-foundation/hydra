@@ -10,6 +10,7 @@ use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\Events\LoggedOut;
 use Hydra\Auth\Events\LoginFailed;
 use Hydra\Auth\LogAuthEventsListener;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 use Stringable;
@@ -19,6 +20,7 @@ use Stringable;
  * only the audit-trail contract: the right level, message, and context, and that
  * no password is present (the events never carry one).
  */
+#[CoversClass(LogAuthEventsListener::class)]
 final class LogAuthEventsListenerTest extends TestCase
 {
     private RecordingLogger $logger;

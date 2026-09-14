@@ -6,6 +6,7 @@ namespace Hydra\Event\Tests\Unit;
 
 use Hydra\Event\Dispatcher;
 use Hydra\Event\ListenerProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\StoppableEventInterface;
 
@@ -13,6 +14,7 @@ use Psr\EventDispatcher\StoppableEventInterface;
  * The dispatcher is driven against the REAL {@see ListenerProvider}, not a mock
  * of it, so these prove the actual match-and-call path end to end.
  */
+#[CoversClass(Dispatcher::class)]
 final class DispatcherTest extends TestCase
 {
     private ListenerProvider $listeners;

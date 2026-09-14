@@ -91,7 +91,8 @@
             "Hydra\\Session\\Tests\\": "packages/session/tests",
             "Hydra\\Throttle\\Tests\\": "packages/throttle/tests",
             "Hydra\\Validation\\Tests\\": "packages/validation/tests",
-            "Hydra\\View\\Tests\\": "packages/view/tests"
+            "Hydra\\View\\Tests\\": "packages/view/tests",
+            "Hydra\\Tools\\Tests\\": "tests"
         }
     },
     "minimum-stability": "dev",

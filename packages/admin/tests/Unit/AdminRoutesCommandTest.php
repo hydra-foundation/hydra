@@ -16,6 +16,7 @@ use Hydra\Admin\Tests\Support\TypoModule;
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Console\Command\Command;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -25,6 +26,7 @@ use Symfony\Component\Console\Tester\CommandTester;
  * It is the only place a developer sees the compiled routes, so it has to name
  * all of them and say which ability each one answers to.
  */
+#[CoversClass(AdminRoutesCommand::class)]
 final class AdminRoutesCommandTest extends TestCase
 {
     public function test_it_lists_every_route_the_modules_compiled_to(): void

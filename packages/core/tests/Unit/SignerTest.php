@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Core\Tests\Unit;
 
 use Hydra\Core\Security\Signer;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
  * matter: a tampered message, a foreign key, and malformed input, which returns
  * null rather than throwing.
  */
+#[CoversClass(Signer::class)]
 final class SignerTest extends TestCase
 {
     /** A 64-hex (32-byte) key, the shape `key:generate` emits. */

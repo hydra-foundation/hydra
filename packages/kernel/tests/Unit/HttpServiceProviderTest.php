@@ -16,6 +16,7 @@ use Hydra\Kernel\HttpServiceProvider;
 use Hydra\Kernel\Tests\Support\StubController;
 use Hydra\Kernel\Tests\Support\TestContainer;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -32,6 +33,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * (nyholm's NyholmServiceProvider in the reference app), and these tests fill
  * them with local doubles, which is itself proof the kernel is vendor-free.
  */
+#[CoversClass(HttpServiceProvider::class)]
 final class HttpServiceProviderTest extends TestCase
 {
     private TestContainer $container;

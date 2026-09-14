@@ -6,6 +6,7 @@ namespace Hydra\Database\Tests\Unit;
 
 use Hydra\Database\PdoConnection;
 use PDO;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -13,6 +14,7 @@ use RuntimeException;
  * PdoConnection against a real (in-memory sqlite) PDO. The seam's contract:
  * prepared select/selectOne/execute and lastInsertId, no driver-specific code.
  */
+#[CoversClass(PdoConnection::class)]
 final class PdoConnectionTest extends TestCase
 {
     private PdoConnection $db;

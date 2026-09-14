@@ -10,6 +10,7 @@ use Hydra\Console\Commands\MigrateRunCommand;
 use Hydra\Console\Commands\MigrateStatusCommand;
 use Hydra\Database\MigrationRunner;
 use PDO;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -19,6 +20,10 @@ use Symfony\Component\Console\Tester\CommandTester;
  * an in-memory sqlite PDO and a temp directory, covering the dev-mode guard on
  * migrate:fresh and the timestamped scaffolding of make:migration.
  */
+#[CoversClass(MakeMigrationCommand::class)]
+#[CoversClass(MigrateFreshCommand::class)]
+#[CoversClass(MigrateRunCommand::class)]
+#[CoversClass(MigrateStatusCommand::class)]
 final class MigrateCommandsTest extends TestCase
 {
     private PDO $pdo;

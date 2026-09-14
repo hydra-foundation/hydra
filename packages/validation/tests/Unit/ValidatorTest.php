@@ -11,6 +11,7 @@ use Hydra\Validation\Rules\MinLength;
 use Hydra\Validation\Rules\Pattern;
 use Hydra\Validation\Rules\Required;
 use Hydra\Validation\Validator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,6 +19,7 @@ use PHPUnit\Framework\TestCase;
  * first failure, and validated() returning exactly the ruled subset, which is
  * what keeps an unvalidated field from reaching the code downstream.
  */
+#[CoversClass(Validator::class)]
 final class ValidatorTest extends TestCase
 {
     private Validator $validator;

@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\Responder;
 use Hydra\Http\Status;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,6 +15,7 @@ use PHPUnit\Framework\TestCase;
  * status each helper produces, and JSON encoding that neither escapes slashes
  * nor silently emits a broken body.
  */
+#[CoversClass(Responder::class)]
 final class ResponderTest extends TestCase
 {
     private function responder(): Responder

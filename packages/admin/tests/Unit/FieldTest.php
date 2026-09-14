@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Hydra\Admin\Tests\Unit;
 
 use Hydra\Admin\Field;
+use Hydra\Admin\FieldType;
 use Hydra\Admin\Surface;
 use Hydra\View\HtmlView;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,6 +17,8 @@ use PHPUnit\Framework\TestCase;
  * and the formatter, including the cases where a bad one names itself rather
  * than failing somewhere further down the render.
  */
+#[CoversClass(FieldType::class)]
+#[CoversClass(Field::class)]
 final class FieldTest extends TestCase
 {
     public function test_it_humanizes_the_name_into_a_default_label(): void
@@ -94,6 +98,9 @@ final class FieldTest extends TestCase
 
     public function test_a_formatter_returning_the_wrong_type_names_the_field(): void
     {
+        // The wrong return type is the subject here: the guard exists because
+        // a formatter can only be checked once it has run.
+        /** @phpstan-ignore argument.type */
         $field = Field::text('duration_ms')->format(static fn (mixed $value): int => (int) $value * 2);
 
         $this->expectException(LogicException::class);

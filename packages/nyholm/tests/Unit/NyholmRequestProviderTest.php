@@ -7,6 +7,7 @@ namespace Hydra\Nyholm\Tests\Unit;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
 use Hydra\Nyholm\NyholmRequestProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -14,6 +15,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * The nyholm side of the request-provider seam: it satisfies the interface the
  * kernel consumes and builds a server request from the PHP environment.
  */
+#[CoversClass(NyholmRequestProvider::class)]
 final class NyholmRequestProviderTest extends TestCase
 {
     public function test_fulfils_the_request_provider_seam(): void

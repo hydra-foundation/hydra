@@ -8,6 +8,7 @@ use Hydra\Http\Csp;
 use Hydra\Http\CspMiddleware;
 use Hydra\Http\CspNonce;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -17,6 +18,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * Stamping the policy on the response: the request's own nonce named in it,
  * report-only mode, and a policy a handler already set left alone.
  */
+#[CoversClass(CspMiddleware::class)]
 final class CspMiddlewareTest extends TestCase
 {
     public function test_stamps_the_compiled_policy_on_the_response(): void

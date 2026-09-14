@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Unit;
 
+use Hydra\Admin\Screens\PageScreen;
 use Hydra\Admin\Tests\Support\AdminHarness;
 use Hydra\Admin\Tests\Support\CrudUserSource;
 use Hydra\Admin\Tests\Support\CrudUsersModule;
 use Hydra\Admin\Tests\Support\LandingModule;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,6 +18,7 @@ use PHPUnit\Framework\TestCase;
  * application that declares a page screen and no template still has a working
  * front door rather than a 500 on it.
  */
+#[CoversNothing]
 final class ShippedDashboardTest extends TestCase
 {
     public function test_it_offers_every_other_module_the_visitor_may_reach(): void
@@ -47,10 +50,10 @@ final class ShippedDashboardTest extends TestCase
     {
         // The whole point: the module declares a page screen and nothing else.
         $admin = $this->admin();
+        $screen = $admin->registry->find('home')->screen('overview');
 
-        $this->assertSame([], $admin->registry->present(
-            $admin->registry->find('home')->screen('overview'),
-        ));
+        $this->assertInstanceOf(PageScreen::class, $screen);
+        $this->assertSame([], $admin->registry->present($screen));
         $this->assertStringContainsString('card', $this->render());
     }
 

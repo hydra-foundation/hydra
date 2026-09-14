@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\Exceptions\HttpException;
 use Hydra\Http\Exceptions\MethodNotAllowedException;
 use Hydra\Http\Exceptions\NotFoundException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Throwable;
@@ -16,6 +17,7 @@ use Throwable;
  * headers it carries to the response, and the named constructors for the two
  * cases the router raises itself.
  */
+#[CoversClass(HttpException::class)]
 final class HttpExceptionTest extends TestCase
 {
     public function test_is_a_throwable(): void

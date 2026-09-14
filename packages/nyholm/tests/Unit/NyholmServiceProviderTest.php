@@ -9,6 +9,7 @@ use Hydra\Nyholm\NyholmRequestProvider;
 use Hydra\Nyholm\NyholmServiceProvider;
 use Hydra\Nyholm\Tests\Support\FakeContainer;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -19,6 +20,7 @@ use Psr\Http\Message\StreamFactoryInterface;
  * that used to be hard-coded in the kernel's HttpServiceProvider; an app now
  * registers this provider (or a rival vendor's equivalent) explicitly.
  */
+#[CoversClass(NyholmServiceProvider::class)]
 final class NyholmServiceProviderTest extends TestCase
 {
     private FakeContainer $container;

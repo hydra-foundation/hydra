@@ -13,6 +13,7 @@ use Hydra\Throttle\RateLimitMiddleware;
 use Hydra\Throttle\RateLimitPolicy;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -36,6 +37,7 @@ final class CountingHandler implements RequestHandlerInterface
  * NOT do: reach the handler once the budget is gone, and count anything at all
  * when the limiter is switched off.
  */
+#[CoversClass(RateLimitMiddleware::class)]
 final class RateLimitMiddlewareTest extends TestCase
 {
     public function test_a_request_within_the_budget_reaches_the_handler(): void

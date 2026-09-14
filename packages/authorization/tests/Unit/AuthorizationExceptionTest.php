@@ -6,6 +6,7 @@ namespace Hydra\Authorization\Tests\Unit;
 
 use Hydra\Authorization\Exceptions\AuthorizationException;
 use Hydra\Http\Exceptions\HttpException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -13,6 +14,7 @@ use RuntimeException;
  * The denial is an HttpException carrying a 403, so the error handler renders it
  * like any other status rather than needing to know about authorization.
  */
+#[CoversClass(AuthorizationException::class)]
 final class AuthorizationExceptionTest extends TestCase
 {
     public function test_it_is_a_403_http_exception(): void

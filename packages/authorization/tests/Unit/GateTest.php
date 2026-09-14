@@ -11,6 +11,7 @@ use Hydra\Authorization\Exceptions\AuthorizationException;
 use Hydra\Authorization\Gate;
 use Hydra\Core\Contracts\ContainerInterface;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use PHPUnit\Framework\TestCase;
  * objects implementing the actual contract, so these prove the real
  * compose-user-with-ability path, not a mock of the verdict.
  */
+#[CoversClass(Gate::class)]
 final class GateTest extends TestCase
 {
     private FakeGuard $guard;

@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Unit;
 
+use Hydra\Admin\Navigation;
 use Hydra\Admin\Tests\Support\AdminHarness;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\AuditModule;
 use Hydra\Admin\Tests\Support\OverviewModule;
 use Hydra\Admin\Tests\Support\PeopleModule;
 use Hydra\Admin\Tests\Support\SettingsModule;
+use Hydra\Admin\ViewModels\ScreenViewModel;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * A group is how the sidebar is organised and nothing else: modules under one
  * heading need not relate to each other, and the heading itself is not a page.
  */
+#[CoversClass(Navigation::class)]
+#[CoversClass(ScreenViewModel::class)]
 final class NavigationGroupTest extends TestCase
 {
     public function test_modules_are_gathered_under_the_headings_they_declared(): void

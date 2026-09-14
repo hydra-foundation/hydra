@@ -8,6 +8,7 @@ use Hydra\Core\Application;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Contracts\KernelInterface;
 use Hydra\Core\Contracts\ServiceProviderInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  * once, and a provider added after boot is booted on the spot rather than
  * silently never.
  */
+#[CoversClass(Application::class)]
 final class ApplicationTest extends TestCase
 {
     private function containerResolving(KernelInterface $kernel): ContainerInterface

@@ -14,6 +14,7 @@ use Hydra\Auth\Events\LoginFailed;
 use Hydra\Auth\SessionGuard;
 use Hydra\Auth\Contracts\UserProviderInterface;
 use Hydra\Session\Stores\ArraySessionStore;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -23,6 +24,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * the app-supplied user provider faked. So these prove the actual session
  * read/write and password-verify paths, not a mock of them.
  */
+#[CoversClass(SessionGuard::class)]
 final class SessionGuardTest extends TestCase
 {
     private const PASSWORD = 'correct horse';

@@ -6,6 +6,7 @@ namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\TrustedProxies;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -13,6 +14,7 @@ use PHPUnit\Framework\TestCase;
  * too much silently promotes strangers to proxies, so the boundaries matter
  * more here than the happy path.
  */
+#[CoversClass(TrustedProxies::class)]
 final class TrustedProxiesTest extends TestCase
 {
     public function test_nothing_is_trusted_by_default(): void

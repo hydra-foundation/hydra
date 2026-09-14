@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\ClientIpResolver;
 use Hydra\Http\TrustedProxies;
 use Nyholm\Psr7\ServerRequest;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -14,6 +15,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * Identity is the foundation every per-client budget stands on, so the tests
  * that matter most here are the ones where a caller tries to choose its own.
  */
+#[CoversClass(ClientIpResolver::class)]
 final class ClientIpResolverTest extends TestCase
 {
     public function test_with_no_proxy_declared_the_socket_peer_is_the_client(): void

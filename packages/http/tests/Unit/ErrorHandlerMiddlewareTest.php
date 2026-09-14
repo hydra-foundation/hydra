@@ -13,6 +13,7 @@ use Hydra\Http\Exceptions\NotFoundException;
 use Hydra\Http\PlainTextErrorRenderer;
 use Hydra\Http\Responder;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -35,6 +36,7 @@ final class SpyLogger extends AbstractLogger
     }
 }
 
+#[CoversClass(ErrorHandlerMiddleware::class)]
 final class ErrorHandlerMiddlewareTest extends TestCase
 {
     private function responder(): Responder

@@ -7,6 +7,7 @@ namespace Hydra\PhpDi\Tests\Unit;
 use DI\Container as PhpDiContainer;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\PhpDi\Container;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -19,6 +20,7 @@ final class Dog implements Animal {}
  * own semantics show through: a closure binding must be a factory, and every
  * resolved entry is shared.
  */
+#[CoversClass(Container::class)]
 final class ContainerTest extends TestCase
 {
     private Container $container;

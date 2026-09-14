@@ -13,10 +13,13 @@ use Hydra\Admin\ModuleScanner;
 use Hydra\Admin\Input;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\PageScreen;
+use Hydra\Admin\Screens\RowPath;
 use Hydra\Admin\Screens\ShowScreen;
 use Hydra\Admin\Tests\Support\ArrayContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -24,6 +27,8 @@ use PHPUnit\Framework\TestCase;
  * still wins over the {id} it resembles, and a path naming no row is refused
  * where it is declared.
  */
+#[CoversTrait(RowPath::class)]
+#[CoversClass(ShowScreen::class)]
 final class ShowScreenTest extends TestCase
 {
     public function test_it_reads_one_row_through_the_admin_controller(): void
@@ -76,8 +81,14 @@ final class ShowScreenTest extends TestCase
             ->screens(ShowScreen::make()->requires('ViewUsers')->title('User'))
             ->compile();
 
-        $this->assertSame('ViewUsers', $blueprint->screen('show')?->ability());
-        $this->assertSame('User', $blueprint->screen('show')?->heading());
+        $screen = $blueprint->screen('show');
+
+        // Narrowed rather than called through the interface: heading() is not
+        // on ScreenInterface, and every caller in the package resolves the
+        // concrete screen before asking for one.
+        $this->assertInstanceOf(ShowScreen::class, $screen);
+        $this->assertSame('ViewUsers', $screen->ability());
+        $this->assertSame('User', $screen->heading());
     }
 
     public function test_a_path_that_names_no_row_is_rejected_where_it_is_declared(): void

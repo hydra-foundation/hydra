@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\Exceptions\BadRequestException;
+use Hydra\Http\FieldReader;
 use Hydra\Http\ParsedBody;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,8 +16,11 @@ use PHPUnit\Framework\TestCase;
  * on a miss, the cases that throw rather than guess, and the shapes PSR-7
  * allows a parsed body to be (null, an object) handled without a TypeError.
  */
+#[CoversClass(FieldReader::class)]
+#[CoversClass(ParsedBody::class)]
 final class ParsedBodyTest extends TestCase
 {
+    /** @param array<string, mixed>|object|null $body */
     private function body(array|object|null $body): ParsedBody
     {
         $request = (new Psr17Factory)->createServerRequest('POST', '/')->withParsedBody($body);

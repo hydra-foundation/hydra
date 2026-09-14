@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\Exceptions\BadRequestException;
+use Hydra\Http\FieldReader;
 use Hydra\Http\Query;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,8 +16,11 @@ use PHPUnit\Framework\TestCase;
  * default on a miss, and the cases that throw rather than guess. Reads query
  * params only, never the parsed body.
  */
+#[CoversClass(FieldReader::class)]
+#[CoversClass(Query::class)]
 final class QueryTest extends TestCase
 {
+    /** @param array<string, mixed> $params */
     private function query(array $params): Query
     {
         $request = (new Psr17Factory)->createServerRequest('GET', '/')->withQueryParams($params);

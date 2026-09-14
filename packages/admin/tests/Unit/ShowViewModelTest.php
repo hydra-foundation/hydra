@@ -13,12 +13,14 @@ use Hydra\Admin\Screens\ShowScreen;
 use Hydra\Admin\Surface;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\ViewModels\ShowViewModel;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * What a show template reads: the fields the table had no room for, rendered
  * through the Show surface, and the way on to the edit screen when there is one.
  */
+#[CoversClass(ShowViewModel::class)]
 final class ShowViewModelTest extends TestCase
 {
     private const ROW = ['id' => 42, 'username' => 'ada', 'user_agent' => 'Mozilla/5.0', 'role' => 'admin'];

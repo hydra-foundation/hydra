@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\CompiledRoute;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
  * literal regex characters in a path stay literal, and captured values are
  * url-decoded.
  */
+#[CoversClass(CompiledRoute::class)]
 final class CompiledRouteTest extends TestCase
 {
     private function route(string $path): CompiledRoute

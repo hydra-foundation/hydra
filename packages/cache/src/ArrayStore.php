@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Cache;
 
+use Closure;
 use Hydra\Cache\Contracts\StoreInterface;
 
 /**
@@ -18,6 +19,15 @@ final class ArrayStore implements StoreInterface
 {
     /** @var array<string, array{mixed, float|null}> value and its expiry timestamp */
     private array $entries = [];
+
+    /**
+     * Where now() comes from. Injectable because expiry is otherwise only
+     * observable by waiting for it, and a suite that sleeps through its own
+     * windows tests the clock rather than the store.
+     *
+     * @param (Closure(): float)|null $clock null for the real one.
+     */
+    public function __construct(private readonly ?Closure $clock = null) {}
 
     public function get(string $key): mixed
     {
@@ -92,6 +102,6 @@ final class ArrayStore implements StoreInterface
 
     private function now(): float
     {
-        return microtime(true);
+        return $this->clock === null ? microtime(true) : ($this->clock)();
     }
 }

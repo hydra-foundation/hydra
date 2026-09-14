@@ -12,6 +12,7 @@ use Hydra\Core\Environment;
 use Hydra\Kernel\Kernel;
 use Hydra\Kernel\Tests\Support\TestContainer;
 use Hydra\Session\Contracts\SessionInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -19,6 +20,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * Proves the composition helper registers the standard stack in one place: the
  * knowledge that used to drift between each app's bootstrap.
  */
+#[CoversClass(Kernel::class)]
 final class KernelTest extends TestCase
 {
     private ContainerInterface $container;

@@ -10,6 +10,7 @@ use Hydra\Http\Attributes\Route;
 use Hydra\Http\Attributes\RouteGroup as RouteGroupAttribute;
 use Hydra\Http\Router;
 use Hydra\Http\RouteScanner;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -29,6 +30,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 final class TaggingMiddleware implements MiddlewareInterface
 {
+    /** @param ArrayObject<int, string> $log */
     public function __construct(
         private readonly string $tag,
         private readonly ArrayObject $log,
@@ -123,6 +125,7 @@ final class MethodTagMiddleware {}
 #[RouteGroupAttribute('/admin', middleware: [GroupTagMiddleware::class])]
 final class GroupedTaggingController
 {
+    /** @param ArrayObject<int, string> $log */
     public function __construct(
         private readonly ArrayObject $log,
         private readonly ResponseInterface $response,
@@ -140,6 +143,8 @@ final class GroupedTaggingController
 // The test class
 // ---------------------------------------------------------------------------
 
+#[CoversClass(Router::class)]
+#[CoversClass(RouteScanner::class)]
 final class PerRouteMiddlewareTest extends TestCase
 {
     // ------------------------------------------------------------------
@@ -159,6 +164,7 @@ final class PerRouteMiddlewareTest extends TestCase
         return $request;
     }
 
+    /** @param array<string, object> $map */
     private function container(array $map = []): ContainerInterface
     {
         $container = $this->createStub(ContainerInterface::class);
@@ -178,6 +184,7 @@ final class PerRouteMiddlewareTest extends TestCase
 
     public function test_middleware_runs_around_controller_in_outermost_first_order(): void
     {
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $controllerResponse = $this->response();
         $called = false;
@@ -227,6 +234,7 @@ final class PerRouteMiddlewareTest extends TestCase
 
     public function test_per_route_middleware_can_short_circuit_without_calling_controller(): void
     {
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $shortResponse = $this->response();
         $controllerCalled = false;
@@ -350,6 +358,7 @@ final class PerRouteMiddlewareTest extends TestCase
 
     public function test_middleware_class_is_resolved_through_container_on_match(): void
     {
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $controllerResponse = $this->response();
         $classAuth = 'Fake\AuthMiddlewareOnMatch';
@@ -406,6 +415,7 @@ final class PerRouteMiddlewareTest extends TestCase
 
     public function test_scanned_routes_with_middleware_dispatch_through_router(): void
     {
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $controllerResponse = $this->response();
         $controller = new AdminController($controllerResponse);
@@ -441,6 +451,7 @@ final class PerRouteMiddlewareTest extends TestCase
 
     public function test_load_routes_flows_middleware_into_registered_route(): void
     {
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $controllerResponse = $this->response();
         $mw = new TaggingMiddleware('loaded', $log);
@@ -471,6 +482,7 @@ final class PerRouteMiddlewareTest extends TestCase
 
     public function test_group_middleware_runs_outermost_through_full_dispatch(): void
     {
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $controllerResponse = $this->response();
         $controller = new GroupedTaggingController($log, $controllerResponse);

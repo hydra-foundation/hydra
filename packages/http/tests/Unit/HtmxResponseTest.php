@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\HtmxResponse;
 use Hydra\Http\Responder;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 
@@ -15,6 +16,7 @@ use Psr\Http\Message\ResponseInterface;
  * assertion here is about markup. A test that checked a header would pass
  * against a client that stopped reading headers two major versions ago.
  */
+#[CoversClass(HtmxResponse::class)]
 final class HtmxResponseTest extends TestCase
 {
     public function test_a_marker_carries_the_directive_and_nothing_is_left_in_the_headers(): void

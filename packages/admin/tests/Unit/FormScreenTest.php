@@ -10,10 +10,13 @@ use Hydra\Admin\Field;
 use Hydra\Admin\Input;
 use Hydra\Admin\ModuleScanner;
 use Hydra\Admin\Screens\FormScreen;
+use Hydra\Admin\Screens\RowPath;
 use Hydra\Admin\Screens\ShowScreen;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Validation\Rules\MinLength;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,6 +24,8 @@ use PHPUnit\Framework\TestCase;
  * is registered ahead of the {id} that would otherwise swallow it, and that the
  * two forms can differ on the same column.
  */
+#[CoversTrait(RowPath::class)]
+#[CoversClass(FormScreen::class)]
 final class FormScreenTest extends TestCase
 {
     public function test_it_sits_at_a_parameterised_path_under_the_module(): void

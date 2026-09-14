@@ -10,7 +10,10 @@ use Hydra\Validation\Rules\MinLength;
 use Hydra\Validation\Rules\Pattern;
 use Hydra\Validation\Rules\Range;
 use Hydra\Validation\Rules\Required;
+use Hydra\Validation\Rules\TextualValue;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\TestCase;
 use Stringable;
 
@@ -19,6 +22,13 @@ use Stringable;
  * the non-string ones (arrays, objects, booleans) that must fail a string rule
  * rather than warn or fatal on the way.
  */
+#[CoversTrait(TextualValue::class)]
+#[CoversClass(InList::class)]
+#[CoversClass(MaxLength::class)]
+#[CoversClass(MinLength::class)]
+#[CoversClass(Pattern::class)]
+#[CoversClass(Range::class)]
+#[CoversClass(Required::class)]
 final class RulesTest extends TestCase
 {
     public function test_required_fails_on_null_empty_string_and_empty_array(): void

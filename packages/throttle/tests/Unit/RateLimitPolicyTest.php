@@ -6,12 +6,14 @@ namespace Hydra\Throttle\Tests\Unit;
 
 use Hydra\Throttle\RateLimitPolicy;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * A policy is built at boot and spent on every request, so the values it
  * refuses are refused once at startup rather than per request.
  */
+#[CoversClass(RateLimitPolicy::class)]
 final class RateLimitPolicyTest extends TestCase
 {
     public function test_the_key_separates_policies_and_clients(): void

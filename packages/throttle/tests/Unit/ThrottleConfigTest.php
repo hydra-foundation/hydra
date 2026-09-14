@@ -7,12 +7,14 @@ namespace Hydra\Throttle\Tests\Unit;
 use Hydra\Core\Environment;
 use Hydra\Throttle\ThrottleConfig;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * The application-wide budget as it comes out of the environment, and what an
  * unset environment gives you, which is the configuration most deployments run.
  */
+#[CoversClass(ThrottleConfig::class)]
 final class ThrottleConfigTest extends TestCase
 {
     /** The keys these tests clear so a .env can be read in isolation. */

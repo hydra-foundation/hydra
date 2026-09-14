@@ -7,6 +7,7 @@ namespace Hydra\Cache\Tests\Unit;
 use Hydra\Cache\CacheConfig;
 use Hydra\Core\Environment;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,6 +15,7 @@ use PHPUnit\Framework\TestCase;
  * construction because a counter that silently lands on the wrong driver or a
  * zero timeout is worse than a startup failure.
  */
+#[CoversClass(CacheConfig::class)]
 final class CacheConfigTest extends TestCase
 {
     /** The REDIS_* keys these tests clear so a .env can be read in isolation. */

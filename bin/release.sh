@@ -141,11 +141,13 @@ PREV_TAG=$(git -C "$DIR/hydra" tag --list 'v*' --sort=-v:refname | head -1)
 if [ -n "$PREV_TAG" ]; then
     echo "Comparing the public surface with $PREV_TAG ..."
     work=$(mktemp -d)
-    # Sorted under C so `comm` collates the way PHP's sort() emitted them.
+    # Two listings and a comparison that knows which signature changes a
+    # consumer has to act on; see bin/api-diff.php for which ones those are.
     if git -C "$DIR/hydra" worktree add --quiet --detach "$work" "$PREV_TAG" 2>/dev/null; then
-        REMOVED=$(LC_ALL=C comm -23 \
-            <(php "$DIR/hydra/bin/api-surface.php" "$work/packages") \
-            <(php "$DIR/hydra/bin/api-surface.php" "$DIR/hydra/packages"))
+        php "$DIR/hydra/bin/api-surface.php" "$work/packages" > "$work.old"
+        php "$DIR/hydra/bin/api-surface.php" "$DIR/hydra/packages" > "$work.new"
+        REMOVED=$(php "$DIR/hydra/bin/api-diff.php" "$work.old" "$work.new")
+        rm -f "$work.old" "$work.new"
         git -C "$DIR/hydra" worktree remove --force "$work"
     else
         problems+=("hydra: cannot check $PREV_TAG out to compare the surface")

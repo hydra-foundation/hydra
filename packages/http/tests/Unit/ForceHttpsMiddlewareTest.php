@@ -9,6 +9,7 @@ use Hydra\Http\ForceHttpsMiddleware;
 use Hydra\Http\Responder;
 use Hydra\Http\TrustedProxies;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -19,6 +20,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * a request already arrived securely: X-Forwarded-Proto counts only when the
  * app opted in AND the peer is a declared proxy, since it is client-supplied.
  */
+#[CoversClass(ForceHttpsMiddleware::class)]
 final class ForceHttpsMiddlewareTest extends TestCase
 {
     public function test_passes_through_untouched_when_disabled(): void
@@ -147,16 +149,21 @@ final class ForceHttpsMiddlewareTest extends TestCase
         return (new Psr17Factory)->createServerRequest('GET', $uri, $server);
     }
 
-    private function handler(): RequestHandlerInterface
+    private function handler(): CountingHandler
     {
-        return new class implements RequestHandlerInterface {
-            public int $calls = 0;
+        return new CountingHandler;
+    }
+}
 
-            public function handle(ServerRequestInterface $request): ResponseInterface
-            {
-                $this->calls++;
-                return (new Psr17Factory)->createResponse(200);
-            }
-        };
+/** Answers 200 and counts how many times it was reached. */
+final class CountingHandler implements RequestHandlerInterface
+{
+    public int $calls = 0;
+
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        $this->calls++;
+
+        return (new Psr17Factory)->createResponse(200);
     }
 }

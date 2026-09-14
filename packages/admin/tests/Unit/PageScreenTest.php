@@ -13,6 +13,7 @@ use Hydra\Admin\Screens\PageScreen;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\SettingsController;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
  * module of page screens needs no source or fields, and that it answers no POST
  * until it is given somewhere to send one.
  */
+#[CoversClass(PageScreen::class)]
 final class PageScreenTest extends TestCase
 {
     public function test_a_page_screen_renders_through_the_admin_controller_by_default(): void

@@ -9,6 +9,7 @@ use Hydra\Http\Exceptions\HttpException;
 use Hydra\Http\PlainTextErrorRenderer;
 use Hydra\Http\Responder;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
@@ -18,6 +19,7 @@ use RuntimeException;
  * it draws between debug and production: a trace and the throwable's class only
  * ever appear in debug.
  */
+#[CoversClass(PlainTextErrorRenderer::class)]
 final class PlainTextErrorRendererTest extends TestCase
 {
     private function renderer(): PlainTextErrorRenderer

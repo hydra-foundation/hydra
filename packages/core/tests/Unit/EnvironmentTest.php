@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Core\Tests\Unit;
 
 use Hydra\Core\Environment;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
  * quoting and inline-comment cases, where a wrong answer is a silently
  * misconfigured application rather than an error.
  */
+#[CoversClass(Environment::class)]
 final class EnvironmentTest extends TestCase
 {
     private string $dir;

@@ -17,6 +17,7 @@ use Hydra\Throttle\ThrottleConfig;
 use Hydra\Throttle\ThrottleServiceProvider;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -29,6 +30,7 @@ use RuntimeException;
  * every piece can be correct while the middleware the stack actually runs was
  * built with a budget nobody configured.
  */
+#[CoversClass(ThrottleServiceProvider::class)]
 final class ThrottleServiceProviderTest extends TestCase
 {
     public function test_the_middleware_runs_the_configured_budget(): void

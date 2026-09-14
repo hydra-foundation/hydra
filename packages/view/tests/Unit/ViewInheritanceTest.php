@@ -6,6 +6,8 @@ namespace Hydra\View\Tests\Unit;
 
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
+use Hydra\View\Template;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -14,6 +16,8 @@ use RuntimeException;
  * content capture, and the output buffering all of that depends on keeping
  * balanced.
  */
+#[CoversClass(PhpView::class)]
+#[CoversClass(Template::class)]
 final class ViewInheritanceTest extends TestCase
 {
     private string $dir;

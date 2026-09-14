@@ -18,6 +18,16 @@ abstract class StoreContractTestCase extends TestCase
 {
     abstract protected function store(): StoreInterface;
 
+    /**
+     * Move the store's clock on by $seconds.
+     *
+     * Expiry is the half of this contract that cannot be asserted without time
+     * passing, and how it passes is the one thing the two stores legitimately
+     * disagree about: a fake clock settles it for ArrayStore, while RedisStore's
+     * TTLs are the server's own and can only be waited out.
+     */
+    abstract protected function advance(int $seconds): void;
+
     public function test_a_key_that_was_never_written_reads_as_nothing(): void
     {
         $this->assertNull($this->store()->get('absent'));
@@ -62,7 +72,7 @@ abstract class StoreContractTestCase extends TestCase
 
         $this->assertSame('value', $store->get('brief'));
 
-        sleep(2);
+        $this->advance(2);
 
         $this->assertNull($store->get('brief'));
     }
@@ -93,7 +103,7 @@ abstract class StoreContractTestCase extends TestCase
         $store = $this->store();
         $store->increment('hits', 1, ttl: 10);
 
-        sleep(2);
+        $this->advance(2);
         $store->increment('hits', 1, ttl: 10);
 
         $this->assertLessThanOrEqual(8, $store->ttl('hits'), 'the window must measure from the first hit');
@@ -105,7 +115,7 @@ abstract class StoreContractTestCase extends TestCase
         $store = $this->store();
         $store->increment('hits', 1, ttl: 1);
 
-        sleep(2);
+        $this->advance(2);
 
         $this->assertNull($store->get('hits'));
         $this->assertSame(1, $store->increment('hits', 1, ttl: 1), 'the next window starts fresh');

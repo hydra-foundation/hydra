@@ -6,6 +6,7 @@ namespace Hydra\Http\Tests\Unit;
 
 use ArrayObject;
 use Hydra\Http\Pipeline;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -18,6 +19,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 final class RecordingMiddleware implements MiddlewareInterface
 {
+    /** @param ArrayObject<int, string> $log */
     public function __construct(
         private readonly string $tag,
         private readonly ArrayObject $log,
@@ -45,6 +47,7 @@ final class RecordingKernel implements RequestHandlerInterface
 {
     public bool $called = false;
 
+    /** @param ArrayObject<int, string> $log */
     public function __construct(
         private readonly ResponseInterface $response,
         private readonly ArrayObject $log,
@@ -59,6 +62,7 @@ final class RecordingKernel implements RequestHandlerInterface
     }
 }
 
+#[CoversClass(Pipeline::class)]
 final class PipelineTest extends TestCase
 {
     private function request(): ServerRequestInterface
@@ -73,6 +77,7 @@ final class PipelineTest extends TestCase
 
     public function test_empty_queue_delegates_straight_to_kernel(): void
     {
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $kernelResponse = $this->response();
         $kernel = new RecordingKernel($kernelResponse, $log);
@@ -86,6 +91,7 @@ final class PipelineTest extends TestCase
 
     public function test_runs_middleware_outside_in_and_unwinds_inside_out(): void
     {
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $kernelResponse = $this->response();
         $kernel = new RecordingKernel($kernelResponse, $log);
@@ -107,6 +113,7 @@ final class PipelineTest extends TestCase
 
     public function test_short_circuit_skips_inner_middleware_and_kernel(): void
     {
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $kernel = new RecordingKernel($this->response(), $log);
         $blocked = $this->response();
@@ -131,6 +138,7 @@ final class PipelineTest extends TestCase
     {
         // Guards against mutating the queue in place: handling a second request
         // through the same Pipeline instance must replay the full chain.
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $kernel = new RecordingKernel($this->response(), $log);
 
@@ -147,6 +155,7 @@ final class PipelineTest extends TestCase
     {
         // The constructor accepts iterable<MiddlewareInterface>, not just arrays.
         // A generator must produce the same ordering as an equivalent array.
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $kernelResponse = $this->response();
         $kernel = new RecordingKernel($kernelResponse, $log);
@@ -169,6 +178,7 @@ final class PipelineTest extends TestCase
     {
         // Pins the "outermost first" contract with three layers: request travels
         // A→B→C→kernel and response unwinds C→B→A.
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $kernelResponse = $this->response();
         $kernel = new RecordingKernel($kernelResponse, $log);
@@ -191,6 +201,7 @@ final class PipelineTest extends TestCase
     public function test_outermost_middleware_can_short_circuit(): void
     {
         // A short-circuit at position 0 must skip every inner layer and the kernel.
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $kernel = new RecordingKernel($this->response(), $log);
         $blocked = $this->response();
@@ -211,6 +222,7 @@ final class PipelineTest extends TestCase
     {
         // Each pass-through middleware must return exactly what the inner handler
         // returned, not a copy or a different instance.
+        /** @var ArrayObject<int, string> $log */
         $log = new ArrayObject;
         $kernelResponse = $this->response();
         $kernel = new RecordingKernel($kernelResponse, $log);

@@ -6,6 +6,7 @@ namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\Emitter;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
@@ -13,6 +14,7 @@ use PHPUnit\Framework\TestCase;
  * The one thing an emitter can be tested for without a live SAPI: that the
  * response body reaches output. Headers and status need a real request.
  */
+#[CoversClass(Emitter::class)]
 final class EmitterTest extends TestCase
 {
     /**

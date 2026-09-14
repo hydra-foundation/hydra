@@ -13,12 +13,14 @@ use Hydra\Admin\Screens\ShowScreen;
 use Hydra\Admin\Surface;
 use Hydra\Admin\Tests\Support\ArraySource;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * What a module declaration means and which declarations are contradictions the
  * admin refuses at compile time rather than at the request that trips on them.
  */
+#[CoversClass(Definition::class)]
 final class DefinitionTest extends TestCase
 {
     public function test_it_titles_a_module_from_its_slug(): void

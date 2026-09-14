@@ -6,6 +6,7 @@ namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\ErrorContext;
 use Hydra\Http\Exceptions\HttpException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
@@ -15,6 +16,7 @@ use RuntimeException;
  * message was authored for the client and shows; anything else's may carry
  * internals and never does.
  */
+#[CoversClass(ErrorContext::class)]
 final class ErrorContextTest extends TestCase
 {
     private function context(\Throwable $error, int $status, bool $debug = false): ErrorContext

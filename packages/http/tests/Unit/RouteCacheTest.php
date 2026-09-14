@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\RouteCache;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
  * decides matching precedence, and the staleness checks that make a changed or
  * reordered controller list read as a miss rather than as wrong routes.
  */
+#[CoversClass(RouteCache::class)]
 final class RouteCacheTest extends TestCase
 {
     /** The controllers list the sample routes were "scanned" from. */
@@ -45,12 +47,18 @@ final class RouteCacheTest extends TestCase
         rmdir($this->dir);
     }
 
+    /** @param list<string> $controllers */
     private function cache(string $path, array $controllers = self::CONTROLLERS): RouteCache
     {
         return new RouteCache($path, $controllers);
     }
 
-    /** A representative scan result: plain arrays, class-strings, empty and populated middleware. */
+    /**
+     * A representative scan result: plain arrays, class-strings, empty and
+     * populated middleware.
+     *
+     * @return list<array{method: string, path: string, handler: array{class-string, string}, middleware: list<class-string>}>
+     */
     private function sampleRoutes(): array
     {
         return [

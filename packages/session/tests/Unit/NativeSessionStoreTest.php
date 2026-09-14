@@ -6,10 +6,12 @@ namespace Hydra\Session\Tests\Unit;
 
 use Hydra\Session\SessionConfig;
 use Hydra\Session\Stores\NativeSessionStore;
-use LogicException;
+use Hydra\Session\Contracts\SessionInterface;
+use Hydra\Session\Contracts\SessionLifecycleInterface;
+use Hydra\Session\Stores\SessionStore;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use PHPUnit\Framework\TestCase;
 
 /**
  * NativeSessionStore drives PHP's global session machinery, which can only be
@@ -20,7 +22,9 @@ use PHPUnit\Framework\TestCase;
  */
 #[RunTestsInSeparateProcesses]
 #[PreserveGlobalState(false)]
-final class NativeSessionStoreTest extends TestCase
+#[CoversClass(SessionStore::class)]
+#[CoversClass(NativeSessionStore::class)]
+final class NativeSessionStoreTest extends SessionContractTestCase
 {
     protected function setUp(): void
     {
@@ -28,6 +32,21 @@ final class NativeSessionStoreTest extends TestCase
         // so the session cookie header can still be "sent" harmlessly. Only the
         // cache limiter must go, since it emits headers session_start() warns on.
         ini_set('session.cache_limiter', '');
+    }
+
+    protected function make(): SessionInterface&SessionLifecycleInterface
+    {
+        return new NativeSessionStore(new SessionConfig);
+    }
+
+    protected function nextRequest(
+        SessionInterface&SessionLifecycleInterface $session,
+    ): SessionInterface&SessionLifecycleInterface {
+        // A real second request is a new store reading $_SESSION back, not the
+        // same object reopened; the native store keeps nothing of its own.
+        $session->save();
+
+        return $this->session();
     }
 
     public function test_start_forces_strict_mode_regardless_of_ini(): void
@@ -67,75 +86,11 @@ final class NativeSessionStoreTest extends TestCase
         $this->assertSame('saved', $next->flashed('status'));
     }
 
-    public function test_regenerate_changes_the_session_id(): void
-    {
-        $store = new NativeSessionStore(new SessionConfig);
-        $store->start();
 
-        $before = $store->id();
-        $store->regenerate();
 
-        $this->assertNotSame('', $before);
-        $this->assertNotSame($before, $store->id());
-    }
 
-    public function test_regenerate_outside_the_lifecycle_throws(): void
-    {
-        // Regeneration is the login fixation defense: silently not rotating
-        // (the old no-op behavior) would be worse than failing. It must also
-        // not start a session on its own.
-        $store = new NativeSessionStore(new SessionConfig);
 
-        try {
-            $store->regenerate();
-            $this->fail('regenerate() before start() should throw.');
-        } catch (LogicException) {
-        }
 
-        $this->assertSame(PHP_SESSION_NONE, session_status());
-    }
-
-    public function test_double_start_is_a_noop(): void
-    {
-        // A second start() in the same request must not re-age (lose) flash
-        // hydrated at the first one.
-        $store = new NativeSessionStore(new SessionConfig);
-        $store->start();
-        $store->set('user_id', 42);
-        $store->start();
-
-        $this->assertSame(42, $store->get('user_id'));
-    }
-
-    public function test_data_access_before_start_throws(): void
-    {
-        $store = new NativeSessionStore(new SessionConfig);
-
-        $this->expectException(LogicException::class);
-        $store->set('user_id', 42);
-    }
-
-    public function test_data_access_after_save_throws(): void
-    {
-        // The write-after-save window: session_write_close() has run, so a
-        // write here would silently never persist, so it must fail loud instead.
-        $store = new NativeSessionStore(new SessionConfig);
-        $store->start();
-        $store->save();
-
-        $this->expectException(LogicException::class);
-        $store->set('user_id', 42);
-    }
-
-    public function test_id_outside_the_lifecycle_throws(): void
-    {
-        // The old behavior returned '' before start(), indistinguishable from
-        // a real (if odd) id at the call site. Fail loud instead.
-        $store = new NativeSessionStore(new SessionConfig);
-
-        $this->expectException(LogicException::class);
-        $store->id();
-    }
 
     public function test_id_is_the_native_session_id_between_start_and_save(): void
     {

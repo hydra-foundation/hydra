@@ -7,6 +7,7 @@ namespace Hydra\Session\Tests\Unit;
 use Hydra\Core\Environment;
 use Hydra\Session\SessionConfig;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,6 +15,7 @@ use PHPUnit\Framework\TestCase;
  * with safe defaults, and refusing at construction any combination a browser or
  * PHP would silently ignore.
  */
+#[CoversClass(SessionConfig::class)]
 final class SessionConfigTest extends TestCase
 {
     private string $dir;

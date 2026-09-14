@@ -12,7 +12,7 @@ use Hydra\Admin\Page;
 /** Reads rows and single rows, and cannot write either. */
 final class ArrayRowSource implements SourceInterface, RowSourceInterface
 {
-    /** @var array<string, array<string, mixed>> */
+    /** @var array<array-key, array<string, mixed>> */
     public array $rows = [
         '1' => ['id' => 1, 'username' => 'ada'],
         '2' => ['id' => 2, 'username' => 'grace'],

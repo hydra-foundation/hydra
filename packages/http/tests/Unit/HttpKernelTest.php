@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\Contracts\EmitterInterface;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
 use Hydra\Http\HttpKernel;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -23,6 +24,7 @@ final class CapturingEmitter implements EmitterInterface
     }
 }
 
+#[CoversClass(HttpKernel::class)]
 final class HttpKernelTest extends TestCase
 {
     public function test_handle_captures_request_runs_handler_and_emits_response(): void

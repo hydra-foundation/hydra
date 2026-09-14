@@ -7,6 +7,7 @@ namespace Hydra\Database\Tests\Unit;
 use Hydra\Database\MigrationRunner;
 use PDO;
 use PDOException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -16,6 +17,7 @@ use RuntimeException;
  * files in order, track them so re-runs are no-ops, report status, and reset
  * on fresh().
  */
+#[CoversClass(MigrationRunner::class)]
 final class MigrationRunnerTest extends TestCase
 {
     private PDO $pdo;

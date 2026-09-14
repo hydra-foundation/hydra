@@ -115,13 +115,21 @@ final class AdminHarness
         return $request;
     }
 
-    /** The frame htmx swaps: a screen without the surrounding page. */
+    /**
+     * The frame htmx swaps: a screen without the surrounding page.
+     *
+     * @return array<string, string>
+     */
     public function frame(): array
     {
         return ['HX-Request' => 'true', 'HX-Target' => 'div#' . Renderer::FRAME];
     }
 
-    /** The body a filter or a page link swaps: the table alone. */
+    /**
+     * The body a filter or a page link swaps: the table alone.
+     *
+     * @return array<string, string>
+     */
     public function body(): array
     {
         return ['HX-Request' => 'true', 'HX-Target' => 'div#' . Renderer::BODY];

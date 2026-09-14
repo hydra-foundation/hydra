@@ -6,6 +6,7 @@ namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\RequestLoggingMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -16,6 +17,7 @@ use Psr\Log\AbstractLogger;
  * One structured line per request carrying the facts an access log needs, and
  * the inner response handed back untouched.
  */
+#[CoversClass(RequestLoggingMiddleware::class)]
 final class RequestLoggingMiddlewareTest extends TestCase
 {
     public function test_logs_one_line_with_request_and_response_facts(): void
@@ -61,10 +63,11 @@ final class RequestLoggingMiddlewareTest extends TestCase
 /** A PSR-3 logger that records every call for assertion. */
 final class RecordingLogger extends AbstractLogger
 {
-    /** @var list<array{0: mixed, 1: string, 2: array}> */
+    /** @var list<array{0: mixed, 1: string, 2: array<string, mixed>}> */
     public array $records = [];
 
-    public function log($level, $message, array $context = []): void
+    /** @param array<string, mixed> $context */
+    public function log($level, string|\Stringable $message, array $context = []): void
     {
         $this->records[] = [$level, (string) $message, $context];
     }

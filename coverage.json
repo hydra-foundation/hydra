@@ -1,0 +1,20 @@
+{
+    "admin": 76,
+    "auth": 93.8,
+    "authorization": 100,
+    "cache": 88.1,
+    "console": 90.9,
+    "core": 94.8,
+    "csrf": 96.7,
+    "database": 83.3,
+    "event": 100,
+    "http": 96.5,
+    "kernel": 97.8,
+    "log": 100,
+    "nyholm": 100,
+    "php-di": 100,
+    "session": 99,
+    "throttle": 96,
+    "validation": 95,
+    "view": 75
+}

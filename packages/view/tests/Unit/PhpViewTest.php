@@ -11,9 +11,11 @@ use Hydra\View\HtmlView;
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
 use Hydra\View\Contracts\ViewInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionParameter;
 use RuntimeException;
 
 /**
@@ -21,6 +23,7 @@ use RuntimeException;
  * fallback search path, and containment of the template name, which is the only
  * place an untrusted string reaches the filesystem.
  */
+#[CoversClass(PhpView::class)]
 final class PhpViewTest extends TestCase
 {
     private string $root;
@@ -401,8 +404,9 @@ final class PhpViewTest extends TestCase
         $constructor = (new ReflectionClass(PhpView::class))->getConstructor();
         $nonce = $constructor?->getParameters()[1] ?? null;
 
-        $this->assertSame('cspNonce', $nonce?->getName());
-        $this->assertFalse($nonce?->isOptional(), 'the nonce has gone back to being optional');
+        $this->assertInstanceOf(ReflectionParameter::class, $nonce);
+        $this->assertSame('cspNonce', $nonce->getName());
+        $this->assertFalse($nonce->isOptional(), 'the nonce has gone back to being optional');
     }
 
     public function test_csp_nonce_renders_the_requests_token(): void

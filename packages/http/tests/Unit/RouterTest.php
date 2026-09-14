@@ -8,6 +8,7 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Http\Exceptions\MethodNotAllowedException;
 use Hydra\Http\Exceptions\NotFoundException;
 use Hydra\Http\Router;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -27,6 +28,7 @@ final class FooController
     }
 }
 
+#[CoversClass(Router::class)]
 final class RouterTest extends TestCase
 {
     private function request(string $method, string $path): ServerRequestInterface
@@ -42,6 +44,7 @@ final class RouterTest extends TestCase
         return $request;
     }
 
+    /** @param array<class-string, object> $map */
     private function container(array $map = []): ContainerInterface
     {
         $container = $this->createStub(ContainerInterface::class);

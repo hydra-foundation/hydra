@@ -11,15 +11,20 @@ use Hydra\Admin\Field;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\ModuleScanner;
 use Hydra\Admin\Screens\DeleteScreen;
+use Hydra\Admin\Screens\RowPath;
 use Hydra\Admin\Tests\Support\ArrayContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\TestCase;
 
 /**
  * The delete screen compiles to a POST and nothing else, so no link or prefetch
  * can reach it, and it is refused where it is declared when its path names no row.
  */
+#[CoversTrait(RowPath::class)]
+#[CoversClass(DeleteScreen::class)]
 final class DeleteScreenTest extends TestCase
 {
     public function test_it_is_a_post_and_nothing_else(): void

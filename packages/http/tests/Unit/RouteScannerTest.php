@@ -9,6 +9,7 @@ use Hydra\Http\Attributes\Route;
 use Hydra\Http\Attributes\RouteGroup;
 use Hydra\Http\Router;
 use Hydra\Http\RouteScanner;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -99,9 +100,14 @@ final class BlogController
     public function notARoute(): void {}
 }
 
+#[CoversClass(RouteScanner::class)]
 final class RouteScannerTest extends TestCase
 {
-    /** Normalize a scanned route to "METHOD path => Class::method" for set comparison. */
+    /**
+     * Normalize a scanned route to "METHOD path => Class::method" for set comparison.
+     *
+     * @param array{method: string, path: string, handler: array{class-string, string}, middleware: list<class-string>} $route
+     */
     private function fingerprint(array $route): string
     {
         [$class, $method] = $route['handler'];

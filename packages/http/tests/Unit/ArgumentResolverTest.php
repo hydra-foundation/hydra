@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\ArgumentResolver;
 use Hydra\Http\Exceptions\NotFoundException;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
@@ -16,8 +17,13 @@ use Psr\Http\Message\ServerRequestInterface;
  * type, route placeholders coerced to the declared scalar, defaults and
  * nullables, and the wiring errors that are a bug rather than a bad request.
  */
+#[CoversClass(ArgumentResolver::class)]
 final class ArgumentResolverTest extends TestCase
 {
+    /**
+     * @param array<string, string> $params
+     * @return list<mixed>
+     */
     private function resolve(callable $target, array $params = [], ?ServerRequestInterface $request = null): array
     {
         $request ??= $this->createStub(ServerRequestInterface::class);

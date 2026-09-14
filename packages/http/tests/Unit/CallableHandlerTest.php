@@ -6,6 +6,7 @@ namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\ArgumentResolver;
 use Hydra\Http\CallableHandler;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -14,8 +15,10 @@ use Psr\Http\Message\ServerRequestInterface;
  * The adapter that lets a plain callable stand in as a PSR-15 handler, with the
  * route's placeholders bound to its typed arguments.
  */
+#[CoversClass(CallableHandler::class)]
 final class CallableHandlerTest extends TestCase
 {
+    /** @param array<string, string> $params */
     private function handler(callable $target, array $params = []): CallableHandler
     {
         return new CallableHandler($target, new ArgumentResolver, $params);

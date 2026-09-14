@@ -5,8 +5,22 @@
          colors="true"
          failOnWarning="true"
          failOnDeprecation="true"
+         requireCoverageMetadata="true"
+         failOnRisky="true"
+         failOnNotice="true"
+         beStrictAboutOutputDuringTests="true"
+         beStrictAboutChangesToGlobalState="true"
+         displayDetailsOnSkippedTests="true"
          cacheDirectory=".phpunit.cache">
     <testsuites>
+        <!--
+            bin/ is the release gate. api-surface.php and release.sh are the two
+            things standing between a breaking change and a patch tag, and
+            neither had a test until this suite.
+        -->
+        <testsuite name="bin">
+            <directory>tests</directory>
+        </testsuite>
         <testsuite name="admin">
             <directory>packages/admin/tests</directory>
         </testsuite>
@@ -67,6 +81,7 @@
             <directory>packages/admin/src</directory>
             <directory>packages/auth/src</directory>
             <directory>packages/authorization/src</directory>
+            <directory>packages/cache/src</directory>
             <directory>packages/console/src</directory>
             <directory>packages/core/src</directory>
             <directory>packages/csrf/src</directory>

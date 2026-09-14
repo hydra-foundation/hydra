@@ -66,6 +66,103 @@ jobs:
           REDIS_REQUIRED: '1'
         run: vendor/bin/phpunit --order-by=random
 
+  coverage:
+    name: Coverage floors
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, redis
+          coverage: pcov
+
+      - uses: ramsey/composer-install@v3
+
+      # Declaration order, not random: a floor is a number to compare against
+      # previous runs, and randomised order changes which lines a leak happens
+      # to reach. The matrix job above is the one that hunts for leaks.
+      - name: PHPUnit with coverage
+        env:
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          REDIS_REQUIRED: '1'
+        run: vendor/bin/phpunit --coverage-clover build/coverage.xml
+
+      # Per package, not one number for the tree: http and admin are two thirds
+      # of the source and would carry a global average on their own.
+      - name: Coverage floors
+        run: php bin/coverage.php build/coverage.xml
+
+  skeleton:
+    name: Against the skeleton
+    runs-on: ubuntu-latest
+
+    # The eight tests/Integration flows in the skeleton are the only end-to-end
+    # coverage in the project, and they only ever ran against released tags: the
+    # app's CI installs from its committed lock, so a kernel change that breaks
+    # boot was discoverable after the tag rather than on the PR that made it.
+    # This is that job in the other direction.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # composer.dev.json resolves hydrakit/* from ../hydra/packages/*, so the
+      # two checkouts have to sit side by side the way a local clone does.
+      - uses: actions/checkout@v4
+        with:
+          path: hydra
+
+      - uses: actions/checkout@v4
+        with:
+          repository: hydra-foundation/app
+          path: app
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, redis
+          coverage: none
+
+      # update, not install: the committed lock holds released packages, and
+      # the whole point of this job is to run the skeleton against the
+      # framework as this pull request leaves it.
+      - name: Install the skeleton against this checkout
+        working-directory: app
+        env:
+          COMPOSER: composer.dev.json
+        run: composer update --no-interaction --no-progress
+
+      - name: PHPUnit
+        working-directory: app
+        env:
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+        run: vendor/bin/phpunit --order-by=random
+
+      - name: PHPStan
+        working-directory: app
+        run: vendor/bin/phpstan analyse --no-progress --error-format=github
+
   quality:
     name: Static analysis and style
     runs-on: ubuntu-latest

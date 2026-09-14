@@ -11,6 +11,7 @@ use Hydra\Admin\Field;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Http\Query;
 use Nyholm\Psr7\ServerRequest;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use PHPUnit\Framework\TestCase;
  * term are capped so neither can ask for a full scan, and the term's own
  * wildcards are escaped.
  */
+#[CoversClass(Criteria::class)]
 final class CriteriaTest extends TestCase
 {
     public function test_it_ignores_a_sort_column_the_module_never_declared(): void

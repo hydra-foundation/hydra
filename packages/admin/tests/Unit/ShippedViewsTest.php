@@ -6,6 +6,7 @@ namespace Hydra\Admin\Tests\Unit;
 
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Admin\Renderer;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -16,6 +17,8 @@ use SplFileInfo;
  * only when somebody opens the screen. These hold the package's own names, swap
  * targets and nonce discipline together at test time instead.
  */
+#[CoversClass(AdminServiceProvider::class)]
+#[CoversClass(Renderer::class)]
 final class ShippedViewsTest extends TestCase
 {
     /**

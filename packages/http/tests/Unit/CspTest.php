@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\Csp;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
  * and drop them. Each builder returns a new policy, so the shared default is
  * never mutated by a screen relaxing one directive for itself.
  */
+#[CoversClass(Csp::class)]
 final class CspTest extends TestCase
 {
     public function test_compiles_directives_in_declaration_order(): void

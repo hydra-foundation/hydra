@@ -16,7 +16,7 @@ use Hydra\Admin\Page;
  */
 final class ArrayWritableSource implements SourceInterface, UpdateSourceInterface, CreateSourceInterface
 {
-    /** @var array<string, array<string, mixed>> */
+    /** @var array<array-key, array<string, mixed>> */
     public array $rows = [
         '1' => ['id' => 1, 'username' => 'ada'],
         '2' => ['id' => 2, 'username' => 'grace'],

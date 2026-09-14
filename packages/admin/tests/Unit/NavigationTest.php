@@ -11,12 +11,14 @@ use Hydra\Admin\Tests\Support\ArrayContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\DashboardModule;
 use Hydra\Admin\Tests\Support\UsersModule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * The sidebar shows exactly the modules the gate allows, so no link can appear
  * for a screen that would answer 403.
  */
+#[CoversClass(Navigation::class)]
 final class NavigationTest extends TestCase
 {
     public function test_it_hides_modules_the_gate_denies(): void

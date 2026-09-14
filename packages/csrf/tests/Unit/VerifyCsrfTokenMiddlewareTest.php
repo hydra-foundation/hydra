@@ -10,6 +10,7 @@ use Hydra\Csrf\Exceptions\TokenMismatchException;
 use Hydra\Csrf\VerifyCsrfTokenMiddleware;
 use Hydra\Session\Stores\ArraySessionStore;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -20,6 +21,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * everything else, including lowercase and unknown verbs, needs a valid token
  * from either the header or the form field.
  */
+#[CoversClass(VerifyCsrfTokenMiddleware::class)]
 final class VerifyCsrfTokenMiddlewareTest extends TestCase
 {
     public function test_safe_methods_pass_through_without_a_token(): void

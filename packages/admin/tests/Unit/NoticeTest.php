@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Hydra\Admin\Tests\Unit;
 
 use Hydra\Admin\Notice;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * What a write leaves for the next screen to say, and that the admin's own
  * wording lives in one class rather than spread across the templates.
  */
+#[CoversClass(Notice::class)]
 final class NoticeTest extends TestCase
 {
     public function test_a_success_is_a_status_update(): void

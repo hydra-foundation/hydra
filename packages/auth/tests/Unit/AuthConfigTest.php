@@ -7,6 +7,7 @@ namespace Hydra\Auth\Tests\Unit;
 use Hydra\Auth\AuthConfig;
 use Hydra\Core\Environment;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,6 +15,7 @@ use PHPUnit\Framework\TestCase;
  * outside bcrypt's range is refused at construction rather than surfacing later
  * as a hash that never verifies.
  */
+#[CoversClass(AuthConfig::class)]
 final class AuthConfigTest extends TestCase
 {
     private string $dir;

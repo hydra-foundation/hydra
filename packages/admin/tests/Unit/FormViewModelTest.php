@@ -11,12 +11,14 @@ use Hydra\Admin\Input;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\ViewModels\FormViewModel;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * What a form template reads: where it posts, the values in its controls, and
  * where an error is shown when it belongs to no single control.
  */
+#[CoversClass(FormViewModel::class)]
 final class FormViewModelTest extends TestCase
 {
     public function test_it_posts_back_to_the_url_the_form_is_at(): void

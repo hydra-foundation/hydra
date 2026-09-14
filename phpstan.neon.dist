@@ -2,9 +2,35 @@ parameters:
     level: 6
     paths:
         - packages
-    excludePaths:
-        analyse:
-            - packages/*/tests/*
+
+    # The tests are analysed too: a test asserting on a mistyped method, or on
+    # an exception class that is never thrown, is exactly the defect level 6
+    # catches and exactly the kind a green suite hides.
+    ignoreErrors:
+        # A routing or ability fixture names classes that do not exist, on
+        # purpose: the framework treats these as opaque identifiers and never
+        # loads them, and the alternative is 29 empty classes declared only to
+        # satisfy a class-string the test is not about. Scoped to tests, so the
+        # same slip in a package still fails.
+        -
+            message: '#expects (list<)?class-string#'
+            paths:
+                - packages/*/tests/*
+        -
+            message: '#expects array\{class-string, string\}#'
+            paths:
+                - packages/*/tests/*
+        -
+            message: '#(array|list)\{class-string, string\}#'
+            paths:
+                - packages/*/tests/*
+        # RouteScannerTest declares a controller carrying two #[RouteGroup]
+        # attributes to prove the scanner surfaces the misuse. PHP itself only
+        # complains when the attribute is reflected, which is what the test does.
+        -
+            identifier: attribute.nonRepeatable
+            paths:
+                - packages/http/tests/Unit/RouteScannerTest.php
 
     # The packages claim >=8.2, so analyse the whole span rather than whatever
     # PHP the runner happens to have. Otherwise a call that only exists in 8.4

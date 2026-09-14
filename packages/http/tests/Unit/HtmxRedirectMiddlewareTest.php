@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\HtmxRedirectMiddleware;
 use Hydra\Http\Responder;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -18,6 +19,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * redirect added later cannot forget to. htmx 4 reads no response header, so
  * the conversion is into markup; see {@see \Hydra\Http\HtmxResponse}.
  */
+#[CoversClass(HtmxRedirectMiddleware::class)]
 final class HtmxRedirectMiddlewareTest extends TestCase
 {
     public function test_htmx_redirect_becomes_a_directive_in_a_body_htmx_will_look_at(): void

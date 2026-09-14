@@ -6,6 +6,7 @@ namespace Hydra\Cache\Tests\Unit;
 
 use Hydra\Cache\Contracts\StoreInterface;
 use Hydra\Cache\RedisStore;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Redis;
 use RedisException;
 use RuntimeException;
@@ -17,6 +18,7 @@ use RuntimeException;
  * replies below are the whole basis of the limiter, and a green build that
  * skipped them says nothing about the store that actually ships.
  */
+#[CoversClass(RedisStore::class)]
 final class RedisStoreTest extends StoreContractTestCase
 {
     private Redis $redis;
@@ -54,6 +56,16 @@ final class RedisStoreTest extends StoreContractTestCase
     protected function store(): StoreInterface
     {
         return $this->store;
+    }
+
+    /**
+     * Really waits. The TTLs under test are the server's own, so there is no
+     * clock here to move; this is the one place in the suite where the wall
+     * clock is the thing being measured.
+     */
+    protected function advance(int $seconds): void
+    {
+        sleep($seconds);
     }
 
     /**

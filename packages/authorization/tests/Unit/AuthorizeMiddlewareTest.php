@@ -9,6 +9,7 @@ use Hydra\Authorization\AuthorizeMiddleware;
 use Hydra\Authorization\Contracts\AbilityInterface;
 use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Authorization\Exceptions\AuthorizationException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -19,6 +20,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * spy handler standing in for the rest of the pipeline. The concrete subclass
  * fixes the ability, exactly as an app's would.
  */
+#[CoversClass(AuthorizeMiddleware::class)]
 final class AuthorizeMiddlewareTest extends TestCase
 {
     public function test_lets_the_request_through_when_the_gate_allows(): void

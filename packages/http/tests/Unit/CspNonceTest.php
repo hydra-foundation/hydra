@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\CspNonce;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
  * policy header and every tag the page stamps agree, and safe to place in a
  * header or an attribute without escaping.
  */
+#[CoversClass(CspNonce::class)]
 final class CspNonceTest extends TestCase
 {
     public function test_returns_the_same_token_every_time_it_is_read(): void

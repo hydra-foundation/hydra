@@ -8,6 +8,7 @@ use Hydra\Http\Exceptions\BadRequestException;
 use Hydra\Http\ParsedBody;
 use Hydra\Http\ParseBodyMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -20,6 +21,7 @@ use RuntimeException;
  * write verbs, malformed JSON as a 400, and an already-parsed body never
  * clobbered. Also that the stream is left re-readable for raw consumers.
  */
+#[CoversClass(ParseBodyMiddleware::class)]
 final class ParseBodyMiddlewareTest extends TestCase
 {
     private ParseBodyMiddleware $middleware;
@@ -222,17 +224,21 @@ final class ParseBodyMiddlewareTest extends TestCase
         return $handler->seen;
     }
 
-    private function handler(): RequestHandlerInterface
+    private function handler(): CapturingHandler
     {
-        return new class implements RequestHandlerInterface {
-            public ServerRequestInterface $seen;
+        return new CapturingHandler;
+    }
+}
 
-            public function handle(ServerRequestInterface $request): ResponseInterface
-            {
-                $this->seen = $request;
+/** Answers 200 and keeps the request it was handed. */
+final class CapturingHandler implements RequestHandlerInterface
+{
+    public ServerRequestInterface $seen;
 
-                return (new Psr17Factory)->createResponse(200);
-            }
-        };
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        $this->seen = $request;
+
+        return (new Psr17Factory)->createResponse(200);
     }
 }

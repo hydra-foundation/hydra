@@ -10,6 +10,7 @@ use Hydra\Http\Status;
 use Hydra\Kernel\Controller;
 use Hydra\View\Contracts\ViewInterface;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 
@@ -17,6 +18,7 @@ use Psr\Http\Message\ResponseInterface;
  * Exercises the base controller's two helpers directly. The view is a fake that
  * echoes its arguments, so render() can be asserted without a real template.
  */
+#[CoversClass(Controller::class)]
 final class ControllerTest extends TestCase
 {
     private function controller(): TestController
@@ -47,7 +49,6 @@ final class ControllerTest extends TestCase
     {
         try {
             $this->controller()->doAbort(403, 'not yours');
-            $this->fail('expected HttpException');
         } catch (HttpException $e) {
             $this->assertSame(403, $e->status());
             $this->assertSame('not yours', $e->getMessage());

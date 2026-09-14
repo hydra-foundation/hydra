@@ -6,6 +6,7 @@ namespace Hydra\Session\Tests\Unit;
 
 use Hydra\Session\Contracts\SessionLifecycleInterface;
 use Hydra\Session\StartSessionMiddleware;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -16,6 +17,7 @@ use RuntimeException;
  * The middleware's ordering contract: the session is open before the handler
  * runs and closed after it returns, including when the handler throws.
  */
+#[CoversClass(StartSessionMiddleware::class)]
 final class StartSessionMiddlewareTest extends TestCase
 {
     public function test_it_starts_before_handling_and_saves_after(): void

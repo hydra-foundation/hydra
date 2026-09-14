@@ -6,6 +6,7 @@ namespace Hydra\Cache\Tests\Unit;
 
 use Hydra\Cache\CacheConfig;
 use Hydra\Cache\RedisConnection;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Redis;
 use RuntimeException;
@@ -16,6 +17,7 @@ use RuntimeException;
  * connection: the alternative is a Redis object that answers every command with
  * an error, and an error reply counted as zero is under every limit there is.
  */
+#[CoversClass(RedisConnection::class)]
 final class RedisConnectionTest extends TestCase
 {
     protected function setUp(): void

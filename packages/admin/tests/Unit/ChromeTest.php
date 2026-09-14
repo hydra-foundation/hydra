@@ -13,12 +13,14 @@ use Hydra\Admin\Tests\Support\ArrayContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\DashboardModule;
 use Hydra\Admin\Tests\Support\UsersModule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * The breadcrumb trail a screen renders above itself: what each depth
  * contributes, and that a module the gate denies leaves no crumb pointing at it.
  */
+#[CoversClass(Chrome::class)]
 final class ChromeTest extends TestCase
 {
     public function test_a_module_screen_hangs_under_the_admin_root(): void

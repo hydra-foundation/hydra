@@ -17,6 +17,7 @@ use Hydra\Admin\Tests\Support\ArrayWritableSource;
 use Hydra\Admin\Tests\Support\ArrayRowSource;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\EditableUsersModule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Hydra\Admin\Tests\Support\UsersModule;
 use Hydra\Admin\Tests\Support\ViewableUsersModule;
@@ -27,6 +28,7 @@ use PHPUnit\Framework\TestCase;
  * checks in front of that: a screen cannot be served by a source that lacks the
  * operation it needs, and one write capability never implies another.
  */
+#[CoversClass(ModuleRegistry::class)]
 final class ModuleRegistryTest extends TestCase
 {
     public function test_it_maps_a_request_path_back_to_its_module(): void

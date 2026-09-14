@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Unit;
 
+use Hydra\Admin\AdminController;
 use Hydra\Admin\Tests\Support\AdminHarness;
 use Hydra\Admin\Tests\Support\CreateOnlyUsersModule;
 use Hydra\Admin\Tests\Support\CrudUserSource;
@@ -11,6 +12,7 @@ use Hydra\Admin\Tests\Support\CrudUsersModule;
 use Hydra\Authorization\Exceptions\AuthorizationException;
 use Hydra\Http\Exceptions\NotFoundException;
 use Hydra\Http\HtmxResponse;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Psr\Http\Message\ResponseInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -19,6 +21,7 @@ use PHPUnit\Framework\TestCase;
  * own templates: what a request produces is asserted as rendered HTML and as
  * what the source is left holding.
  */
+#[CoversClass(AdminController::class)]
 final class AdminControllerTest extends TestCase
 {
     private CrudUserSource $source;

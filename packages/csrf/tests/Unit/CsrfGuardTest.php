@@ -7,6 +7,7 @@ namespace Hydra\Csrf\Tests\Unit;
 use Hydra\Core\Security\Signer;
 use Hydra\Csrf\CsrfGuard;
 use Hydra\Session\Stores\ArraySessionStore;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  * under a fixed test key, so these prove the actual session read/write and
  * sign/verify paths, not mocks of them.
  */
+#[CoversClass(CsrfGuard::class)]
 final class CsrfGuardTest extends TestCase
 {
     /** A fixed 64-hex (32-byte) key so signatures are reproducible across guards. */

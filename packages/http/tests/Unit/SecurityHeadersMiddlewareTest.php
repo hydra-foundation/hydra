@@ -6,6 +6,7 @@ namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\SecurityHeadersMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -15,6 +16,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * The security headers are stamped on the response, and nothing the inner
  * handler produced is disturbed in the process.
  */
+#[CoversClass(SecurityHeadersMiddleware::class)]
 final class SecurityHeadersMiddlewareTest extends TestCase
 {
     public function test_stamps_the_security_headers_on_the_response(): void

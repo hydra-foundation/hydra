@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Hydra\Event\Tests\Unit;
 
 use Hydra\Event\ListenerProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Which listeners an event matches: exact class, base class and interface via
  * instanceof, and the registration order they come back in.
  */
+#[CoversClass(ListenerProvider::class)]
 final class ListenerProviderTest extends TestCase
 {
     private ListenerProvider $provider;

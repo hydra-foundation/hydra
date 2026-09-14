@@ -8,6 +8,7 @@ use Hydra\Console\Commands\RouteCacheCommand;
 use Hydra\Console\Commands\RouteCacheClearCommand;
 use Hydra\Http\Attributes\Route;
 use Hydra\Http\RouteCache;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -22,6 +23,7 @@ final class CacheableRoutesController
     public function store(): void {}
 }
 
+#[CoversClass(RouteCacheCommand::class)]
 final class RouteCacheCommandTest extends TestCase
 {
     private string $path;

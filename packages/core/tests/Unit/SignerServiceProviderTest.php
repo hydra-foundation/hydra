@@ -8,6 +8,7 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Security\Signer;
 use Hydra\Core\Security\SignerServiceProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  * registered, so a missing or malformed key names itself instead of failing
  * somewhere downstream.
  */
+#[CoversClass(SignerServiceProvider::class)]
 final class SignerServiceProviderTest extends TestCase
 {
     private const KEY_HEX = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';

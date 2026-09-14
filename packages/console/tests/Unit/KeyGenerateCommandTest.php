@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Console\Tests\Unit;
 
 use Hydra\Console\Commands\KeyGenerateCommand;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -14,6 +15,7 @@ use Symfony\Component\Console\Tester\CommandTester;
  * an APP_KEY already exists: overwriting one silently would invalidate
  * everything sealed with the old key.
  */
+#[CoversClass(KeyGenerateCommand::class)]
 final class KeyGenerateCommandTest extends TestCase
 {
     private string $envPath;
