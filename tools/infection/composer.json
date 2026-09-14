@@ -1,0 +1,14 @@
+{
+    "name": "hydrakit/tools-infection",
+    "description": "Infection, installed apart from the framework's own dev dependencies.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "infection/infection": "^0.35"
+    },
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": false
+        }
+    }
+}

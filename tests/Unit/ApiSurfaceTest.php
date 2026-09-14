@@ -58,23 +58,34 @@ final class ApiSurfaceTest extends TestCase
         ], $surface);
     }
 
-    public function test_it_leaves_out_the_published_contract_cases(): void
+    public function test_a_contract_case_is_its_hooks_and_not_its_tests(): void
     {
-        // src/Testing ships abstract TestCase subclasses. A listing of one
-        // records its public test methods, which is the half a subclass cannot
-        // break by losing, while the protected hooks that would break it are
-        // not surface and never appear. Tracking it is all churn, no signal.
+        // src/Testing is the one place the relationship is inverted: a user
+        // extends the class rather than calling it, so an abstract method is
+        // what they must implement and renaming one breaks them, whatever its
+        // visibility. Losing a test method cannot break a subclass, and every
+        // one of them would otherwise churn this listing on any edit.
         mkdir($this->dir . '/pkg/src/Testing', 0o775, true);
         file_put_contents($this->dir . '/pkg/src/Subject.php', '<?php
             namespace Acme;
             final class Real { public function a(): void {} }
         ');
-        file_put_contents($this->dir . '/pkg/src/Testing/Case.php', '<?php
+        file_put_contents($this->dir . '/pkg/src/Testing/ThingContractTestCase.php', '<?php
             namespace Acme\\Testing;
-            abstract class ThingContractTestCase { public function test_a(): void {} }
+            abstract class ThingContractTestCase
+            {
+                abstract protected function thing(): Thing;
+                public function test_it_does_something(): void {}
+                protected function helper(): void {}
+            }
         ');
 
-        $this->assertSame(['Acme\Real', 'Acme\Real->a(): void'], $this->scan($this->dir));
+        $this->assertSame([
+            'Acme\Real',
+            'Acme\Real->a(): void',
+            'Acme\Testing\ThingContractTestCase',
+            'Acme\Testing\ThingContractTestCase->thing(): Thing',
+        ], $this->scan($this->dir));
     }
 
     public function test_it_leaves_out_what_is_not_surface(): void

@@ -131,6 +131,12 @@ jobs:
 
       - uses: ramsey/composer-install@v3
 
+      # Infection lives in tools/, not in require-dev: it needs PHP 8.3 while
+      # the framework supports 8.2, and a dev tool must not decide what the
+      # library can be installed on. The 8.2 matrix job is what says so.
+      - name: Install infection
+        run: composer install -d tools/infection --no-interaction --no-progress
+
       # Coverage says a line ran; this says a test would have noticed it change.
       # Three packages, not the tree, and the floor lives in infection.json5 —
       # infection exits non-zero on its own when the score falls below it.
@@ -139,7 +145,7 @@ jobs:
           REDIS_HOST: 127.0.0.1
           REDIS_PORT: 6379
           REDIS_REQUIRED: '1'
-        run: vendor/bin/infection --threads=max --no-progress --no-interaction
+        run: tools/infection/vendor/bin/infection --threads=max --no-progress --no-interaction
 
       # The survivors, so a failed run says which mutants lived rather than
       # only that the number moved.

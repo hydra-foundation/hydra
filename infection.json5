@@ -7,7 +7,7 @@
     // broken code costs the most: the validation rules, the rate limiter and
     // the client-address resolver it keys on, and the HTTP layer every request
     // passes through. These three run in about fifteen seconds together.
-    $schema: "vendor/infection/infection/resources/schema.json",
+    $schema: "tools/infection/vendor/infection/infection/resources/schema.json",
     source: {
         directories: [
             "packages/validation/src",

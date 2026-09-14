@@ -27,7 +27,6 @@
     "require-dev": {
         "ext-pdo_sqlite": "*",
         "friendsofphp/php-cs-fixer": "^3.95",
-        "infection/infection": "^0.35.4",
         "phpstan/phpstan": "^2.2",
         "phpunit/phpunit": "^11.0"
     },
@@ -99,10 +98,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "infection/extension-installer": false
-        }
+        "sort-packages": true
     },
     "extra": {
         "branch-alias": {
@@ -119,6 +115,6 @@
             "@lint",
             "@test"
         ],
-        "mutate": "infection --threads=max --no-progress"
+        "mutate": "tools/infection/vendor/bin/infection --threads=max --no-progress"
     }
 }

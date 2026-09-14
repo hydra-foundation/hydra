@@ -37,16 +37,9 @@ if ($root === null || !is_dir($root)) {
     exit(1);
 }
 
-/*
- * src/Testing is deliberately not scanned. It holds the published contract
- * cases, and what a listing of them records is their public test methods —
- * exactly the members a subclass cannot break by losing. The parts that would
- * break one are the protected abstract hooks, which are not surface and never
- * appear here, so including the directory is all churn and no signal.
- */
 $files = new RegexIterator(
     new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root)),
-    '#/src/(?!Testing/).+\.php$#'
+    '#/src/.+\.php$#'
 );
 
 $symbols = [];
@@ -100,6 +93,7 @@ foreach ($files as $file) {
     $namespace = '';
     $class = null;
     $isEnum = false;
+    $isContractCase = str_contains(strtr($file->getPathname(), '\\', '/'), '/src/Testing/');
     $classDepth = 0;
     $depth = 0;
     $modifiers = [];
@@ -179,6 +173,16 @@ foreach ($files as $file) {
         // An interface method and a bare `const` declare no visibility and are
         // public; anything explicitly hidden is not surface.
         $hidden = array_intersect($modifiers, [T_PROTECTED, T_PRIVATE]) !== [];
+
+        // src/Testing holds the published contract cases, where what a user
+        // depends on is inverted: they extend the class, so an abstract method
+        // is the part they must implement and a rename of one breaks them,
+        // whatever its visibility. The test methods are the opposite — losing
+        // one cannot break a subclass, and every one of them would otherwise
+        // churn this listing on any edit to a case.
+        if ($isContractCase) {
+            $hidden = !in_array(T_ABSTRACT, $modifiers, true);
+        }
 
         if ($inClassBody && $token->is(T_FUNCTION) && $nextToken?->is(T_STRING)) {
             $name = $nextToken->text;
