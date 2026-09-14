@@ -6,6 +6,7 @@ namespace Hydra\Admin;
 
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Contracts\SourceInterface;
+use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\ListScreen;
 use Hydra\Admin\Sources\CallableSource;
@@ -134,6 +135,7 @@ final class Definition
     {
         $this->assertSearchableFieldsAreFindable();
         $this->assertRowScreensHaveSomethingToName();
+        $this->assertExportHasSomethingToWrite();
 
         $screens = $this->screens;
 
@@ -228,6 +230,47 @@ final class Definition
                 $screen->path(),
             ));
         }
+    }
+
+    /**
+     * An export screen reads through the module's source and writes the fields
+     * declared for {@see Surface::Export}. Missing either, it routes, gates,
+     * puts a button on the list and then hands the visitor a 500 or a file of
+     * nothing but headings, which is exactly the kind of failure the other two
+     * checks here exist to move forward to the moment the module is declared.
+     */
+    private function assertExportHasSomethingToWrite(): void
+    {
+        $exports = false;
+        $columns = false;
+
+        foreach ($this->screens as $screen) {
+            $exports = $exports || $screen instanceof ExportScreen;
+        }
+
+        if (!$exports) {
+            return;
+        }
+
+        foreach ($this->fields as $field) {
+            $columns = $columns || $field->appearsOn(Surface::Export);
+        }
+
+        $missing = match (true) {
+            $this->source === null => 'no source to read',
+            !$columns => 'no fields on Surface::Export to write',
+            default => null,
+        };
+
+        if ($missing === null) {
+            return;
+        }
+
+        throw new LogicException(sprintf(
+            'Admin module "%s" declares an export screen with %s.',
+            $this->slug,
+            $missing,
+        ));
     }
 
     private function screenNamed(string $name): ?ScreenInterface

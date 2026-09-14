@@ -27,8 +27,12 @@ final class CrudUserSource implements SourceInterface, RowSourceInterface, Updat
 
     public function __construct()
     {
-        foreach (['ada', 'grace', 'alan', 'edsger', 'barbara'] as $username) {
-            $this->create(['username' => $username, 'note' => "about {$username}"]);
+        foreach (['ada', 'grace', 'alan', 'edsger', 'barbara'] as $index => $username) {
+            $this->create([
+                'username' => $username,
+                'note' => "about {$username}",
+                'role' => $index < 2 ? 'admin' : 'user',
+            ]);
         }
     }
 
@@ -40,6 +44,15 @@ final class CrudUserSource implements SourceInterface, RowSourceInterface, Updat
             $rows = array_values(array_filter(
                 $rows,
                 static fn (array $row): bool => str_contains((string) $row['username'], $criteria->search),
+            ));
+        }
+
+        // Whatever the module declared filterable; Criteria has already refused
+        // any key that was not one of them.
+        foreach ($criteria->filters as $column => $value) {
+            $rows = array_values(array_filter(
+                $rows,
+                static fn (array $row): bool => (string) ($row[$column] ?? '') === $value,
             ));
         }
 
@@ -66,7 +79,7 @@ final class CrudUserSource implements SourceInterface, RowSourceInterface, Updat
     {
         $this->reject($data);
         $id = (string) $this->nextId++;
-        $this->rows[$id] = ['id' => (int) $id, 'username' => '', 'note' => '', ...$data];
+        $this->rows[$id] = ['id' => (int) $id, 'username' => '', 'note' => '', 'role' => 'user', ...$data];
 
         return $id;
     }

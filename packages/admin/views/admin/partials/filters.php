@@ -31,12 +31,16 @@
     <?php endforeach ?>
 </form>
 
-    <?php if ($vm->createUrl() !== null): ?>
-        <a class="btn btn-primary text-nowrap"
-           href="<?= $this->e($vm->createUrl()) ?>"
-           hx-nonce="<?= $this->e($this->cspNonce()) ?>"
-           hx-get="<?= $this->e($vm->createUrl()) ?>"
-           hx-target="#admin-frame"
-           hx-push-url="true"><?= $this->e($vm->createLabel()) ?></a>
-    <?php endif ?>
+    <div class="d-flex align-items-end gap-2">
+        <?= $this->partial('admin/partials/export', ['vm' => $vm]) ?>
+
+        <?php if ($vm->createUrl() !== null): ?>
+            <a class="btn btn-primary text-nowrap"
+               href="<?= $this->e($vm->createUrl()) ?>"
+               hx-nonce="<?= $this->e($this->cspNonce()) ?>"
+               hx-get="<?= $this->e($vm->createUrl()) ?>"
+               hx-target="#admin-frame"
+               hx-push-url="true"><?= $this->e($vm->createLabel()) ?></a>
+        <?php endif ?>
+    </div>
 </div>

@@ -36,6 +36,7 @@ final class AdminHarness
     public readonly Renderer $renderer;
     public readonly Responder $responder;
     public readonly ViewInterface $view;
+    public readonly RecordingDispatcher $events;
     public readonly AdminController $controller;
 
     /**
@@ -59,6 +60,7 @@ final class AdminHarness
             fallbacks: [AdminServiceProvider::views()],
         );
         $this->renderer = new Renderer($this->responder, $this->view);
+        $this->events = new RecordingDispatcher;
         $this->controller = new AdminController(
             $this->registry,
             $this->chrome,
@@ -66,6 +68,7 @@ final class AdminHarness
             new AdminsOnlyGate($allowed),
             $this->responder,
             new Validator,
+            $this->events,
         );
     }
 

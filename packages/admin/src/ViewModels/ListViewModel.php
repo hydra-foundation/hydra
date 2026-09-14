@@ -8,6 +8,7 @@ use Hydra\Admin\Blueprint;
 use Hydra\Admin\Field;
 use Hydra\Admin\Page;
 use Hydra\Admin\Screens\DeleteScreen;
+use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\ShowScreen;
 use Hydra\Admin\Surface;
@@ -95,6 +96,38 @@ final readonly class ListViewModel
         $screen = $this->blueprint->screen('create');
 
         return ($screen instanceof FormScreen ? $screen->heading() : null) ?? 'New';
+    }
+
+    /**
+     * Where this view of the list downloads as a file, or null when the module
+     * declares no export screen.
+     *
+     * It carries the filters, the search and the order, because what the
+     * visitor means by "export this" is the table in front of them. It does not
+     * carry the page: the file is the whole view, and a link that exported
+     * rows 51 to 75 because that is where the pager was left would be a trap.
+     */
+    public function exportUrl(): ?string
+    {
+        $screen = $this->blueprint->screen('export');
+
+        if (!$screen instanceof ExportScreen) {
+            return null;
+        }
+
+        $query = $this->page->criteria->toQuery();
+        unset($query['page']);
+        $url = $this->url() . '/' . trim($screen->path(), '/');
+
+        return $query === [] ? $url : $url . '?' . http_build_query($query);
+    }
+
+    /** The export screen's own wording, so the button says what it hands over. */
+    public function exportLabel(): string
+    {
+        $screen = $this->blueprint->screen('export');
+
+        return $screen instanceof ExportScreen ? $screen->label() : 'Export CSV';
     }
 
     /**

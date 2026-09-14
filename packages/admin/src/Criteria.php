@@ -120,6 +120,23 @@ final readonly class Criteria
         );
     }
 
+    /**
+     * The same list, read in pages of another size. What an extraction walks
+     * with: the view stays exactly what the visitor filtered and sorted, and
+     * only the size of the bite changes.
+     */
+    public function inPagesOf(int $perPage): self
+    {
+        return new self(
+            page: $this->page,
+            perPage: $perPage,
+            sort: $this->sort,
+            direction: $this->direction,
+            filters: $this->filters,
+            search: $this->search,
+        );
+    }
+
     public function offset(): int
     {
         return ($this->page - 1) * $this->perPage;

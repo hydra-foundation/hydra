@@ -261,6 +261,16 @@ final class ModuleRegistry
         return $source;
     }
 
+    /**
+     * A reader for everything this module's source matches, rather than for one
+     * page of it. What an export screen walks, and what application code asks
+     * for when it needs the rows behind a list without going through HTTP.
+     */
+    public function extractor(Blueprint $blueprint): Extractor
+    {
+        return new Extractor($this->source($blueprint));
+    }
+
     public function source(Blueprint $blueprint): SourceInterface
     {
         $source = $this->sourceFor($blueprint);

@@ -30,6 +30,13 @@ final class Renderer
      * $toolbar renders above the swappable body rather than inside it, so a
      * filter input keeps focus across a swap.
      *
+     * $oob is the price of that. A toolbar outside the swap is a toolbar that
+     * does not re-render when the body does, so a control in it that depends on
+     * the body's state is stale the moment somebody filters. This template is
+     * sent after the body on a body swap, out of band, to put such a control
+     * back in step; at the other two depths the toolbar renders it inline and
+     * this is not used, which is what keeps its id unique.
+     *
      * @param array<string, mixed> $data the body and toolbar templates' payload
      */
     public function screen(
@@ -39,6 +46,7 @@ final class Renderer
         array $data = [],
         ?string $toolbar = null,
         int|Status $status = Status::Ok,
+        ?string $oob = null,
     ): Response {
         $target = Htmx::fromRequest($request)->targetId();
 
@@ -49,7 +57,11 @@ final class Renderer
         $data = [...$data, 'screen' => $screen];
 
         if ($target === self::BODY) {
-            return $this->respond->html($this->view->render($body, $data, layout: false), $status);
+            return $this->respond->html(
+                $this->view->render($body, $data, layout: false)
+                . ($oob === null ? '' : $this->view->render($oob, [...$data, 'oob' => true], layout: false)),
+                $status,
+            );
         }
 
         $bag = ['screen' => $screen, 'body' => $body, 'toolbar' => $toolbar, 'data' => $data];

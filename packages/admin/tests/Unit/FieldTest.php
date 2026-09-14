@@ -131,4 +131,28 @@ final class FieldTest extends TestCase
             $plain->format(static fn (): string => 'x', Surface::Show)->rewritesValueOn(Surface::List),
         );
     }
+
+    /**
+     * A declared column is part of the export unless the module says otherwise.
+     * The alternative is an export that silently ships fewer columns than the
+     * module declared, which nobody notices until the file is open.
+     */
+    public function test_a_field_is_an_export_column_by_default(): void
+    {
+        $this->assertTrue(Field::text('username')->appearsOn(Surface::Export));
+        $this->assertFalse(Field::text('password')->onlyOn(Surface::Show)->appearsOn(Surface::Export));
+        $this->assertFalse(Field::text('secret')->hiddenOn(Surface::Export)->appearsOn(Surface::Export));
+    }
+
+    /**
+     * A column too wide for a table is the one an export is most wanted for, so
+     * hiding it from the list must not hide it from the file.
+     */
+    public function test_hiding_a_column_from_the_table_leaves_it_in_the_export(): void
+    {
+        $field = Field::text('user_agent')->hiddenOn(Surface::List);
+
+        $this->assertFalse($field->appearsOn(Surface::List));
+        $this->assertTrue($field->appearsOn(Surface::Export));
+    }
 }

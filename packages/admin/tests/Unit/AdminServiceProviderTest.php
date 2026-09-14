@@ -11,17 +11,24 @@ use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Navigation;
 use Hydra\Admin\Renderer;
 use Hydra\Admin\Tests\Support\AdminsOnlyGate;
+use Hydra\Admin\Events\RowCreated;
 use Hydra\Admin\Tests\Support\ArrayContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
+use Hydra\Admin\Tests\Support\CrudUserSource;
+use Hydra\Admin\Tests\Support\CrudUsersModule;
 use Hydra\Admin\Tests\Support\UsersModule;
 use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Http\CspNonce;
+use Hydra\Admin\Tests\Support\RecordingDispatcher;
 use Hydra\Http\Responder;
+use Hydra\Validation\Validator;
 use Hydra\View\Contracts\ViewInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Hydra\View\PhpView;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * What an application gets for registering the provider: the services the admin
@@ -36,7 +43,7 @@ final class AdminServiceProviderTest extends TestCase
 
         (new AdminServiceProvider([UsersModule::class]))->register($container);
 
-        foreach ([ModuleRegistry::class, Navigation::class, Chrome::class, Renderer::class] as $service) {
+        foreach ([ModuleRegistry::class, Navigation::class, Chrome::class, Renderer::class, AdminController::class] as $service) {
             $this->assertInstanceOf($service, $container->get($service));
         }
     }
@@ -88,7 +95,51 @@ final class AdminServiceProviderTest extends TestCase
         $this->assertDirectoryExists(AdminServiceProvider::views());
     }
 
-    private function container(): ArrayContainer
+    /**
+     * The controller is bound by hand rather than left to autowiring, and this
+     * is what that buys. PHP-DI skips optional constructor parameters, so an
+     * admin whose dispatcher arrived that way would announce nothing in every
+     * application that had bound one, and nothing would say why.
+     */
+    public function test_the_controller_is_handed_the_dispatcher_the_application_bound(): void
+    {
+        $events = new RecordingDispatcher;
+        $container = $this->container([
+            CrudUsersModule::class => new CrudUsersModule,
+            CrudUserSource::class => new CrudUserSource,
+            EventDispatcherInterface::class => $events,
+        ]);
+
+        (new AdminServiceProvider([CrudUsersModule::class]))->register($container);
+        $container->get(AdminController::class)->store($this->write('/admin/users/new', ['username' => 'linus']));
+
+        $this->assertInstanceOf(RowCreated::class, $events->dispatched[0] ?? null);
+    }
+
+    public function test_an_application_with_no_dispatcher_still_gets_a_working_controller(): void
+    {
+        $container = $this->container([
+            CrudUsersModule::class => new CrudUsersModule,
+            CrudUserSource::class => $source = new CrudUserSource,
+        ]);
+
+        (new AdminServiceProvider([CrudUsersModule::class]))->register($container);
+
+        $this->assertFalse($container->bound(EventDispatcherInterface::class));
+
+        $container->get(AdminController::class)->store($this->write('/admin/users/new', ['username' => 'linus']));
+
+        $this->assertSame('linus', $source->find('6')['username'] ?? null);
+    }
+
+    /** @param array<string, string> $body */
+    private function write(string $path, array $body): ServerRequestInterface
+    {
+        return (new Psr17Factory)->createServerRequest('POST', $path)->withParsedBody($body);
+    }
+
+    /** @param array<string, object> $services */
+    private function container(array $services = []): ArrayContainer
     {
         $psr17 = new Psr17Factory;
 
@@ -97,7 +148,9 @@ final class AdminServiceProviderTest extends TestCase
             ArraySource::class => new ArraySource,
             GateInterface::class => new AdminsOnlyGate(true),
             Responder::class => new Responder($psr17, $psr17),
+            Validator::class => new Validator,
             ViewInterface::class => new PhpView(AdminServiceProvider::views(), new CspNonce),
+            ...$services,
         ]);
     }
 }

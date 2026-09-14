@@ -10,7 +10,9 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Http\Responder;
 use Hydra\Http\Router;
+use Hydra\Validation\Validator;
 use Hydra\View\Contracts\ViewInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Binds the admin services and, at boot, loads the module screens into the
@@ -62,6 +64,33 @@ final class AdminServiceProvider extends ServiceProvider
             return new Renderer(
                 $container->get(Responder::class),
                 $container->get(ViewInterface::class),
+            );
+        });
+
+        // Registered rather than left to autowiring, and the reason is sharp
+        // enough to be worth writing down: PHP-DI skips optional constructor
+        // parameters entirely, so a dispatcher appended to the controller's
+        // signature with a default would be null in every application,
+        // including the ones that had bound one. The admin would announce
+        // nothing and nothing would say why. Naming the arguments here is what
+        // makes the event system actually reach the controller.
+        $container->singleton(AdminController::class, function () use ($container) {
+            // The dispatcher is OPTIONAL, the same way auth's is: the admin
+            // depends on psr/event-dispatcher and never on hydrakit/event, so an
+            // application with no dispatcher bound gets an admin that simply
+            // emits no events.
+            $events = $container->bound(EventDispatcherInterface::class)
+                ? $container->get(EventDispatcherInterface::class)
+                : null;
+
+            return new AdminController(
+                $container->get(ModuleRegistry::class),
+                $container->get(Chrome::class),
+                $container->get(Renderer::class),
+                $container->get(GateInterface::class),
+                $container->get(Responder::class),
+                $container->get(Validator::class),
+                $events,
             );
         });
     }

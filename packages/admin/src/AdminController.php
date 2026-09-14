@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace Hydra\Admin;
 
 use Hydra\Admin\Contracts\ScreenInterface;
+use Hydra\Admin\Events\Exported;
+use Hydra\Admin\Events\RowCreated;
+use Hydra\Admin\Events\RowDeleted;
+use Hydra\Admin\Events\RowUpdated;
 use Hydra\Admin\Exceptions\WriteRejected;
 use Hydra\Admin\Screens\DeleteScreen;
+use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\PageScreen;
 use Hydra\Admin\Screens\ShowScreen;
@@ -21,6 +26,8 @@ use Hydra\Http\Query;
 use Hydra\Http\Responder;
 use Hydra\Http\Status;
 use Hydra\Validation\Validator;
+use Generator;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -37,6 +44,14 @@ final class AdminController
         private readonly GateInterface $gate,
         private readonly Responder $respond,
         private readonly Validator $validator,
+        /**
+         * OPTIONAL, and last for a reason: the admin depends on the PSR
+         * interface and not on hydrakit/event, so an application that has
+         * bound no dispatcher gets null here and the admin simply announces
+         * nothing. {@see AdminServiceProvider} has to hand this over by name,
+         * because container autowiring passes an optional parameter by.
+         */
+        private readonly ?EventDispatcherInterface $events = null,
     ) {}
 
     public function list(Request $request): Response
@@ -45,6 +60,65 @@ final class AdminController
         $criteria = Criteria::fromQuery(Query::fromRequest($request), $blueprint);
 
         return $this->table($request, $blueprint, $this->registry->source($blueprint)->page($criteria));
+    }
+
+    /**
+     * The list as a file. The query string is read the same way the list reads
+     * it, so what downloads is the view the visitor is looking at rather than
+     * the table behind it; the page number is the one thing it drops, since an
+     * export is of the whole view and not of the place in it they had got to.
+     *
+     * The file is built in memory and sent whole. A stream would hold less of
+     * it at once, but a response that has already started cannot become the
+     * error page it turns out to need, and an admin export bounded by
+     * {@see ExportScreen::limit()} is small enough that the trade is the wrong
+     * way round.
+     */
+    public function export(Request $request): Response
+    {
+        [$blueprint, $screen] = $this->resolve($request);
+
+        if (!$screen instanceof ExportScreen) {
+            throw new NotFoundException;
+        }
+
+        $criteria = Criteria::fromQuery(Query::fromRequest($request), $blueprint);
+        $exported = 0;
+
+        $csv = Csv::render(
+            $blueprint->fieldsOn(Surface::Export),
+            $this->counting($this->registry->extractor($blueprint)->rows($criteria, $screen->rowLimit()), $exported),
+        );
+
+        $this->events?->dispatch(new Exported($blueprint->slug, $criteria, $exported));
+
+        return $this->respond->download(
+            $csv,
+            $screen->filename($blueprint->slug),
+            'text/csv; charset=utf-8',
+        );
+    }
+
+    /**
+     * The same rows, leaving a running count behind in $count.
+     *
+     * How many rows went out is the most useful thing an export's audit line
+     * carries and the one thing streaming them past the writer throws away, so
+     * it is taken on the way through rather than by measuring the file
+     * afterwards.
+     *
+     * @param iterable<array<string, mixed>> $rows
+     * @return Generator<int, array<string, mixed>>
+     */
+    private function counting(iterable $rows, int &$count): Generator
+    {
+        $count = 0;
+
+        foreach ($rows as $row) {
+            ++$count;
+
+            yield $row;
+        }
     }
 
     public function page(Request $request): Response
@@ -116,6 +190,8 @@ final class AdminController
             return $this->form($request, $blueprint, $screen, null, $submitted, $rejected->errors(), Status::UnprocessableEntity);
         }
 
+        $this->events?->dispatch(new RowCreated($blueprint->slug, $id, $result->validated()));
+
         return $this->written($request, $blueprint, $id);
     }
 
@@ -135,8 +211,12 @@ final class AdminController
     {
         [$blueprint, $screen, $id] = $this->resolveForm($request);
         $source = $this->registry->updateSource($blueprint);
+        // Read rather than merely checked for: once the write lands, what the
+        // row used to say is gone, and that is the half of an audit trail worth
+        // having. The lookup was already being paid for.
+        $before = $source->find($id);
 
-        if ($source->find($id) === null) {
+        if ($before === null) {
             throw new NotFoundException;
         }
 
@@ -152,6 +232,8 @@ final class AdminController
         } catch (WriteRejected $rejected) {
             return $this->form($request, $blueprint, $screen, $id, $submitted, $rejected->errors(), Status::UnprocessableEntity);
         }
+
+        $this->events?->dispatch(new RowUpdated($blueprint->slug, $id, $result->validated(), $before));
 
         $saved = $source->find($id) ?? $submitted;
 
@@ -184,6 +266,8 @@ final class AdminController
                 Status::UnprocessableEntity,
             );
         }
+
+        $this->events?->dispatch(new RowDeleted($blueprint->slug, $id));
 
         return $this->done($request, $blueprint, Notice::deleted());
     }
@@ -318,6 +402,10 @@ final class AdminController
             ['vm' => new ListViewModel($blueprint, $page, $this->registry->prefix())],
             toolbar: 'admin/partials/filters',
             status: $status,
+            // The export link lives in the toolbar and depends on the criteria
+            // the body was just rendered for, so a body swap has to carry a
+            // fresh one with it.
+            oob: 'admin/partials/export',
         );
     }
 

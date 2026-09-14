@@ -9,6 +9,7 @@ use Hydra\Admin\Criteria;
 use Hydra\Admin\Definition;
 use Hydra\Admin\Field;
 use Hydra\Admin\Page;
+use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\ViewModels\ListViewModel;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -86,26 +87,79 @@ final class ListViewModelTest extends TestCase
         $this->assertStringNotContainsString('page=', $vm->sortLink($id));
     }
 
-    private function viewModel(int $pages, int $current, ?Criteria $criteria = null): ListViewModel
+    public function test_a_module_with_no_export_screen_offers_no_download(): void
     {
+        $this->assertNull($this->viewModel(20, 7)->exportUrl());
+    }
+
+    /**
+     * What a visitor means by "export this" is the table in front of them, so
+     * the link carries the search and the order. It does not carry the page: a
+     * button that exported rows 61 to 70 because that is where the pager was
+     * left would be a trap, and a quiet one.
+     */
+    public function test_the_download_link_carries_the_view_but_not_the_page(): void
+    {
+        $vm = $this->viewModel(
+            20,
+            7,
+            new Criteria(page: 7, perPage: 10, sort: 'username', direction: 'desc', search: 'ada'),
+            exportable: true,
+        );
+
+        $url = (string) $vm->exportUrl();
+
+        $this->assertStringStartsWith('/admin/users/export?', $url);
+        $this->assertStringContainsString('q=ada', $url);
+        $this->assertStringContainsString('sort=username', $url);
+        $this->assertStringContainsString('dir=desc', $url);
+        $this->assertStringNotContainsString('page=', $url);
+    }
+
+    public function test_an_unfiltered_list_downloads_from_a_bare_url(): void
+    {
+        $vm = $this->viewModel(20, 1, new Criteria(perPage: 10), exportable: true);
+
+        $this->assertSame('/admin/users/export', $vm->exportUrl());
+    }
+
+    public function test_the_button_says_what_the_export_screen_calls_itself(): void
+    {
+        $this->assertSame('Export CSV', $this->viewModel(20, 1)->exportLabel());
+        $this->assertSame(
+            'Download the lot',
+            $this->viewModel(20, 1, exportable: true, label: 'Download the lot')->exportLabel(),
+        );
+    }
+
+    private function viewModel(
+        int $pages,
+        int $current,
+        ?Criteria $criteria = null,
+        bool $exportable = false,
+        string $label = 'Export CSV',
+    ): ListViewModel {
         $perPage = 10;
         $criteria ??= new Criteria(page: $current, perPage: $perPage);
 
         return new ListViewModel(
-            $this->blueprint(),
+            $this->blueprint($exportable, $label),
             new Page([], $pages * $perPage, $criteria->onPage($current)),
             '/admin',
         );
     }
 
-    private function blueprint(): Blueprint
+    private function blueprint(bool $exportable = false, string $label = 'Export CSV'): Blueprint
     {
-        return Definition::make('users')
+        $definition = Definition::make('users')
             ->source(new ArraySource)
             ->fields(
                 Field::id()->sortable(),
                 Field::text('username')->sortable(),
-            )
-            ->compile();
+            );
+
+        return ($exportable
+            ? $definition->screens(ExportScreen::make()->labelled($label))
+            : $definition)->compile();
     }
 }

@@ -89,4 +89,44 @@ final class ResponderTest extends TestCase
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('/login', $response->getHeaderLine('Location'));
     }
+
+    public function test_download_response(): void
+    {
+        $response = $this->responder()->download('a,b', 'people.csv', 'text/csv; charset=utf-8');
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('text/csv; charset=utf-8', $response->getHeaderLine('Content-Type'));
+        $this->assertSame('3', $response->getHeaderLine('Content-Length'));
+        $this->assertSame(
+            'attachment; filename="people.csv"; filename*=UTF-8\'\'people.csv',
+            $response->getHeaderLine('Content-Disposition'),
+        );
+    }
+
+    /**
+     * A download's name is attacker-influenced often enough (a row's title, a
+     * module's slug) that the quote and the newline inside it are worth
+     * spending a transliteration on. The RFC 5987 form still carries what was
+     * asked for, percent-encoded, for the clients that read it.
+     */
+    public function test_a_download_name_cannot_carry_anything_out_of_the_header(): void
+    {
+        $disposition = $this->responder()
+            ->download('x', "re\"port\r\nX-Evil: 1.csv")
+            ->getHeaderLine('Content-Disposition');
+
+        $this->assertSame(
+            'attachment; filename="re_port_X-Evil_1.csv"; '
+            . 'filename*=UTF-8\'\'re%22port%0D%0AX-Evil%3A%201.csv',
+            $disposition,
+        );
+    }
+
+    public function test_a_download_with_no_usable_name_still_has_one(): void
+    {
+        $this->assertStringContainsString(
+            'filename="download"',
+            $this->responder()->download('x', '???')->getHeaderLine('Content-Disposition'),
+        );
+    }
 }

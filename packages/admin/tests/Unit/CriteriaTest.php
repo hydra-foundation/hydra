@@ -165,4 +165,30 @@ final class CriteriaTest extends TestCase
     {
         $this->assertSame("username LIKE ? ESCAPE '!'", Criteria::like('username'));
     }
+
+    /**
+     * What an extraction walks with: the view is exactly what the visitor
+     * filtered, sorted and searched for, and only the size of the bite changes.
+     */
+    public function test_reading_a_list_in_bigger_pages_changes_nothing_else(): void
+    {
+        $criteria = new Criteria(
+            page: 3,
+            perPage: 10,
+            sort: 'username',
+            direction: 'desc',
+            filters: ['status' => 'active'],
+            search: 'ada',
+        );
+
+        $wider = $criteria->inPagesOf(500);
+
+        $this->assertSame(500, $wider->perPage);
+        $this->assertSame(3, $wider->page);
+        $this->assertSame('username', $wider->sort);
+        $this->assertSame('desc', $wider->direction);
+        $this->assertSame(['status' => 'active'], $wider->filters);
+        $this->assertSame('ada', $wider->search);
+        $this->assertSame(10, $criteria->perPage);
+    }
 }

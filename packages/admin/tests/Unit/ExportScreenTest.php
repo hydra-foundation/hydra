@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Hydra\Admin\Tests\Unit;
+
+use Hydra\Admin\AdminController;
+use Hydra\Admin\Extractor;
+use Hydra\Admin\Screens\ExportScreen;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * The declaration behind a download: where it answers, what the saved file is
+ * called, and how much of a table one request may walk out with.
+ */
+#[CoversClass(ExportScreen::class)]
+final class ExportScreenTest extends TestCase
+{
+    public function test_it_answers_a_get_under_the_module(): void
+    {
+        $screen = ExportScreen::make();
+
+        $this->assertSame('export', $screen->name());
+        $this->assertSame('GET', $screen->method());
+        $this->assertSame('export', $screen->path());
+        $this->assertSame([AdminController::class, 'export'], $screen->handler());
+        $this->assertNull($screen->ability());
+    }
+
+    /**
+     * An export hands a whole table to whoever can open the screen, which is
+     * not obviously the same people who may read a page of it.
+     */
+    public function test_it_can_be_gated_apart_from_the_module(): void
+    {
+        $this->assertSame('ExportUsers', ExportScreen::make()->requires('ExportUsers')->ability());
+    }
+
+    public function test_the_file_is_named_after_the_module_and_dated(): void
+    {
+        $this->assertSame('users-' . date('Y-m-d') . '.csv', ExportScreen::make()->filename('users'));
+    }
+
+    public function test_a_module_may_name_the_file_itself(): void
+    {
+        $this->assertSame('people-' . date('Y-m-d') . '.csv', ExportScreen::make()->named('people')->filename('users'));
+    }
+
+    /**
+     * The name reaches a header and then somebody's disk, so what a module
+     * wrote is reduced to characters both carry everywhere.
+     */
+    public function test_a_name_is_reduced_to_something_a_filesystem_will_take(): void
+    {
+        $screen = ExportScreen::make()->named('../../etc/passwd');
+
+        $this->assertSame('etc-passwd-' . date('Y-m-d') . '.csv', $screen->filename('users'));
+        $this->assertSame('export-' . date('Y-m-d') . '.csv', ExportScreen::make()->named('///')->filename('users'));
+    }
+
+    public function test_the_row_limit_defaults_to_the_extractor_cap_and_can_be_moved(): void
+    {
+        $this->assertSame(Extractor::MAX_ROWS, ExportScreen::make()->rowLimit());
+        $this->assertSame(10, ExportScreen::make()->limit(10)->rowLimit());
+        $this->assertSame(1_000_000, ExportScreen::make()->limit(1_000_000)->rowLimit());
+        $this->assertSame(1, ExportScreen::make()->limit(0)->rowLimit());
+    }
+
+    public function test_the_button_says_what_the_module_says_it_says(): void
+    {
+        $this->assertSame('Export CSV', ExportScreen::make()->label());
+        $this->assertSame('Download', ExportScreen::make()->labelled('Download')->label());
+    }
+
+    public function test_every_builder_leaves_the_original_alone(): void
+    {
+        $screen = ExportScreen::make();
+        $screen->requires('X')->named('other')->limit(1)->labelled('Other');
+
+        $this->assertNull($screen->ability());
+        $this->assertSame('Export CSV', $screen->label());
+        $this->assertSame(Extractor::MAX_ROWS, $screen->rowLimit());
+        $this->assertSame('users-' . date('Y-m-d') . '.csv', $screen->filename('users'));
+    }
+}

@@ -17,8 +17,14 @@ final class Field
 {
     private string $label;
 
-    /** @var list<Surface> */
-    private array $surfaces = [Surface::List, Surface::Show];
+    /**
+     * Every surface: a declared column is part of the export unless the module
+     * says otherwise, because the alternative is an export that silently ships
+     * fewer columns than the module declared.
+     *
+     * @var list<Surface>
+     */
+    private array $surfaces = [Surface::List, Surface::Show, Surface::Export];
 
     private bool $sortable = false;
     private bool $searchable = false;

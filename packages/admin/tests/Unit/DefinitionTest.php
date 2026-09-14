@@ -7,6 +7,7 @@ namespace Hydra\Admin\Tests\Unit;
 use Hydra\Admin\Definition;
 use Hydra\Admin\Field;
 use Hydra\Admin\Input;
+use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\ListScreen;
 use Hydra\Admin\Screens\ShowScreen;
@@ -152,4 +153,32 @@ final class DefinitionTest extends TestCase
         $this->assertSame('new', $blueprint->screen('create')?->path());
     }
 
+
+    /**
+     * An export screen that routes, gates and puts a button on the list, and
+     * then has nothing to read or nothing to write, fails at the moment a
+     * visitor clicks it. Both halves are knowable when the module is declared.
+     */
+    public function test_an_export_with_no_source_is_refused_when_the_module_is_declared(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('no source to read');
+
+        Definition::make('users')
+            ->fields(Field::id())
+            ->screens(ExportScreen::make())
+            ->compile();
+    }
+
+    public function test_an_export_with_no_columns_is_refused_the_same_way(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('no fields on Surface::Export');
+
+        Definition::make('users')
+            ->source(new ArraySource)
+            ->fields(Field::id()->onlyOn(Surface::Show))
+            ->screens(ExportScreen::make())
+            ->compile();
+    }
 }
