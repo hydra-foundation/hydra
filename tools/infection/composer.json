@@ -9,6 +9,9 @@
     "config": {
         "allow-plugins": {
             "infection/extension-installer": false
+        },
+        "platform": {
+            "php": "8.3.0"
         }
     }
 }
