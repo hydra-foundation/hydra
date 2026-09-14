@@ -47,6 +47,28 @@ ASSUME_YES=0
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
+# Run a check and keep what it said. Reporting only that the suite failed
+# leaves nothing to act on: the run being judged happens in a temp directory
+# this script deletes on the way out, so discarding its output is what makes
+# a failed release irreproducible.
+run_checked() {
+    local what="$1" dir="$2"
+    shift 2
+    local log
+    log=$(mktemp)
+
+    if (cd "$dir" && "$@") >"$log" 2>&1; then
+        rm -f "$log"
+        return 0
+    fi
+
+    printf '\n--- %s ---\n' "$what" >&2
+    tail -n 40 "$log" >&2
+    printf -- '--- end of %s ---\n\n' "$what" >&2
+    rm -f "$log"
+    return 1
+}
+
 usage() {
     # The comment block under the shebang, so editing the header cannot
     # desynchronise --help from it.
@@ -127,7 +149,7 @@ done
 # generated from it and cannot be fixed in place.
 if [ -x "$DIR/hydra/vendor/bin/phpunit" ]; then
     echo "Running the suite ..."
-    (cd "$DIR/hydra" && ./vendor/bin/phpunit --order-by=random >/dev/null 2>&1) \
+    run_checked "hydra: phpunit" "$DIR/hydra" ./vendor/bin/phpunit --order-by=random \
         || problems+=("hydra: the test suite fails — fix it before tagging")
 else
     problems+=("hydra: no vendor/bin/phpunit — run composer install in hydra/")
@@ -264,16 +286,21 @@ echo "Locking the skeleton onto $TAG ..."
 # app's own CI runs, brought forward to where it can still stop the tag.
 echo "Verifying the skeleton against the published packages ..."
 verify=$(mktemp -d)
-trap 'rm -rf "$verify"' EXIT
+# Cleared only on success. When a check below fails this directory is the
+# only copy of the tree it judged, and removing it regardless is the other
+# half of why the last failure could not be looked at.
+trap '[ "${VERIFY_OK:-0}" = 1 ] && rm -rf "$verify"' EXIT
 git -C "$DIR/app" archive --format=tar "$BRANCH" | tar -x -C "$verify"
 cp "$DIR/app/composer.lock" "$verify/composer.lock"
 
-(cd "$verify" && composer install --no-interaction --no-progress --quiet) \
-    || die "app: the skeleton does not install from $TAG. hydra is tagged; app is not. Fix the skeleton, then re-run for the next patch."
-(cd "$verify" && ./vendor/bin/phpunit >/dev/null 2>&1) \
-    || die "app: the suite fails against $TAG. hydra is tagged; app is not."
-(cd "$verify" && ./vendor/bin/phpstan analyse --no-progress --quiet >/dev/null 2>&1) \
-    || die "app: phpstan fails against $TAG. hydra is tagged; app is not."
+run_checked "app: composer install against $TAG" "$verify" \
+    composer install --no-interaction --no-progress \
+    || die "app: the skeleton does not install from $TAG. hydra is tagged; app is not. Fix the skeleton, then re-run for the next patch. The tree it judged is kept at $verify"
+run_checked "app: phpunit against $TAG" "$verify" ./vendor/bin/phpunit \
+    || die "app: the suite fails against $TAG. hydra is tagged; app is not. The tree it judged is kept at $verify"
+run_checked "app: phpstan against $TAG" "$verify" ./vendor/bin/phpstan analyse --no-progress \
+    || die "app: phpstan fails against $TAG. hydra is tagged; app is not. The tree it judged is kept at $verify"
+VERIFY_OK=1
 echo "  installs, tests and analyses clean"
 
 echo
