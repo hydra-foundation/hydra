@@ -9,6 +9,7 @@ use Hydra\Session\Stores\NativeSessionStore;
 use Hydra\Session\Contracts\SessionInterface;
 use Hydra\Session\Contracts\SessionLifecycleInterface;
 use Hydra\Session\Stores\SessionStore;
+use Hydra\Session\Testing\SessionContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;

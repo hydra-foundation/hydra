@@ -135,6 +135,39 @@ final class ClientIpResolverTest extends TestCase
         $this->assertSame('2001:db8::1', $resolver->resolve($request));
     }
 
+    public function test_empty_hops_in_the_header_are_dropped_rather_than_walked(): void
+    {
+        // "a, , b" is what a proxy chain produces when one hop appends nothing,
+        // and what a caller sends on purpose to stop the walk early. An empty
+        // string is not an address, so it must leave the chain before the walk
+        // reaches it and decides it cannot read it.
+        $resolver = new ClientIpResolver(new TrustedProxies(['10.0.0.0/8']));
+        $request = $this->request('10.0.0.1', '198.51.100.7, , 10.0.0.2, ,');
+
+        $this->assertSame('198.51.100.7', $resolver->resolve($request));
+    }
+
+    public function test_a_bracket_with_no_closing_bracket_yields_no_address(): void
+    {
+        // Straight from the header, so it is a string the parser will be handed.
+        // It must fall back to the peer rather than produce some fragment of
+        // itself and hand that back as a client.
+        $resolver = new ClientIpResolver(new TrustedProxies(['10.0.0.1']));
+        $request = $this->request('10.0.0.1', '[2001:db8::1');
+
+        $this->assertSame('10.0.0.1', $resolver->resolve($request));
+    }
+
+    public function test_an_empty_peer_is_no_peer(): void
+    {
+        // REMOTE_ADDR is absent on a unix socket and empty on some SAPIs. An
+        // empty string handed back as an identity would give every such request
+        // the same rate-limit bucket and the same line in the activity log.
+        $resolver = new ClientIpResolver(new TrustedProxies(['10.0.0.1']));
+
+        $this->assertNull($resolver->resolve($this->request('')));
+    }
+
     public function test_an_empty_header_from_a_trusted_proxy_falls_back_to_the_peer(): void
     {
         $resolver = new ClientIpResolver(new TrustedProxies(['10.0.0.1']));

@@ -6,6 +6,7 @@ namespace Hydra\Cache\Tests\Unit;
 
 use Hydra\Cache\Contracts\StoreInterface;
 use Hydra\Cache\RedisStore;
+use Hydra\Cache\Testing\StoreContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Redis;
 use RedisException;

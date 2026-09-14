@@ -5,37 +5,26 @@ declare(strict_types=1);
 namespace Hydra\Nyholm\Tests\Unit;
 
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
+use Hydra\Http\Testing\ServerRequestProviderContractTestCase;
 use Hydra\Nyholm\NyholmRequestProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * The nyholm side of the request-provider seam: it satisfies the interface the
- * kernel consumes and builds a server request from the PHP environment.
+ * The nyholm side of the request-provider seam, against the contract the kernel
+ * consumes. The adapter itself is four lines; what is worth testing is that what
+ * comes out of it is the request everything downstream was written against.
  */
 #[CoversClass(NyholmRequestProvider::class)]
-final class NyholmRequestProviderTest extends TestCase
+final class NyholmRequestProviderTest extends ServerRequestProviderContractTestCase
 {
-    public function test_fulfils_the_request_provider_seam(): void
+    protected function provider(): ServerRequestProviderInterface
     {
-        $provider = NyholmRequestProvider::create(new Psr17Factory);
-
-        $this->assertInstanceOf(ServerRequestProviderInterface::class, $provider);
+        return NyholmRequestProvider::create(new Psr17Factory);
     }
 
-    public function test_from_globals_builds_a_server_request_from_the_environment(): void
+    public function test_fulfils_the_request_provider_seam(): void
     {
-        $_SERVER['REQUEST_METHOD'] = 'GET';
-        $_SERVER['REQUEST_URI'] = '/widgets?page=2';
-        $_SERVER['HTTP_HOST'] = 'hydra.test';
-
-        $request = NyholmRequestProvider::create(new Psr17Factory)->fromGlobals();
-
-        $this->assertInstanceOf(ServerRequestInterface::class, $request);
-        $this->assertSame('GET', $request->getMethod());
-        $this->assertSame('/widgets', $request->getUri()->getPath());
-        $this->assertSame('hydra.test', $request->getUri()->getHost());
+        $this->assertInstanceOf(ServerRequestProviderInterface::class, $this->provider());
     }
 }

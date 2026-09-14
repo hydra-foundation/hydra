@@ -78,6 +78,20 @@ final class RateLimitMiddlewareTest extends TestCase
         $this->assertSame(2, $handler->calls);
     }
 
+    public function test_it_limits_unless_it_is_told_not_to(): void
+    {
+        // The default is on. A middleware that had to be switched on would be
+        // off wherever somebody wired it up from memory.
+        $handler = new CountingHandler;
+        $limiter = new RateLimiter(new ArrayStore, new ClientIpResolver(TrustedProxies::none()));
+        $middleware = new RateLimitMiddleware($limiter, new RateLimitPolicy('global', 1, 60));
+
+        $middleware->process($this->request(), $handler);
+
+        $this->expectException(TooManyRequestsException::class);
+        $middleware->process($this->request(), $handler);
+    }
+
     private function middleware(int $limit, bool $enabled = true): RateLimitMiddleware
     {
         $limiter = new RateLimiter(new ArrayStore, new ClientIpResolver(TrustedProxies::none()));

@@ -47,6 +47,18 @@ final class ThrottleConfigTest extends TestCase
         rmdir($this->dir);
     }
 
+    public function test_the_shipped_defaults_are_on_and_a_hundred_and_twenty_a_minute(): void
+    {
+        // The constructor's own defaults, not the ones fromEnvironment passes:
+        // an application that builds this itself gets the same budget, and
+        // changing what that budget is should be a deliberate edit here.
+        $config = new ThrottleConfig;
+
+        $this->assertTrue($config->enabled);
+        $this->assertSame(120, $config->limit);
+        $this->assertSame(60, $config->window);
+    }
+
     public function test_it_is_on_by_default(): void
     {
         // A limiter that has to be remembered is one that is missing wherever

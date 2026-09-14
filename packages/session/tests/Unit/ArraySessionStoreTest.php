@@ -8,6 +8,7 @@ use Hydra\Session\Contracts\SessionInterface;
 use Hydra\Session\Contracts\SessionLifecycleInterface;
 use Hydra\Session\Stores\ArraySessionStore;
 use Hydra\Session\Stores\SessionStore;
+use Hydra\Session\Testing\SessionContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
 /**

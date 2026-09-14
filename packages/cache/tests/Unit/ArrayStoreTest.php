@@ -6,6 +6,7 @@ namespace Hydra\Cache\Tests\Unit;
 
 use Hydra\Cache\ArrayStore;
 use Hydra\Cache\Contracts\StoreInterface;
+use Hydra\Cache\Testing\StoreContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
 /**

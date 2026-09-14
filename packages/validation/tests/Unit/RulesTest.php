@@ -87,6 +87,12 @@ final class RulesTest extends TestCase
         $this->assertNull($rule->validate('abc'));
         $this->assertSame('Must be at least 3 characters.', $rule->validate('ab'));
         $this->assertSame('Must be at least 3 characters.', $rule->validate(''));
+
+        // Characters, not bytes. 'aou' with umlauts is three characters and six
+        // bytes, so a byte count would call it long enough for a minimum of
+        // four and let a password half the required length through.
+        $this->assertSame('Must be at least 4 characters.', (new MinLength(4))->validate("\u{e5}\u{e4}\u{f6}"));
+        $this->assertNull((new MinLength(3))->validate("\u{e5}\u{e4}\u{f6}"));
     }
 
     public function test_min_length_fails_absent_value(): void
@@ -98,8 +104,12 @@ final class RulesTest extends TestCase
 
     public function test_custom_messages_override_defaults(): void
     {
+        // Every rule takes one, and a rule that ignored it would show a visitor
+        // the framework's wording in place of the application's.
         $this->assertSame('too long', (new MaxLength(2, 'too long'))->validate('abc'));
         $this->assertSame('too short', (new MinLength(5, 'too short'))->validate('ab'));
+        $this->assertSame('pick a page', (new Range(1, 10, 'pick a page'))->validate(99));
+        $this->assertSame('unknown role', (new InList(['admin'], 'unknown role'))->validate('root'));
     }
 
     public function test_pattern_matches(): void

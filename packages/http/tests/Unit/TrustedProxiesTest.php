@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\TrustedProxies;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -53,6 +54,66 @@ final class TrustedProxiesTest extends TestCase
         $this->assertTrue($proxies->contains('172.31.255.255'));
         $this->assertFalse($proxies->contains('172.32.0.1'));
         $this->assertFalse($proxies->contains('172.15.255.255'));
+    }
+
+    public function test_a_prefix_ending_deep_inside_the_last_byte_is_still_exact(): void
+    {
+        // /28 is sixteen addresses, the size a hosting provider hands out, and
+        // it is where the byte arithmetic actually has to work: the prefix ends
+        // four bits into the fourth byte, so both the whole bytes and the
+        // partial mask are in play at once.
+        $proxies = new TrustedProxies(['10.0.0.16/28']);
+
+        $this->assertTrue($proxies->contains('10.0.0.16'));
+        $this->assertTrue($proxies->contains('10.0.0.31'));
+        $this->assertFalse($proxies->contains('10.0.0.15'));
+        $this->assertFalse($proxies->contains('10.0.0.32'));
+        $this->assertFalse($proxies->contains('10.0.1.16'));
+    }
+
+    public function test_a_single_host_prefix_is_the_widest_one_allowed(): void
+    {
+        // /32 is the boundary the validation compares against, and it is how a
+        // single proxy is usually written in a config file.
+        $proxies = new TrustedProxies(['198.51.100.7/32']);
+
+        $this->assertTrue($proxies->contains('198.51.100.7'));
+        $this->assertFalse($proxies->contains('198.51.100.8'));
+    }
+
+    public function test_a_range_is_read_with_the_spaces_a_config_file_leaves_on_it(): void
+    {
+        // This list comes from an environment variable split on commas, so
+        // "10.0.0.0/8, 172.16.0.0/12" arrives with a leading space on the
+        // second entry. Refusing it would be a boot failure over whitespace.
+        $proxies = new TrustedProxies([' 10.0.0.0/8', "172.16.0.0/12\t"]);
+
+        $this->assertTrue($proxies->contains('10.1.2.3'));
+        $this->assertTrue($proxies->contains('172.20.0.1'));
+    }
+
+    /** @return array<string, array{string}> */
+    public static function malformedPrefixes(): array
+    {
+        return [
+            'a second slash' => ['10.0.0.0/8/16'],
+            'not a number' => ['10.0.0.0/eight'],
+            'digits with a tail' => ['10.0.0.0/8x'],
+            'digits with a head' => ['10.0.0.0/x8'],
+            'a negative prefix' => ['10.0.0.0/-8'],
+            'an empty prefix' => ['10.0.0.0/'],
+        ];
+    }
+
+    #[DataProvider('malformedPrefixes')]
+    public function test_a_prefix_that_is_not_a_plain_number_is_refused(string $range): void
+    {
+        // Refusing at construction is the point: a range that parsed loosely
+        // would trust a wider block than the operator wrote, and every address
+        // inside it can then claim to be any client it likes.
+        $this->expectException(InvalidArgumentException::class);
+
+        new TrustedProxies([$range]);
     }
 
     public function test_a_block_is_matched_from_its_network_not_the_address_written(): void

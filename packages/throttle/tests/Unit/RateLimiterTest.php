@@ -208,6 +208,68 @@ final class RateLimiterTest extends TestCase
         $limiter->enforce($this->request('198.51.100.7'), new RateLimitPolicy('login', 1, 60));
     }
 
+    public function test_hit_counts_one_request_and_reports_the_budget(): void
+    {
+        // The public half of the limiter: enforce() is what middleware calls,
+        // but hit() is what an application calls when it wants the status
+        // without the exception — a login form showing attempts remaining.
+        $limiter = $this->limiter();
+        $policy = new RateLimitPolicy('login', 3, 60);
+
+        $first = $limiter->hit('198.51.100.7', $policy);
+        $second = $limiter->hit('198.51.100.7', $policy);
+
+        $this->assertTrue($first->allowed);
+        $this->assertSame(1, $first->used);
+        $this->assertSame(3, $first->limit);
+        $this->assertSame(2, $second->used);
+    }
+
+    public function test_retry_after_is_never_zero(): void
+    {
+        // The window can close between the increment and the TTL read, and a
+        // Retry-After of 0 tells the client to come straight back — which is
+        // what it was just refused for. One second is the honest floor.
+        $store = new class (new ArrayStore) implements StoreInterface {
+            public function __construct(private readonly ArrayStore $inner) {}
+
+            public function ttl(string $key): int
+            {
+                return 0;
+            }
+
+            public function get(string $key): mixed
+            {
+                return $this->inner->get($key);
+            }
+
+            public function put(string $key, mixed $value, int $ttl = 0): void
+            {
+                $this->inner->put($key, $value, $ttl);
+            }
+
+            public function forget(string $key): void
+            {
+                $this->inner->forget($key);
+            }
+
+            public function increment(string $key, int $by = 1, int $ttl = 0): int
+            {
+                return $this->inner->increment($key, $by, $ttl);
+            }
+
+            public function flush(): void
+            {
+                $this->inner->flush();
+            }
+        };
+        $limiter = new RateLimiter($store, new ClientIpResolver(TrustedProxies::none()));
+
+        $status = $limiter->hit('198.51.100.7', new RateLimitPolicy('login', 1, 60));
+
+        $this->assertSame(1, $status->retryAfter);
+    }
+
     /**
      * Move the store's clock on. The limiter keeps no clock of its own: every
      * window it reports is the store's TTL, so advancing that advances the

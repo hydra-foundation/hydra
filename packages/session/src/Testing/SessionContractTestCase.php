@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Hydra\Session\Tests\Unit;
+namespace Hydra\Session\Testing;
 
 use Hydra\Session\Contracts\SessionInterface;
 use Hydra\Session\Contracts\SessionLifecycleInterface;

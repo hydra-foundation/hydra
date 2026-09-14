@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Hydra\Cache\Tests\Unit;
+namespace Hydra\Cache\Testing;
 
 use Hydra\Cache\Contracts\StoreInterface;
 use PHPUnit\Framework\TestCase;

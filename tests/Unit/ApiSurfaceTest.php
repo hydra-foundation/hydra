@@ -58,6 +58,25 @@ final class ApiSurfaceTest extends TestCase
         ], $surface);
     }
 
+    public function test_it_leaves_out_the_published_contract_cases(): void
+    {
+        // src/Testing ships abstract TestCase subclasses. A listing of one
+        // records its public test methods, which is the half a subclass cannot
+        // break by losing, while the protected hooks that would break it are
+        // not surface and never appear. Tracking it is all churn, no signal.
+        mkdir($this->dir . '/pkg/src/Testing', 0o775, true);
+        file_put_contents($this->dir . '/pkg/src/Subject.php', '<?php
+            namespace Acme;
+            final class Real { public function a(): void {} }
+        ');
+        file_put_contents($this->dir . '/pkg/src/Testing/Case.php', '<?php
+            namespace Acme\\Testing;
+            abstract class ThingContractTestCase { public function test_a(): void {} }
+        ');
+
+        $this->assertSame(['Acme\Real', 'Acme\Real->a(): void'], $this->scan($this->dir));
+    }
+
     public function test_it_leaves_out_what_is_not_surface(): void
     {
         $surface = $this->surface('<?php

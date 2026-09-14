@@ -37,9 +37,16 @@ if ($root === null || !is_dir($root)) {
     exit(1);
 }
 
+/*
+ * src/Testing is deliberately not scanned. It holds the published contract
+ * cases, and what a listing of them records is their public test methods —
+ * exactly the members a subclass cannot break by losing. The parts that would
+ * break one are the protected abstract hooks, which are not surface and never
+ * appear here, so including the directory is all churn and no signal.
+ */
 $files = new RegexIterator(
     new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root)),
-    '#/src/.+\.php$#'
+    '#/src/(?!Testing/).+\.php$#'
 );
 
 $symbols = [];

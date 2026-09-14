@@ -11,6 +11,7 @@ use Hydra\View\HtmlView;
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
 use Hydra\View\Contracts\ViewInterface;
+use Hydra\View\Testing\ViewContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +25,7 @@ use RuntimeException;
  * place an untrusted string reaches the filesystem.
  */
 #[CoversClass(PhpView::class)]
-final class PhpViewTest extends TestCase
+final class PhpViewTest extends ViewContractTestCase
 {
     private string $root;
     private string $dir;
@@ -41,6 +42,17 @@ final class PhpViewTest extends TestCase
         mkdir($this->dir, 0777, true);
         file_put_contents($this->root . '/secret.php', '<?php echo "TOP-SECRET";');
         $this->view = new PhpView($this->dir, new CspNonce);
+
+        // The three templates ViewContractTestCase asks every view to resolve.
+        $this->writeTemplate('plain', 'PLAIN');
+        $this->writeTemplate('greeting', 'Hello <?= $this->e($name ?? "") ?>');
+        $this->writeTemplate('layouts/brackets', '[<?= $this->section("content") ?>]');
+        $this->writeTemplate('wrapped', '<?php $this->extends("layouts/brackets") ?>BODY');
+    }
+
+    protected function view(): ViewInterface
+    {
+        return $this->view;
     }
 
     protected function tearDown(): void

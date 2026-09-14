@@ -1,0 +1,40 @@
+{
+    // Mutation testing over three packages, not the tree.
+    //
+    // Coverage says a line ran; this says a test would have noticed it change.
+    // Mutating all 2400 lines would take long enough that it would be run
+    // never, so it is pointed at the places where a test that passes against
+    // broken code costs the most: the validation rules, the rate limiter and
+    // the client-address resolver it keys on, and the HTTP layer every request
+    // passes through. These three run in about fifteen seconds together.
+    $schema: "vendor/infection/infection/resources/schema.json",
+    source: {
+        directories: [
+            "packages/validation/src",
+            "packages/throttle/src",
+            "packages/http/src"
+        ],
+        excludes: [
+            "packages/*/src/Testing"
+        ]
+    },
+    timeout: 10,
+    logs: {
+        text: "build/infection.log"
+    },
+    tmpDir: "build/infection",
+    // A floor, recorded the way coverage.json records one: the number reached
+    // today, so the next change has to hold it rather than aim at it. Raised
+    // deliberately when a batch of survivors is worked through, never lowered
+    // to make a build pass.
+    //
+    // minMsi is left off. It counts uncovered code as unkilled, and coverage
+    // already has a gate of its own that says so more directly.
+    minCoveredMsi: 89,
+    mutators: {
+        "@default": true
+    },
+    phpUnit: {
+        configDir: "."
+    }
+}

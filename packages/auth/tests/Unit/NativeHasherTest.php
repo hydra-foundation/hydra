@@ -7,6 +7,7 @@ namespace Hydra\Auth\Tests\Unit;
 use Hydra\Auth\AuthConfig;
 use Hydra\Auth\Contracts\HasherInterface;
 use Hydra\Auth\NativeHasher;
+use Hydra\Auth\Testing\HasherContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use ValueError;
 

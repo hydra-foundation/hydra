@@ -97,5 +97,14 @@
             <directory>packages/validation/src</directory>
             <directory>packages/view/src</directory>
         </include>
+        <!--
+            src/Testing holds the published contract cases: abstract TestCase
+            subclasses a consumer extends to check their own implementation.
+            They are shipped code, not tested code, and counting them would
+            credit each package with lines its subclasses execute for free.
+        -->
+        <exclude>
+            <directory>packages/*/src/Testing</directory>
+        </exclude>
     </source>
 </phpunit>

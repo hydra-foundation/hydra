@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Hydra\Auth\Tests\Unit;
+namespace Hydra\Auth\Testing;
 
 use Hydra\Auth\Contracts\HasherInterface;
 use PHPUnit\Framework\TestCase;

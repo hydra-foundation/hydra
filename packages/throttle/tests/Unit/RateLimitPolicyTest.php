@@ -30,6 +30,26 @@ final class RateLimitPolicyTest extends TestCase
         );
     }
 
+    public function test_a_limit_of_exactly_one_is_allowed(): void
+    {
+        // The boundary, not a round number: one attempt per window is a real
+        // policy — it is roughly what a password reset wants — and rejecting it
+        // would make the strictest useful budget unexpressable.
+        $this->assertSame(1, (new RateLimitPolicy('reset', 1, 60))->limit);
+    }
+
+    public function test_a_window_of_exactly_one_second_is_allowed(): void
+    {
+        $this->assertSame(1, (new RateLimitPolicy('burst', 10, 1))->window);
+    }
+
+    public function test_a_name_may_carry_capitals(): void
+    {
+        // The pattern is case-insensitive, and a name is written by hand in an
+        // application's own boot code, where 'API' reads better than 'api'.
+        $this->assertSame('API', (new RateLimitPolicy('API', 10, 60))->name);
+    }
+
     public function test_a_limit_below_one_is_refused(): void
     {
         // Zero is not "no limit", it is "refuse everyone", and it reads like
