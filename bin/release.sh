@@ -145,11 +145,63 @@ for repo in "${REPOS[@]}"; do
     fi
 done
 
+# REDIS_REQUIRED turns "no Redis, skipped" into a failure, and without it a
+# green run here says nothing about the store the rate limiter rests on: the
+# twenty tests that cover it skip, and the gate reports the silence as a pass.
+#
+# Setting the flag blind is what must not happen. It needs an ext-redis and a
+# server on the same side of the fence, and this project keeps them in two
+# different places: the extension is baked into app/docker/php/Dockerfile, and
+# the server is a compose service publishing no port to the host. So the route
+# is looked for rather than assumed, the host first and the app stack second,
+# and a machine that has neither is told so in one line naming both.
+REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
+REDIS_PORT="${REDIS_PORT:-6379}"
+
+# The framework checkout as the php container sees it: compose mounts the
+# parent of both repositories, so hydra/ is a sibling of app/ in there too.
+CONTAINER_DIR="/var/www/html/$(basename "$DIR/hydra")"
+
+suite_dir="$DIR/hydra"
+suite_where="this machine, without Redis"
+suite_cmd=(./vendor/bin/phpunit --order-by=random)
+
+if ! php -r 'exit(extension_loaded("redis") ? 0 : 1);' 2>/dev/null; then
+    host_why="no ext-redis"
+elif ! php -r 'try { exit((new Redis)->connect($argv[1], (int) $argv[2], 1.0) ? 0 : 1); } catch (Throwable) { exit(1); }' \
+        -- "$REDIS_HOST" "$REDIS_PORT" 2>/dev/null; then
+    host_why="nothing on redis://$REDIS_HOST:$REDIS_PORT"
+else
+    host_why=""
+fi
+
+if [ -z "$host_why" ]; then
+    suite_where="this machine"
+    suite_cmd=(env REDIS_REQUIRED=1 ./vendor/bin/phpunit --order-by=random)
+# One probe rather than a liveness check and then a capability check: what
+# matters is whether a Redis can be reached from where the suite would run,
+# and a stack that is down fails this the same way a stack without Redis does.
+elif (cd "$DIR/app" && docker compose exec -T php php -r \
+        'try { $r = new Redis; exit(extension_loaded("redis") && $r->connect("redis", 6379, 1.0) ? 0 : 1); } catch (Throwable) { exit(1); }') \
+        >/dev/null 2>&1; then
+    # PHP 8.4 in the image against 8.5 on the host, so a release verified this
+    # way was verified on a different minor than it was written on. Both are
+    # inside the >=8.2 the packages claim, and CI covers the matrix; worth
+    # knowing when a release passes here and fails there.
+    suite_dir="$DIR/app"
+    suite_where="app-php-1"
+    suite_cmd=(docker compose exec -T -w "$CONTAINER_DIR"
+               -e REDIS_REQUIRED=1 -e REDIS_HOST=redis
+               php vendor/bin/phpunit --order-by=random)
+else
+    problems+=("hydra: nowhere to run the Redis tests — this machine: $host_why; app stack: not reachable. Start it with app/bin/dev up -d, or release from CI")
+fi
+
 # The suite has to be green before a tag goes out: the split repositories are
 # generated from it and cannot be fixed in place.
 if [ -x "$DIR/hydra/vendor/bin/phpunit" ]; then
-    echo "Running the suite ..."
-    run_checked "hydra: phpunit" "$DIR/hydra" ./vendor/bin/phpunit --order-by=random \
+    echo "Running the suite ($suite_where) ..."
+    run_checked "hydra: phpunit" "$suite_dir" "${suite_cmd[@]}" \
         || problems+=("hydra: the test suite fails — fix it before tagging")
 else
     problems+=("hydra: no vendor/bin/phpunit — run composer install in hydra/")
