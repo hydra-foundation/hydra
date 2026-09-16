@@ -7,7 +7,7 @@
       hx-target="#admin-body"
       hx-include="#admin-sort-state"
       hx-push-url="true"
-      hx-trigger="submit, change, keyup changed delay:300ms">
+      hx-trigger="submit, change, input from:#admin-search changed delay:300ms">
     <?php if ($vm->isSearchable()): ?>
         <div class="col-auto">
             <label class="form-label" for="admin-search">Search</label>

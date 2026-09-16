@@ -76,6 +76,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../database",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "authors": [
@@ -87,6 +94,7 @@
     "require": {
         "php": ">=8.2",
         "hydrakit/core": "^0.5",
+        "hydrakit/database": "^0.5",
         "hydrakit/http": "^0.5",
         "hydrakit/validation": "^0.5",
         "hydrakit/view": "^0.5",
