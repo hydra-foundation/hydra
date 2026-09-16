@@ -95,6 +95,24 @@ final class AdminEventsTest extends TestCase
         );
     }
 
+    public function test_a_delete_carries_the_row_as_it_last_stood(): void
+    {
+        // Read before the delete rather than after: the row is the one thing
+        // that cannot be looked up again once the screen has done its work, and
+        // "row 2 went" is a far poorer record than what row 2 was.
+        $this->admin->controller->destroy($this->admin->request('POST', '/admin/users/2/delete'));
+
+        $this->assertSame('grace', $this->announced(RowDeleted::class)->before['username']);
+        $this->assertNull($this->source->find('2'));
+    }
+
+    public function test_a_delete_the_source_refused_carries_nothing_because_it_announces_nothing(): void
+    {
+        $this->admin->controller->destroy($this->admin->request('POST', '/admin/users/1/delete'));
+
+        $this->assertSame([], $this->admin->events->dispatched);
+    }
+
     public function test_a_write_the_source_refused_announces_nothing(): void
     {
         // "taken" is the name CrudUserSource will not accept.

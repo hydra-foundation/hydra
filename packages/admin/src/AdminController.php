@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin;
 
+use Hydra\Admin\Contracts\RowSourceInterface;
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Events\Exported;
 use Hydra\Admin\Events\RowCreated;
@@ -256,8 +257,17 @@ final class AdminController
             throw new NotFoundException;
         }
 
+        $source = $this->registry->deleteSource($blueprint);
+        // Read before the write lands, the way update() does, and for a stronger
+        // reason: an updated row can still be read afterwards and a deleted one
+        // cannot. Skipped when nothing is listening, so a module with no audit
+        // trail does not pay for a lookup on every delete.
+        $before = $this->events !== null && $source instanceof RowSourceInterface
+            ? $source->find($id) ?? []
+            : [];
+
         try {
-            $this->registry->deleteSource($blueprint)->delete($id);
+            $source->delete($id);
         } catch (WriteRejected $rejected) {
             return $this->done(
                 $request,
@@ -267,7 +277,7 @@ final class AdminController
             );
         }
 
-        $this->events?->dispatch(new RowDeleted($blueprint->slug, $id));
+        $this->events?->dispatch(new RowDeleted($blueprint->slug, $id, $before));
 
         return $this->done($request, $blueprint, Notice::deleted());
     }
