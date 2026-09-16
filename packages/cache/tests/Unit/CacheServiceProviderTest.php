@@ -25,15 +25,36 @@ use RuntimeException;
 #[CoversClass(CacheServiceProvider::class)]
 final class CacheServiceProviderTest extends TestCase
 {
+    /** The keys this suite writes that the real environment may also hold. */
+    private const BORROWED = ['REDIS_HOST', 'REDIS_PORT'];
+
     private string $dir;
 
     /** @var list<string> */
     private array $written = [];
 
+    /** @var array<string, string> the real environment's values, put back in tearDown */
+    private array $borrowed = [];
+
     protected function setUp(): void
     {
         $this->dir = sys_get_temp_dir() . '/hydra-cache-env-' . uniqid('', true);
         mkdir($this->dir);
+
+        // REDIS_HOST and REDIS_PORT may be set for real, since this suite and
+        // RedisStoreTest and RedisConnectionTest all read them to find a server
+        // to test against. The scrub below removes a key rather than restoring
+        // it, so without this the first Redis test to run takes the address away
+        // from every one that runs after it, and under --order-by=random which
+        // of them that is changes per run. {@see CacheConfigTest} borrows the
+        // same way and for the same reason.
+        foreach (self::BORROWED as $key) {
+            $value = getenv($key);
+
+            if ($value !== false) {
+                $this->borrowed[$key] = $value;
+            }
+        }
     }
 
     protected function tearDown(): void
@@ -46,6 +67,12 @@ final class CacheServiceProviderTest extends TestCase
             unset($_ENV[$key], $_SERVER[$key]);
         }
         $this->written = [];
+
+        foreach ($this->borrowed as $key => $value) {
+            putenv("{$key}={$value}");
+            $_ENV[$key] = $value;
+        }
+        $this->borrowed = [];
 
         $envFile = $this->dir . '/.env';
         if (file_exists($envFile)) {
