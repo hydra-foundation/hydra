@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Sources;
 
+use Hydra\Admin\Contracts\DescribesColumnsInterface;
 use Hydra\Admin\Contracts\RowSourceInterface;
 use Hydra\Admin\Contracts\SourceInterface;
 use Hydra\Admin\Criteria;
 use Hydra\Admin\Page;
 use Hydra\Admin\RowId;
+use Hydra\Admin\SourceDescription;
 use Hydra\Database\Contracts\ConnectionInterface;
 use LogicException;
 
@@ -32,7 +34,7 @@ use LogicException;
  * write contracts writes its own SQL against the table it already declared,
  * rather than naming it a second time.
  */
-class TableSource implements SourceInterface, RowSourceInterface
+class TableSource implements SourceInterface, RowSourceInterface, DescribesColumnsInterface
 {
     /**
      * Column and table names are interpolated into SQL, never bound, because an
@@ -63,6 +65,25 @@ class TableSource implements SourceInterface, RowSourceInterface
         $this->columns = array_values($columns);
 
         $this->guard();
+    }
+
+    /**
+     * The declaration, handed back so something outside can check it against a
+     * module's fields. Nothing at runtime reads this: the SQL is built from the
+     * same properties directly, and a screen never asks a source what it is.
+     * It exists for `admin:check`, and for a test that wants to state the
+     * pairing rather than assume it.
+     */
+    public function describe(): SourceDescription
+    {
+        return new SourceDescription(
+            table: $this->table,
+            columns: $this->columns,
+            sortable: array_values($this->sortable),
+            searchable: array_values($this->searchable),
+            filterable: array_values($this->filterable),
+            defaultSort: $this->defaultSort,
+        );
     }
 
     public function find(string $id): ?array

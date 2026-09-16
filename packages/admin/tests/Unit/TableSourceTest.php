@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Admin\Tests\Unit;
 
 use Hydra\Admin\Criteria;
+use Hydra\Admin\SourceDescription;
 use Hydra\Admin\Sources\TableSource;
 use Hydra\Database\PdoConnection;
 use LogicException;
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
  * silently matches everything look identical from the module.
  */
 #[CoversClass(TableSource::class)]
+#[CoversClass(SourceDescription::class)]
 final class TableSourceTest extends TestCase
 {
     private const COLUMNS = ['id', 'table_name', 'message', 'secret', 'created_at'];
@@ -188,6 +190,46 @@ final class TableSourceTest extends TestCase
 
             throw $e;
         }
+    }
+
+    public function test_it_hands_back_the_declaration_it_was_built_with(): void
+    {
+        // The whole point of the description: what `admin:check` compares a
+        // module against is the source's own four lists, not a schema read.
+        $description = $this->source()->describe();
+
+        $this->assertSame('audit', $description->table);
+        $this->assertSame(self::COLUMNS, $description->columns);
+        $this->assertSame(['id', 'table_name', 'created_at'], $description->sortable);
+        $this->assertSame(['table_name', 'message'], $description->searchable);
+        $this->assertSame(['table_name'], $description->filterable);
+        $this->assertSame('id', $description->defaultSort);
+    }
+
+    public function test_the_description_answers_for_each_list_separately(): void
+    {
+        // A column can be read and not sorted by, or sorted by and not
+        // searched; collapsing the four into one answer would hide exactly the
+        // mismatch this exists to find.
+        $description = $this->source()->describe();
+
+        $this->assertTrue($description->reads('secret'));
+        $this->assertFalse($description->sortsBy('secret'));
+        $this->assertFalse($description->searches('secret'));
+        $this->assertFalse($description->filtersBy('secret'));
+
+        $this->assertTrue($description->sortsBy('created_at'));
+        $this->assertFalse($description->searches('created_at'));
+    }
+
+    public function test_a_column_nothing_declared_is_absent_from_every_list(): void
+    {
+        $description = $this->source()->describe();
+
+        $this->assertFalse($description->reads('ignored'));
+        $this->assertFalse($description->sortsBy('ignored'));
+        $this->assertFalse($description->searches('ignored'));
+        $this->assertFalse($description->filtersBy('ignored'));
     }
 
     private function source(): TableSource
