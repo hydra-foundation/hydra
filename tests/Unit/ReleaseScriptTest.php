@@ -36,6 +36,9 @@ final class ReleaseScriptTest extends TestCase
 
     private const WITH_AN_ADDITION = '<?php namespace Acme; final class Thing { public function kept(): void {} public function dropped(): void {} public function added(): void {} }';
 
+    /** The fixture wiki's one asset, so a test can state the key its bytes actually hash to. */
+    private const ASSET = "(function () { 'use strict'; }());\n";
+
     private string $dir;
 
     protected function setUp(): void
@@ -106,6 +109,34 @@ final class ReleaseScriptTest extends TestCase
             [$this->head('hydra'), $this->head('app'), $this->tags('hydra'), $this->tags('app')],
             'A dry run moved a HEAD or wrote a tag.',
         );
+    }
+
+    public function test_a_stale_wiki_cache_key_warns_without_blocking_the_release(): void
+    {
+        $this->commit(self::WITH_AN_ADDITION);
+        $this->wiki('deadbeef');
+
+        [$status, $output] = $this->release('0.5.1');
+
+        $this->assertStringContainsString('Wiki cache keys are stale', $output);
+        $this->assertStringContainsString('pages say ?v=deadbeef', $output);
+
+        // The whole point of the check being a warning: the wiki is neither
+        // repository being tagged, so a drifted key must not cost a release
+        // that is otherwise correct.
+        $this->assertSame(0, $status, $output);
+        $this->assertStringContainsString('Dry run — nothing written.', $output);
+    }
+
+    public function test_a_wiki_whose_keys_match_says_nothing(): void
+    {
+        $this->commit(self::WITH_AN_ADDITION);
+        $this->wiki(substr(md5(self::ASSET), 0, 8));
+
+        [$status, $output] = $this->release('0.5.1');
+
+        $this->assertSame(0, $status, $output);
+        $this->assertStringNotContainsString('Wiki cache keys', $output);
     }
 
     public function test_a_dirty_working_tree_is_refused(): void
@@ -190,13 +221,31 @@ final class ReleaseScriptTest extends TestCase
         $this->assertStringContainsString("version must look like 0.3.1, got '0.5'", $output);
     }
 
+    /**
+     * A documentation site of one page and one script, with the page naming
+     * the script under $key. The real site keeps that key by hand, which is
+     * the whole reason the gate looks at it.
+     */
+    private function wiki(string $key): void
+    {
+        mkdir($this->dir . '/wiki/public/assets/js', 0o775, true);
+        mkdir($this->dir . '/wiki/public/docs', 0o775, true);
+
+        file_put_contents($this->dir . '/wiki/public/assets/js/search.js', self::ASSET);
+        file_put_contents(
+            $this->dir . '/wiki/public/docs/index.html',
+            sprintf('<script src="/assets/js/search.js?v=%s" defer></script>', $key),
+        );
+    }
+
     /** @return array{int, string} */
     private function release(string ...$args): array
     {
         exec(
             sprintf(
-                'env HYDRA_DIR=%s PATH=%s %s %s 2>&1',
+                'env HYDRA_DIR=%s HYDRA_WIKI_DIR=%s PATH=%s %s %s 2>&1',
                 escapeshellarg($this->dir),
+                escapeshellarg($this->dir . '/wiki'),
                 escapeshellarg($this->dir . '/stub:' . getenv('PATH')),
                 escapeshellarg(self::SCRIPT),
                 implode(' ', array_map(escapeshellarg(...), $args)),

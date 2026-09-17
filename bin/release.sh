@@ -240,6 +240,42 @@ if [ -n "$REMOVED" ] && [ "$DO_MINOR" -eq 0 ]; then
     printf '%s\n' "$REMOVED" | sed 's/^/  - /' >&2
 fi
 
+# The documentation site is hand-written static HTML with no build step, and
+# every stylesheet and script is referenced as ?v=<first 8 of the file's md5>.
+# That key is kept by hand, so it drifts in one direction only and in silence:
+# an edited asset published under its old key is served from cache, so the page
+# looks right to whoever just wrote it and stale to everybody who had visited
+# before. search.js drifted across v0.5.5 and shipped a search index no
+# returning reader ever saw.
+#
+# A warning rather than a refusal. The wiki is neither of the repositories
+# being tagged, it is live whatever this script decides, and a release that is
+# otherwise correct should not be held for it.
+WIKI="${HYDRA_WIKI_DIR:-$HOME/.mount/hydra}/public"
+
+if [ -d "$WIKI" ] && command -v md5sum >/dev/null 2>&1; then
+    stale=()
+
+    while IFS= read -r ref; do
+        asset="${ref%%\?v=*}"
+        key="${ref##*\?v=}"
+
+        if [ ! -f "$WIKI/$asset" ]; then
+            stale+=("$asset is referenced but not there")
+            continue
+        fi
+
+        actual=$(md5sum "$WIKI/$asset" | cut -c1-8)
+        [ "$key" = "$actual" ] || stale+=("$asset: pages say ?v=$key, the file is $actual")
+    done < <(grep -rhoE '[A-Za-z0-9_/.-]+\.(css|js)\?v=[0-9a-f]+' --include='*.html' "$WIKI" | sort -u)
+
+    if [ ${#stale[@]} -gt 0 ]; then
+        printf '\nWiki cache keys are stale — returning readers are served the old file:\n' >&2
+        printf '  - %s\n' "${stale[@]}" >&2
+        printf 'Fix under %s; the release is not blocked by this.\n' "$WIKI" >&2
+    fi
+fi
+
 if [ ${#problems[@]} -gt 0 ]; then
     printf '\nRefusing to release:\n' >&2
     printf '  - %s\n' "${problems[@]}" >&2
