@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Hydra\Tools\Tests\Unit;
+namespace Hydra\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -83,6 +83,40 @@ final class ApiSurfaceTest extends TestCase
         $this->assertSame([
             'Acme\Real',
             'Acme\Real->a(): void',
+            'Acme\Testing\ThingContractTestCase',
+            'Acme\Testing\ThingContractTestCase->thing(): Thing',
+        ], $this->scan($this->dir));
+    }
+
+    public function test_a_concrete_double_under_testing_keeps_its_public_methods(): void
+    {
+        // The inversion is about being extended, not about the directory. A
+        // concrete class under src/Testing is a double a consumer CALLS — a
+        // fake logger, a service provider that binds an in-memory store — so
+        // its public methods are its whole surface, and renaming one breaks
+        // every harness that reads it. Both shapes live side by side in the
+        // same directory, which is why the rule cannot be the path alone.
+        mkdir($this->dir . '/pkg/src/Testing', 0o775, true);
+        file_put_contents($this->dir . '/pkg/src/Testing/FakeThing.php', '<?php
+            namespace Acme\\Testing;
+            final class FakeThing
+            {
+                public function records(): array { return []; }
+                protected function hidden(): void {}
+            }
+        ');
+        file_put_contents($this->dir . '/pkg/src/Testing/ThingContractTestCase.php', '<?php
+            namespace Acme\\Testing;
+            abstract class ThingContractTestCase
+            {
+                abstract protected function thing(): Thing;
+                public function test_it_does_something(): void {}
+            }
+        ');
+
+        $this->assertSame([
+            'Acme\Testing\FakeThing',
+            'Acme\Testing\FakeThing->records(): array',
             'Acme\Testing\ThingContractTestCase',
             'Acme\Testing\ThingContractTestCase->thing(): Thing',
         ], $this->scan($this->dir));
@@ -382,11 +416,13 @@ final class ApiSurfaceTest extends TestCase
         $this->assertSame(['Acme\Real', 'Acme\Real->a(): void'], $this->scan($this->dir));
     }
 
-    /** The lines in $before that $after no longer has: what release.sh refuses. */
     /**
-     * What bin/release.sh would hold against a patch tag: the two trees
-     * scanned, then compared by the same tool the gate runs, rather than by an
-     * array_diff that would pass cases the gate itself fails.
+     * The lines in $before that $after no longer has, which is what
+     * bin/release.sh refuses on a patch tag: the two trees scanned, then
+     * compared by the same tool the gate runs, rather than by an array_diff
+     * that would pass cases the gate itself fails.
+     *
+     * @return list<string>
      */
     private function removals(string $before, string $after): array
     {

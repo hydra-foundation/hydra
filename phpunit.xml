@@ -19,7 +19,16 @@
             neither had a test until this suite.
         -->
         <testsuite name="bin">
-            <directory>tests</directory>
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <!--
+            The flows that verify the framework's own contracts, driven through
+            the fixture application under tests/fixture. They live here rather
+            than in the skeleton because what they assert is the framework's:
+            the skeleton keeps only the flows that demonstrate the skeleton.
+        -->
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
         </testsuite>
         <testsuite name="admin">
             <directory>packages/admin/tests</directory>

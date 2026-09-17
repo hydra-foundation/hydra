@@ -2,6 +2,7 @@ parameters:
     level: 6
     paths:
         - packages
+        - tests
 
     # The tests are analysed too: a test asserting on a mistyped method, or on
     # an exception class that is never thrown, is exactly the defect level 6

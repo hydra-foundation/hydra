@@ -8,7 +8,7 @@ declare(strict_types=1);
  * that rewrites half the tree on adoption teaches everyone to ignore it.
  */
 $finder = PhpCsFixer\Finder::create()
-    ->in(__DIR__ . '/packages')
+    ->in([__DIR__ . '/packages', __DIR__ . '/tests'])
     ->name('*.php');
 
 return (new PhpCsFixer\Config())

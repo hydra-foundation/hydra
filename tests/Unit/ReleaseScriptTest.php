@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Hydra\Tools\Tests\Unit;
+namespace Hydra\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;

@@ -93,7 +93,8 @@ foreach ($files as $file) {
     $namespace = '';
     $class = null;
     $isEnum = false;
-    $isContractCase = str_contains(strtr($file->getPathname(), '\\', '/'), '/src/Testing/');
+    $inTestingDir = str_contains(strtr($file->getPathname(), '\\', '/'), '/src/Testing/');
+    $isContractCase = false;
     $classDepth = 0;
     $depth = 0;
     $modifiers = [];
@@ -116,6 +117,7 @@ foreach ($files as $file) {
             if ($class !== null && $depth < $classDepth) {
                 $class = null;
                 $isEnum = false;
+                $isContractCase = false;
             }
 
             continue;
@@ -155,6 +157,12 @@ foreach ($files as $file) {
         ) {
             $class = $namespace . '\\' . $nextToken->text;
             $isEnum = $token->is(T_ENUM);
+            // A contract case is an ABSTRACT class under src/Testing: the
+            // directory alone is not the test, because a concrete class there
+            // is a double a consumer CALLS rather than extends, and its public
+            // methods are its whole surface. Read before $modifiers is reset,
+            // which is where the class's own keywords still are.
+            $isContractCase = $inTestingDir && in_array(T_ABSTRACT, $modifiers, true);
             $classDepth = $depth + 1;
             $symbols[] = $class;
             $modifiers = [];
@@ -174,12 +182,12 @@ foreach ($files as $file) {
         // public; anything explicitly hidden is not surface.
         $hidden = array_intersect($modifiers, [T_PROTECTED, T_PRIVATE]) !== [];
 
-        // src/Testing holds the published contract cases, where what a user
-        // depends on is inverted: they extend the class, so an abstract method
-        // is the part they must implement and a rename of one breaks them,
-        // whatever its visibility. The test methods are the opposite — losing
-        // one cannot break a subclass, and every one of them would otherwise
-        // churn this listing on any edit to a case.
+        // An abstract case under src/Testing is a published contract case,
+        // where what a user depends on is inverted: they extend the class, so
+        // an abstract method is the part they must implement and a rename of
+        // one breaks them, whatever its visibility. The test methods are the
+        // opposite — losing one cannot break a subclass, and every one of them
+        // would otherwise churn this listing on any edit to a case.
         if ($isContractCase) {
             $hidden = !in_array(T_ABSTRACT, $modifiers, true);
         }

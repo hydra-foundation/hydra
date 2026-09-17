@@ -1,0 +1,207 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Hydra\Tests\Fixture;
+
+use Hydra\Auth\AuthConfig;
+use Hydra\Auth\AuthServiceProvider;
+use Hydra\Auth\Contracts\HasherInterface;
+use Hydra\Authorization\AuthorizationServiceProvider;
+use Hydra\Cache\Testing\ArrayCacheServiceProvider;
+use Hydra\Core\Application;
+use Hydra\Core\Contracts\ContainerInterface;
+use Hydra\Core\Environment;
+use Hydra\Core\Testing\FixedSignerServiceProvider;
+use Hydra\Csrf\CsrfGuard;
+use Hydra\Database\Contracts\ConnectionInterface;
+use Hydra\Database\PdoConnection;
+use Hydra\Event\EventServiceProvider;
+use Hydra\Kernel\HttpServiceProvider;
+use Hydra\Log\Testing\CapturingLogger;
+use Hydra\Nyholm\NyholmServiceProvider;
+use Hydra\PhpDi\Container;
+use Hydra\Session\Contracts\SessionLifecycleInterface;
+use Hydra\Session\Testing\ArraySessionServiceProvider;
+use Hydra\Tests\Fixture\Entities\Role;
+use Hydra\Tests\Fixture\Providers\FixtureServiceProvider;
+use Hydra\Throttle\ThrottleConfig;
+use Hydra\Throttle\ThrottleServiceProvider;
+use Hydra\Admin\AdminServiceProvider;
+use Hydra\Auth\AuthenticateMiddleware;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use PDO;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\LoggerInterface;
+
+/**
+ * A booted fixture application, and the handful of things a flow test needs to
+ * drive one.
+ *
+ * This is the harness the integration flows used to hand-roll a copy of each.
+ * That mattered less as duplication than as drift: eleven providers in a fixed
+ * order, a logger that has to be bound *before* boot, and a hash cost that has
+ * to be lowered or the suite spends its time in bcrypt. Each flow that got one
+ * of those subtly wrong was still green, and testing something slightly
+ * different from the others.
+ */
+final class Fixture
+{
+    /** The password every seeded account holds, so a flow never has to say so. */
+    public const PASSWORD = 'correct-horse-battery-staple';
+
+    /** The client a request comes from unless a test is about telling clients apart. */
+    public const PEER = '198.51.100.7';
+
+    private function __construct(
+        private readonly ContainerInterface $container,
+        private readonly CapturingLogger $log,
+        private readonly PDO $pdo,
+    ) {}
+
+    /**
+     * The whole composition root, in the order an application boots it.
+     *
+     * The test doubles are registered ahead of the providers they stand in for
+     * — a session that needs no session_start(), a store that needs no Redis, a
+     * signer that needs no APP_KEY — because the Environment here deliberately
+     * has no .env to read any of that from.
+     */
+    public static function boot(?ThrottleConfig $throttle = null): self
+    {
+        $container = Container::create();
+        $container->instance(ContainerInterface::class, $container);
+        $container->instance(Environment::class, new Environment(__DIR__));
+
+        $application = (new Application($container))
+            ->register(new ArraySessionServiceProvider)
+            ->register(new NyholmServiceProvider)
+            ->register(new FixedSignerServiceProvider)
+            ->register(new EventServiceProvider)
+            ->register(new ArrayCacheServiceProvider)
+            ->register(new ThrottleServiceProvider)
+            ->register(new HttpServiceProvider(
+                controllers: FixtureServiceProvider::CONTROLLERS,
+                middleware: FixtureServiceProvider::MIDDLEWARE,
+                // Scanned live, and written nowhere: a cached route table is a
+                // file two tests would share.
+                routeCacheEnabled: false,
+                routeCachePath: '/dev/null',
+            ))
+            ->register(new AuthServiceProvider)
+            ->register(new AuthorizationServiceProvider)
+            ->register(new FixtureServiceProvider)
+            ->register(new AdminServiceProvider(
+                modules: FixtureServiceProvider::MODULES,
+                prefix: '/admin',
+                middleware: [AuthenticateMiddleware::class],
+            ));
+
+        // Before boot(), not after: boot() builds the listeners with whatever
+        // LoggerInterface resolves to, so a logger swapped in afterwards hears
+        // nothing and the flow reads an empty log with no clue why.
+        $log = new CapturingLogger;
+        $container->instance(LoggerInterface::class, $log);
+
+        if ($throttle !== null) {
+            $container->instance(ThrottleConfig::class, $throttle);
+        }
+
+        $application->boot();
+
+        // Four rounds rather than the shipped cost: every flow that signs in
+        // pays this, and none of them is about bcrypt's work factor.
+        $container->instance(AuthConfig::class, new AuthConfig(hashCost: 4));
+
+        $pdo = Schema::connect();
+        $container->instance(ConnectionInterface::class, new PdoConnection($pdo));
+
+        return new self($container, $log, $pdo);
+    }
+
+    public function container(): ContainerInterface
+    {
+        return $this->container;
+    }
+
+    public function log(): CapturingLogger
+    {
+        return $this->log;
+    }
+
+    public function pdo(): PDO
+    {
+        return $this->pdo;
+    }
+
+    /** @return mixed */
+    public function get(string $id)
+    {
+        return $this->container->get($id);
+    }
+
+    /** Returns the id of the seeded row. */
+    public function seed(string $username, Role $role = Role::DEFAULT): int
+    {
+        $this->pdo->prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)')
+            ->execute([
+                $username,
+                $this->container->get(HasherInterface::class)->hash(self::PASSWORD),
+                $role->value,
+            ]);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    /**
+     * A request through the real pipeline. An unsafe method carries the
+     * session's own CSRF token, minted inside a started window the way a
+     * rendered form would; a flow that is about the token missing or wrong
+     * builds its request with {@see self::request()} instead.
+     *
+     * @param array<string, string> $headers
+     * @param array<string, mixed>|null $body
+     */
+    public function handle(
+        string $method,
+        string $path,
+        array $headers = [],
+        ?array $body = null,
+        string $peer = self::PEER,
+    ): ResponseInterface {
+        $request = $this->make($method, $path, $peer);
+
+        if (!in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
+            $this->container->get(SessionLifecycleInterface::class)->start();
+            $request = $request->withHeader('X-CSRF-Token', $this->container->get(CsrfGuard::class)->token());
+        }
+
+        foreach ($headers as $name => $value) {
+            $request = $request->withHeader($name, $value);
+        }
+
+        if ($body !== null) {
+            $request = $request->withParsedBody($body);
+        }
+
+        return $this->send($request);
+    }
+
+    /** A request exactly as given: no token, no session window opened. */
+    public function make(string $method, string $path, string $peer = self::PEER): ServerRequestInterface
+    {
+        return (new Psr17Factory)->createServerRequest($method, $path, ['REMOTE_ADDR' => $peer]);
+    }
+
+    public function send(ServerRequestInterface $request): ResponseInterface
+    {
+        return $this->container->get(RequestHandlerInterface::class)->handle($request);
+    }
+
+    public function login(string $username, string $password = self::PASSWORD): ResponseInterface
+    {
+        return $this->handle('POST', '/login', [], ['username' => $username, 'password' => $password]);
+    }
+}
