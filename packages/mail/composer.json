@@ -1,0 +1,42 @@
+{
+    "name": "hydrakit/mail",
+    "description": "Outgoing mail behind one transport contract: SMTP for delivery, log and array transports so tests and local development never send.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Hydra\\Mail\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hydra\\Mail\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        { "type": "path", "url": "../core", "options": { "symlink": true } },
+        { "type": "path", "url": "../log", "options": { "symlink": true } }
+    ],
+    "authors": [
+        {
+            "name": "William Hleucka",
+            "email": "william.hleucka@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "hydrakit/core": "^0.5",
+        "psr/log": "^3.0"
+    },
+    "require-dev": {
+        "hydrakit/log": "^0.5",
+        "phpunit/phpunit": "^11.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.5.x-dev"
+        }
+    }
+}

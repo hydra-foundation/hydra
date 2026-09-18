@@ -11,6 +11,7 @@
     "http": 96.5,
     "kernel": 97.8,
     "log": 100,
+    "mail": 99.2,
     "nyholm": 100,
     "php-di": 100,
     "session": 99,

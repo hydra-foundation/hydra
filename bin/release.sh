@@ -38,7 +38,7 @@ REPOS=(hydra app)
 # that has to be kept in step by hand is one that drifts the next time a
 # package is added.
 PACKAGES=(admin auth authorization cache console core csrf database event http
-          kernel log nyholm php-di session throttle validation view)
+          kernel log mail nyholm php-di session throttle validation view)
 
 VERSION=""
 DO_PUSH=0

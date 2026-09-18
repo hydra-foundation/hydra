@@ -66,6 +66,9 @@
         <testsuite name="log">
             <directory>packages/log/tests</directory>
         </testsuite>
+        <testsuite name="mail">
+            <directory>packages/mail/tests</directory>
+        </testsuite>
         <testsuite name="nyholm">
             <directory>packages/nyholm/tests</directory>
         </testsuite>
@@ -99,6 +102,7 @@
             <directory>packages/http/src</directory>
             <directory>packages/kernel/src</directory>
             <directory>packages/log/src</directory>
+            <directory>packages/mail/src</directory>
             <directory>packages/nyholm/src</directory>
             <directory>packages/php-di/src</directory>
             <directory>packages/session/src</directory>
