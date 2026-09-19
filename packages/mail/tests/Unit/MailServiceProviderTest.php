@@ -5,21 +5,24 @@ declare(strict_types=1);
 namespace Hydra\Mail\Tests\Unit;
 
 use Hydra\Core\Environment;
+use Hydra\Core\Testing\FrozenClock;
 use Hydra\Log\Testing\CapturingLogger;
 use Hydra\Mail\Contracts\MailerInterface;
 use Hydra\Mail\Contracts\TransportInterface;
 use Hydra\Mail\MailConfig;
-use Hydra\Mail\Mailer;
 use Hydra\Mail\MailServiceProvider;
+use Hydra\Mail\Mailer;
 use Hydra\Mail\Message;
-use Hydra\Mail\Testing\FakeMailer;
+use Hydra\Mail\MimeRenderer;
 use Hydra\Mail\Testing\FakeMailServiceProvider;
+use Hydra\Mail\Testing\FakeMailer;
 use Hydra\Mail\Tests\Support\TestContainer;
 use Hydra\Mail\Transports\ArrayTransport;
 use Hydra\Mail\Transports\LogTransport;
 use Hydra\Mail\Transports\SmtpTransport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 
 #[CoversClass(MailServiceProvider::class)]
@@ -40,6 +43,23 @@ final class MailServiceProviderTest extends TestCase
         $this->assertInstanceOf(SmtpTransport::class, $this->container(new MailConfig(host: 'h'))->get(TransportInterface::class));
         $this->assertInstanceOf(LogTransport::class, $this->container(new MailConfig(transport: 'log'))->get(TransportInterface::class));
         $this->assertInstanceOf(ArrayTransport::class, $this->container(new MailConfig(transport: 'array'))->get(TransportInterface::class));
+    }
+
+    public function test_the_renderer_dates_mail_by_the_bound_clock(): void
+    {
+        $container = $this->container(new MailConfig(host: 'h'));
+        $container->instance(ClockInterface::class, new FrozenClock('2026-03-04T05:06:07+00:00'));
+
+        $mime = $container->get(MimeRenderer::class)->render(
+            Message::make()->from('app@example.com')->to('ada@example.com')->subject('Hi')->text('Hi'),
+        );
+
+        $this->assertStringStartsWith("Date: Wed, 04 Mar 2026 05:06:07 +0000\r\n", $mime);
+    }
+
+    public function test_the_renderer_falls_back_to_the_system_clock(): void
+    {
+        $this->assertInstanceOf(MimeRenderer::class, $this->container(new MailConfig(host: 'h'))->get(MimeRenderer::class));
     }
 
     public function test_the_mailer_sends_through_the_bound_transport_with_the_configured_sender(): void

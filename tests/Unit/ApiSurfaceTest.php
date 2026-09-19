@@ -58,27 +58,40 @@ final class ApiSurfaceTest extends TestCase
         ], $surface);
     }
 
-    public function test_a_method_named_with_a_reserved_word_is_listed(): void
+    public function test_a_member_named_with_a_reserved_word_is_listed(): void
     {
-        // Csp::default() and Client::for() tokenize as T_DEFAULT and T_FOR, and
-        // were invisible to the gate: either could have been removed in a patch.
+        // These tokenize as T_FOR, T_DEFAULT, T_LIST and T_ARRAY, and were
+        // invisible to the gate: Csp::default(), Surface::List and the two
+        // ARRAY transport constants could each have been removed in a patch.
         $surface = $this->surface('<?php
             namespace Acme;
             final class Factory
             {
+                public const ARRAY = "array";
+                public const DEFAULT = "x";
                 public static function for(string $name): self { return new self; }
                 public static function default(): self { return new self; }
                 public function list(): array { return []; }
                 public function make(): callable { return function () {}; }
             }
+            enum Shape: string
+            {
+                case List = "list";
+                case Grid = "grid";
+            }
         ');
 
         $this->assertSame([
-            'Acme\Factory',
-            'Acme\Factory->list(): array',
-            'Acme\Factory->make(): callable',
-            'Acme\Factory::default(): self',
-            'Acme\Factory::for(string $name): self',
+            'Acme\\Factory',
+            'Acme\\Factory->list(): array',
+            'Acme\\Factory->make(): callable',
+            'Acme\\Factory::ARRAY',
+            'Acme\\Factory::DEFAULT',
+            'Acme\\Factory::default(): self',
+            'Acme\\Factory::for(string $name): self',
+            'Acme\\Shape',
+            'Acme\\Shape::Grid = "grid"',
+            'Acme\\Shape::List = "list"',
         ], $surface);
     }
 

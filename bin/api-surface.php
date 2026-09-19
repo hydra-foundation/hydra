@@ -134,6 +134,11 @@ foreach ($files as $file) {
             return null;
         };
 
+        // A member may be named with a reserved word (for, default, List, ARRAY),
+        // which tokenizes as that keyword rather than T_STRING.
+        $isName = static fn (?PhpToken $t): bool => $t !== null
+            && preg_match('/^[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*$/', $t->text) === 1;
+
         $after = $next($i + 1);
         $nextToken = $after === null ? null : $tokens[$after];
 
@@ -192,10 +197,7 @@ foreach ($files as $file) {
             $hidden = !in_array(T_ABSTRACT, $modifiers, true);
         }
 
-        // A method may be named with a reserved word (for, default, list), which
-        // tokenizes as that keyword rather than T_STRING.
-        if ($inClassBody && $token->is(T_FUNCTION) && $nextToken !== null
-            && preg_match('/^[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*$/', $nextToken->text) === 1) {
+        if ($inClassBody && $token->is(T_FUNCTION) && $isName($nextToken)) {
             $name = $nextToken->text;
 
             // From the parameter list to whatever ends the declaration: `{` for
@@ -234,13 +236,13 @@ foreach ($files as $file) {
             continue;
         }
 
-        if ($inClassBody && $token->is(T_CONST) && $nextToken?->is(T_STRING) && !$hidden) {
+        if ($inClassBody && $token->is(T_CONST) && $isName($nextToken) && !$hidden) {
             $symbols[] = $class . '::' . $nextToken->text;
         }
 
         // An enum's cases are as public as its name, and a removed one breaks
         // every match arm a consumer wrote against it.
-        if ($inClassBody && $isEnum && $token->is(T_CASE) && $nextToken?->is(T_STRING)) {
+        if ($inClassBody && $isEnum && $token->is(T_CASE) && $isName($nextToken)) {
             $end = $after;
 
             for ($j = $after; $j < $count; $j++) {

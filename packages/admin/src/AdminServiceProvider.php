@@ -6,12 +6,14 @@ namespace Hydra\Admin;
 
 use Hydra\Admin\Contracts\ModuleInterface;
 use Hydra\Authorization\Contracts\GateInterface;
+use Hydra\Core\Clock\SystemClock;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Http\Responder;
 use Hydra\Http\Router;
 use Hydra\Validation\Validator;
 use Hydra\View\Contracts\ViewInterface;
+use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -91,6 +93,7 @@ final class AdminServiceProvider extends ServiceProvider
                 $container->get(Responder::class),
                 $container->get(Validator::class),
                 $events,
+                $container->bound(ClockInterface::class) ? $container->get(ClockInterface::class) : new SystemClock,
             );
         });
     }

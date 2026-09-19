@@ -14,6 +14,7 @@ use Hydra\Kernel\Tests\Support\TestContainer;
 use Hydra\Session\Contracts\SessionInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -45,6 +46,11 @@ final class KernelTest extends TestCase
         // proves the provider registered its bindings.
         $this->assertInstanceOf(SessionInterface::class, $this->container->get(SessionInterface::class));
         $this->assertInstanceOf(EventDispatcherInterface::class, $this->container->get(EventDispatcherInterface::class));
+    }
+
+    public function test_registers_the_clock(): void
+    {
+        $this->assertInstanceOf(ClockInterface::class, $this->container->get(ClockInterface::class));
     }
 
     public function test_registers_the_auth_and_authorization_providers(): void

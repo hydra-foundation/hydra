@@ -12,6 +12,7 @@ use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Navigation;
 use Hydra\Admin\Renderer;
 use Hydra\Core\Security\Signer;
+use Hydra\Core\Testing\FrozenClock;
 use Hydra\Csrf\CsrfGuard;
 use Hydra\Http\CspNonce;
 use Hydra\Http\Responder;
@@ -38,6 +39,7 @@ final class AdminHarness
     public readonly ViewInterface $view;
     public readonly RecordingDispatcher $events;
     public readonly AdminController $controller;
+    public readonly FrozenClock $clock;
 
     /**
      * @param array<string, object> $services sources and modules, by service id
@@ -61,6 +63,7 @@ final class AdminHarness
         );
         $this->renderer = new Renderer($this->responder, $this->view);
         $this->events = new RecordingDispatcher;
+        $this->clock = new FrozenClock;
         $this->controller = new AdminController(
             $this->registry,
             $this->chrome,
@@ -69,6 +72,7 @@ final class AdminHarness
             $this->responder,
             new Validator,
             $this->events,
+            $this->clock,
         );
     }
 

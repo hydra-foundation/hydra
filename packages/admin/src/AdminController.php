@@ -20,6 +20,7 @@ use Hydra\Admin\ViewModels\FormViewModel;
 use Hydra\Admin\ViewModels\ListViewModel;
 use Hydra\Admin\ViewModels\ShowViewModel;
 use Hydra\Authorization\Contracts\GateInterface;
+use Hydra\Core\Clock\SystemClock;
 use Hydra\Http\Exceptions\NotFoundException;
 use Hydra\Http\Htmx;
 use Hydra\Http\ParsedBody;
@@ -28,6 +29,7 @@ use Hydra\Http\Responder;
 use Hydra\Http\Status;
 use Hydra\Validation\Validator;
 use Generator;
+use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -53,6 +55,7 @@ final class AdminController
          * because container autowiring passes an optional parameter by.
          */
         private readonly ?EventDispatcherInterface $events = null,
+        private readonly ClockInterface $clock = new SystemClock,
     ) {}
 
     public function list(Request $request): Response
@@ -95,7 +98,7 @@ final class AdminController
 
         return $this->respond->download(
             $csv,
-            $screen->filename($blueprint->slug),
+            $screen->filename($blueprint->slug, $this->clock->now()),
             'text/csv; charset=utf-8',
         );
     }

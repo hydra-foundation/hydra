@@ -46,7 +46,17 @@ final class AdminExportTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('text/csv; charset=utf-8', $response->getHeaderLine('Content-Type'));
         $this->assertStringStartsWith('attachment;', $disposition);
-        $this->assertStringContainsString('people-' . date('Y-m-d') . '.csv', $disposition);
+        $this->assertStringContainsString('people-2026-01-01.csv', $disposition);
+    }
+
+    public function test_the_file_is_dated_by_the_clock(): void
+    {
+        $this->admin->clock->set('2031-07-09 23:59:59');
+
+        $this->assertStringContainsString(
+            'people-2031-07-09.csv',
+            $this->export('/admin/users/export')->getHeaderLine('Content-Disposition'),
+        );
     }
 
     /**

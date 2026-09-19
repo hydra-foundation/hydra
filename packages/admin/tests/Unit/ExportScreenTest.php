@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Unit;
 
+use DateTimeImmutable;
 use Hydra\Admin\AdminController;
 use Hydra\Admin\Extractor;
 use Hydra\Admin\Screens\ExportScreen;
@@ -37,14 +38,24 @@ final class ExportScreenTest extends TestCase
         $this->assertSame('ExportUsers', ExportScreen::make()->requires('ExportUsers')->ability());
     }
 
+    public function test_without_a_date_the_file_is_dated_today(): void
+    {
+        // Either side of midnight, so the test does not fail at the stroke of it.
+        $before = date('Y-m-d');
+        $name = ExportScreen::make()->filename('users');
+        $after = date('Y-m-d');
+
+        $this->assertContains($name, ["users-{$before}.csv", "users-{$after}.csv"]);
+    }
+
     public function test_the_file_is_named_after_the_module_and_dated(): void
     {
-        $this->assertSame('users-' . date('Y-m-d') . '.csv', ExportScreen::make()->filename('users'));
+        $this->assertSame('users-2026-03-04.csv', ExportScreen::make()->filename('users', $this->on()));
     }
 
     public function test_a_module_may_name_the_file_itself(): void
     {
-        $this->assertSame('people-' . date('Y-m-d') . '.csv', ExportScreen::make()->named('people')->filename('users'));
+        $this->assertSame('people-2026-03-04.csv', ExportScreen::make()->named('people')->filename('users', $this->on()));
     }
 
     /**
@@ -55,8 +66,8 @@ final class ExportScreenTest extends TestCase
     {
         $screen = ExportScreen::make()->named('../../etc/passwd');
 
-        $this->assertSame('etc-passwd-' . date('Y-m-d') . '.csv', $screen->filename('users'));
-        $this->assertSame('export-' . date('Y-m-d') . '.csv', ExportScreen::make()->named('///')->filename('users'));
+        $this->assertSame('etc-passwd-2026-03-04.csv', $screen->filename('users', $this->on()));
+        $this->assertSame('export-2026-03-04.csv', ExportScreen::make()->named('///')->filename('users', $this->on()));
     }
 
     public function test_the_row_limit_defaults_to_the_extractor_cap_and_can_be_moved(): void
@@ -81,6 +92,11 @@ final class ExportScreenTest extends TestCase
         $this->assertNull($screen->ability());
         $this->assertSame('Export CSV', $screen->label());
         $this->assertSame(Extractor::MAX_ROWS, $screen->rowLimit());
-        $this->assertSame('users-' . date('Y-m-d') . '.csv', $screen->filename('users'));
+        $this->assertSame('users-2026-03-04.csv', $screen->filename('users', $this->on()));
+    }
+
+    private function on(): DateTimeImmutable
+    {
+        return new DateTimeImmutable('2026-03-04 10:00:00');
     }
 }

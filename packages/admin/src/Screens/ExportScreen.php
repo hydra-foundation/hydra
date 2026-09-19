@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Screens;
 
+use DateTimeImmutable;
+use DateTimeInterface;
 use Hydra\Admin\AdminController;
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Extractor;
@@ -117,11 +119,11 @@ final class ExportScreen implements ScreenInterface
      * Reduced to characters a file name carries everywhere, because this ends
      * up in a header and then on somebody's disk.
      */
-    public function filename(string $slug): string
+    public function filename(string $slug, ?DateTimeInterface $on = null): string
     {
         $base = (string) preg_replace('/[^A-Za-z0-9._-]+/', '-', $this->filename ?? $slug);
         $base = trim($base, '-.');
 
-        return ($base === '' ? 'export' : $base) . '-' . date('Y-m-d') . '.csv';
+        return ($base === '' ? 'export' : $base) . '-' . ($on ?? new DateTimeImmutable)->format('Y-m-d') . '.csv';
     }
 }

@@ -7,6 +7,7 @@ namespace Hydra\Kernel;
 use Hydra\Auth\AuthServiceProvider;
 use Hydra\Authorization\AuthorizationServiceProvider;
 use Hydra\Core\Application;
+use Hydra\Core\Clock\ClockServiceProvider;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Event\EventServiceProvider;
@@ -23,6 +24,7 @@ final class Kernel
         $container->instance(ContainerInterface::class, $container);
         $container->instance(Environment::class, $environment);
         return (new Application($container))
+            ->register(new ClockServiceProvider)
             ->register(new SessionServiceProvider)
             ->register(new EventServiceProvider)
             ->register(new AuthServiceProvider)

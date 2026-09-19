@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Hydra\Mail;
 
+use Hydra\Core\Clock\SystemClock;
 use InvalidArgumentException;
+use Psr\Clock\ClockInterface;
 
 /**
  * Renders a message as RFC 5322 text with CRLF line endings.
@@ -16,12 +18,14 @@ final class MimeRenderer
 {
     private const CRLF = "\r\n";
 
+    public function __construct(private readonly ClockInterface $clock = new SystemClock) {}
+
     public function render(Message $message): string
     {
         $from = $message->getFrom() ?? throw new InvalidArgumentException('The message has no sender.');
 
         $headers = [
-            'Date' => date(DATE_RFC2822),
+            'Date' => $this->clock->now()->format(DATE_RFC2822),
             'Message-ID' => sprintf('<%s@%s>', bin2hex(random_bytes(16)), $from->domain()),
             'From' => $this->address($from),
         ];

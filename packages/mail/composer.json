@@ -26,7 +26,8 @@
     "require": {
         "php": ">=8.2",
         "hydrakit/core": "^0.5",
-        "psr/log": "^3.0"
+        "psr/log": "^3.0",
+        "psr/clock": "^1.0"
     },
     "require-dev": {
         "hydrakit/log": "^0.5",

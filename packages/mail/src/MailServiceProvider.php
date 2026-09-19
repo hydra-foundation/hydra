@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Mail;
 
+use Hydra\Core\Clock\SystemClock;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
@@ -12,6 +13,7 @@ use Hydra\Mail\Contracts\TransportInterface;
 use Hydra\Mail\Transports\ArrayTransport;
 use Hydra\Mail\Transports\LogTransport;
 use Hydra\Mail\Transports\SmtpTransport;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -26,13 +28,15 @@ final class MailServiceProvider extends ServiceProvider
             return MailConfig::fromEnvironment($container->get(Environment::class));
         });
 
+        $container->singleton(MimeRenderer::class, fn () => new MimeRenderer($this->clock($container)));
+
         $container->singleton(TransportInterface::class, function () use ($container) {
             $config = $container->get(MailConfig::class);
 
             return match ($config->transport) {
                 MailConfig::LOG => new LogTransport($container->get(LoggerInterface::class)),
                 MailConfig::ARRAY => new ArrayTransport,
-                default => new SmtpTransport($config),
+                default => new SmtpTransport($config, $container->get(MimeRenderer::class)),
             };
         });
 
@@ -42,5 +46,11 @@ final class MailServiceProvider extends ServiceProvider
                 $container->get(MailConfig::class)->from,
             );
         });
+    }
+
+    /** The bound clock, or the system's when nothing registered one. */
+    private function clock(ContainerInterface $container): ClockInterface
+    {
+        return $container->bound(ClockInterface::class) ? $container->get(ClockInterface::class) : new SystemClock;
     }
 }

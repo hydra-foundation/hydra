@@ -10,6 +10,7 @@ use Hydra\Auth\Contracts\HasherInterface;
 use Hydra\Authorization\AuthorizationServiceProvider;
 use Hydra\Cache\Testing\ArrayCacheServiceProvider;
 use Hydra\Core\Application;
+use Hydra\Core\Clock\ClockServiceProvider;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Testing\FixedSignerServiceProvider;
@@ -70,6 +71,7 @@ final class Fixture
         $container->instance(Environment::class, new Environment(__DIR__));
 
         $application = (new Application($container))
+            ->register(new ClockServiceProvider)
             ->register(new ArraySessionServiceProvider)
             ->register(new NyholmServiceProvider)
             ->register(new FixedSignerServiceProvider)

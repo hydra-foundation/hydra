@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Mail\Tests\Unit;
 
+use Hydra\Core\Testing\FrozenClock;
 use Hydra\Mail\Message;
 use Hydra\Mail\MimeRenderer;
 use InvalidArgumentException;
@@ -16,6 +17,13 @@ final class MimeRendererTest extends TestCase
     private function message(): Message
     {
         return Message::make()->from('app@example.com', 'The App')->to('ada@example.com')->subject('Hello');
+    }
+
+    public function test_the_date_header_is_the_clocks(): void
+    {
+        $mime = (new MimeRenderer(new FrozenClock('2026-03-04T05:06:07+00:00')))->render($this->message()->text('Hi'));
+
+        $this->assertStringStartsWith("Date: Wed, 04 Mar 2026 05:06:07 +0000\r\n", $mime);
     }
 
     public function test_a_text_message_is_one_quoted_printable_part(): void
