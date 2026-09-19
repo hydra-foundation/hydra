@@ -6,6 +6,7 @@ namespace Hydra\Tests\Integration;
 
 use Hydra\Core\Contracts\KernelInterface;
 use Hydra\Http\HttpKernel;
+use Hydra\Http\Testing\Client;
 use Hydra\Tests\Fixture\Config\CspConfig;
 use Hydra\Tests\Fixture\Fixture;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -22,9 +23,12 @@ final class RequestLifecycleTest extends TestCase
 {
     private Fixture $app;
 
+    private Client $http;
+
     protected function setUp(): void
     {
         $this->app = Fixture::boot();
+        $this->http = $this->app->http();
     }
 
     public function test_kernel_graph_resolves(): void
@@ -37,12 +41,9 @@ final class RequestLifecycleTest extends TestCase
 
     public function test_root_route_returns_a_page(): void
     {
-        $response = $this->app->handle('GET', '/');
+        $response = $this->http->get('/')->assertOk()->assertSee('Welcome to Hydra')->assertSee('<!doctype html>');
 
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertStringContainsString('text/html', $response->getHeaderLine('Content-Type'));
-        $this->assertStringContainsString('Welcome to Hydra', (string) $response->getBody());
-        $this->assertStringContainsString('<!doctype html>', (string) $response->getBody());
+        $this->assertStringContainsString('text/html', $response->header('Content-Type'));
     }
 
     public function test_unknown_path_renders_a_404(): void
@@ -50,20 +51,17 @@ final class RequestLifecycleTest extends TestCase
         // The Router throws NotFoundException; the pipeline's
         // ErrorHandlerMiddleware catches it and renders a response, so handle()
         // never throws to the SAPI.
-        $response = $this->app->handle('GET', '/does-not-exist');
-
-        $this->assertSame(404, $response->getStatusCode());
-        $this->assertSame('Not Found', (string) $response->getBody());
+        $this->assertSame('Not Found', $this->http->get('/does-not-exist')->assertStatus(404)->body());
     }
 
     public function test_head_request_is_served_by_the_get_route(): void
     {
-        $this->assertSame(200, $this->app->handle('HEAD', '/')->getStatusCode());
+        $this->http->send($this->http->request('HEAD', '/'))->assertOk();
     }
 
     public function test_every_response_carries_the_content_security_policy(): void
     {
-        $policy = $this->app->handle('GET', '/')->getHeaderLine('Content-Security-Policy');
+        $policy = $this->http->get('/')->header('Content-Security-Policy');
 
         $this->assertStringContainsString("default-src 'self'", $policy);
         $this->assertStringContainsString("object-src 'none'", $policy);
@@ -78,17 +76,17 @@ final class RequestLifecycleTest extends TestCase
         // The header and the markup are written by different parts of the
         // pipeline; a page whose nonce does not match its own policy would load
         // with every inline script blocked.
-        $response = $this->app->handle('GET', '/');
+        $response = $this->http->get('/');
 
         $this->assertSame(
             1,
             preg_match(
                 "/script-src 'self' 'nonce-([A-Za-z0-9_-]+)'/",
-                $response->getHeaderLine('Content-Security-Policy'),
+                $response->header('Content-Security-Policy'),
                 $header,
             ),
         );
-        $this->assertStringContainsString(sprintf('<script nonce="%s"', $header[1]), (string) $response->getBody());
+        $response->assertSee(sprintf('<script nonce="%s"', $header[1]));
     }
 
     /**
@@ -102,18 +100,17 @@ final class RequestLifecycleTest extends TestCase
     {
         $this->app->container()->instance(CspConfig::class, new CspConfig(reportOnly: true));
 
-        $response = $this->app->handle('GET', '/');
+        $response = $this->http->get('/')->assertHeaderMissing('Content-Security-Policy');
 
-        $this->assertSame('', $response->getHeaderLine('Content-Security-Policy'));
         $this->assertSame(
             1,
             preg_match(
                 "/script-src 'self' 'nonce-([A-Za-z0-9_-]+)'/",
-                $response->getHeaderLine('Content-Security-Policy-Report-Only'),
+                $response->header('Content-Security-Policy-Report-Only'),
                 $header,
             ),
         );
-        $this->assertStringContainsString(sprintf('<script nonce="%s"', $header[1]), (string) $response->getBody());
+        $response->assertSee(sprintf('<script nonce="%s"', $header[1]));
     }
 
     /**
@@ -127,19 +124,15 @@ final class RequestLifecycleTest extends TestCase
     {
         $this->app->container()->instance(CspConfig::class, new CspConfig(enabled: false));
 
-        $response = $this->app->handle('GET', '/');
-
-        $this->assertSame('', $response->getHeaderLine('Content-Security-Policy'));
-        $this->assertSame('', $response->getHeaderLine('Content-Security-Policy-Report-Only'));
-        $this->assertStringNotContainsString('extensions:"hx-csp"', (string) $response->getBody());
+        $this->http->get('/')
+            ->assertHeaderMissing('Content-Security-Policy')
+            ->assertHeaderMissing('Content-Security-Policy-Report-Only')
+            ->assertDontSee('extensions:"hx-csp"');
     }
 
     public function test_an_enforced_policy_arms_the_htmx_gate(): void
     {
-        $this->assertStringContainsString(
-            'extensions:"hx-csp"',
-            (string) $this->app->handle('GET', '/')->getBody(),
-        );
+        $this->http->get('/')->assertSee('extensions:"hx-csp"');
     }
 
     public function test_one_container_holds_one_nonce(): void
@@ -148,8 +141,8 @@ final class RequestLifecycleTest extends TestCase
         // same CspNonce out of the container, and a real SAPI builds one
         // container per request. A second instance would mint a second token
         // and leave the policy naming a nonce the page never carried.
-        $first = $this->app->handle('GET', '/')->getHeaderLine('Content-Security-Policy');
-        $second = $this->app->handle('GET', '/')->getHeaderLine('Content-Security-Policy');
+        $first = $this->http->get('/')->header('Content-Security-Policy');
+        $second = $this->http->get('/')->header('Content-Security-Policy');
 
         $this->assertSame($first, $second);
     }

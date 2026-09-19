@@ -59,7 +59,7 @@ final class AuthEventsFlowTest extends TestCase
         $this->app->login(self::USERNAME);
         $this->app->log()->clear();
 
-        $this->app->handle('POST', '/logout');
+        $this->app->http()->post('/logout')->assertRedirect('/login');
 
         $this->assertContains('auth.logout', $this->app->log()->messages());
         // The id captured before the session was cleared is carried on the event.

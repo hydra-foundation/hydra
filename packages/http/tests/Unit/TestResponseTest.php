@@ -153,6 +153,8 @@ final class TestResponseTest extends TestCase
         );
 
         $marked->assertHtmxRedirect('/login');
+        $this->assertSame('/login', $marked->directive('redirect'));
+        $this->assertNull($marked->directive('push-url'));
 
         $this->assertFails(fn () => $marked->assertHtmxRedirect('/admin'), ['Expected an htmx redirect to /admin.']);
         $this->assertFails(

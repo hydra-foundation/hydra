@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Tests\Integration;
 
-use Hydra\Csrf\CsrfGuard;
-use Hydra\Session\Contracts\SessionLifecycleInterface;
+use Hydra\Http\Testing\Client;
 use Hydra\Tests\Fixture\Fixture;
 use Hydra\Tests\Fixture\Http\Middleware\LoginThrottleMiddleware;
 use Hydra\Throttle\ThrottleConfig;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 
 /**
  * The limiter through the real stack, which is the only place some of this can
@@ -25,7 +23,7 @@ final class RateLimitFlowTest extends TestCase
     /** Small enough that a test spends the budget in a handful of requests. */
     private const GLOBAL_LIMIT = 3;
 
-    private Fixture $app;
+    private Client $http;
 
     protected function setUp(): void
     {
@@ -34,57 +32,52 @@ final class RateLimitFlowTest extends TestCase
 
     private function boot(ThrottleConfig $throttle): void
     {
-        $this->app = Fixture::boot($throttle);
+        $this->http = Fixture::boot($throttle)->http();
     }
 
     public function test_a_client_within_the_budget_is_served(): void
     {
-        $this->assertSame(200, $this->get('/')->getStatusCode());
+        $this->http->get('/')->assertOk();
     }
 
     public function test_the_request_past_the_budget_is_refused_with_a_retry_after(): void
     {
         for ($i = 0; $i < self::GLOBAL_LIMIT; $i++) {
-            $this->assertSame(200, $this->get('/')->getStatusCode());
+            $this->http->get('/')->assertOk();
         }
 
-        $response = $this->get('/');
-
-        $this->assertSame(429, $response->getStatusCode());
         // Rendered, not thrown past the pipeline: the limiter sits inside the
         // error handler precisely so a refusal has a response to be.
-        $this->assertGreaterThan(0, (int) $response->getHeaderLine('Retry-After'));
-        $this->assertLessThanOrEqual(60, (int) $response->getHeaderLine('Retry-After'));
+        $retryAfter = (int) $this->http->get('/')->assertStatus(429)->header('Retry-After');
+
+        $this->assertGreaterThan(0, $retryAfter);
+        $this->assertLessThanOrEqual(60, $retryAfter);
     }
 
     public function test_a_refusal_is_shaped_for_whoever_asked(): void
     {
         for ($i = 0; $i < self::GLOBAL_LIMIT; $i++) {
-            $this->get('/');
+            $this->http->get('/');
         }
 
-        $json = $this->get('/', ['Accept' => 'application/json']);
+        $json = $this->http->get('/', ['Accept' => 'application/json'])->assertStatus(429);
 
-        $this->assertSame(429, $json->getStatusCode());
-        $this->assertStringContainsString('application/json', $json->getHeaderLine('Content-Type'));
+        $this->assertStringContainsString('application/json', $json->header('Content-Type'));
 
         // And for htmx, a fragment retargeted at the layout's error region, so
         // the element the request came from keeps what the reader was looking
         // at. The retarget is markup, not a header: htmx 4 reads no response
         // headers, so the directive travels out of band in the body.
-        $htmx = $this->get('/', ['HX-Request' => 'true']);
-
-        $this->assertSame(429, $htmx->getStatusCode());
-        $this->assertStringContainsString('hx-swap-oob="innerHTML:#app-error"', (string) $htmx->getBody());
+        $this->http->htmx()->get('/')->assertStatus(429)->assertSee('hx-swap-oob="innerHTML:#app-error"');
     }
 
     public function test_another_client_still_has_its_own_budget(): void
     {
         for ($i = 0; $i < self::GLOBAL_LIMIT + 1; $i++) {
-            $this->get('/');
+            $this->http->get('/');
         }
 
-        $this->assertSame(200, $this->get('/', peer: '203.0.113.9')->getStatusCode());
+        $this->http->from('203.0.113.9')->get('/')->assertOk();
     }
 
     public function test_signing_in_is_budgeted_apart_from_reading_pages(): void
@@ -92,14 +85,16 @@ final class RateLimitFlowTest extends TestCase
         // The global budget is spent first. A login attempt must not already be
         // refused by it, and must not have spent the login budget either.
         for ($i = 0; $i < self::GLOBAL_LIMIT; $i++) {
-            $this->get('/');
+            $this->http->get('/');
         }
 
-        $this->assertSame(429, $this->get('/')->getStatusCode());
+        $this->http->get('/')->assertStatus(429);
 
         // The per-route limiter runs inside the router, so the global one has
         // already refused this client. A fresh one is what shows the login budget.
-        $this->assertNotSame(429, $this->post('/login', peer: '203.0.113.9')->getStatusCode());
+        // The post carries its CSRF token: without one the guard refuses it ahead
+        // of the router, and the route's own budget never sees it.
+        $this->assertNotSame(429, $this->http->from('203.0.113.9')->post('/login')->status());
     }
 
     public function test_the_login_budget_is_tighter_than_the_page_budget(): void
@@ -111,33 +106,10 @@ final class RateLimitFlowTest extends TestCase
         $statuses = [];
 
         for ($i = 0; $i < LoginThrottleMiddleware::ATTEMPTS + 1; $i++) {
-            $statuses[] = $this->post('/login')->getStatusCode();
+            $statuses[] = $this->http->post('/login')->status();
         }
 
         $this->assertNotContains(429, array_slice($statuses, 0, LoginThrottleMiddleware::ATTEMPTS));
         $this->assertSame(429, $statuses[LoginThrottleMiddleware::ATTEMPTS]);
-    }
-
-    /** @param array<string, string> $headers */
-    private function get(string $path, array $headers = [], string $peer = Fixture::PEER): ResponseInterface
-    {
-        return $this->app->handle('GET', $path, $headers, peer: $peer);
-    }
-
-    /**
-     * A post carrying the session's CSRF token. Without one the guard refuses
-     * the request in the global stack, ahead of the router, and the route's own
-     * budget never sees it: cheap requests are turned away by the cheaper check.
-     */
-    private function post(string $path, string $peer = Fixture::PEER): ResponseInterface
-    {
-        $this->app->get(SessionLifecycleInterface::class)->start();
-
-        return $this->app->handle(
-            'POST',
-            $path,
-            ['X-CSRF-Token' => $this->app->get(CsrfGuard::class)->token()],
-            peer: $peer,
-        );
     }
 }

@@ -258,6 +258,21 @@ final class ClientTest extends TestCase
         $this->assertSame('prepared', $this->last()->getHeaderLine('X-Stamp'));
     }
 
+    public function test_for_sees_a_handler_bound_after_the_client_was_made(): void
+    {
+        $container = new FakeContainer;
+        $factory = new Psr17Factory;
+        $container->instance(RequestHandlerInterface::class, new RecordingHandler);
+        $container->instance(ServerRequestFactoryInterface::class, $factory);
+        $container->instance(StreamFactoryInterface::class, $factory);
+
+        $client = Client::for($container);
+        $container->instance(RequestHandlerInterface::class, $this->handler);
+        $client->get('/after');
+
+        $this->assertSame('/after', $this->last()->getUri()->getPath());
+    }
+
     /** @param list<RequestPreparer> $preparers */
     private function client(array $preparers = []): Client
     {

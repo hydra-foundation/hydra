@@ -42,11 +42,25 @@ final class Client
         private readonly array $preparers = [],
     ) {}
 
-    /** @param list<RequestPreparer> $preparers */
+    /**
+     * The handler is resolved per request, so a binding a test swaps after
+     * making the client still reaches the pipeline.
+     *
+     * @param list<RequestPreparer> $preparers
+     */
     public static function for(ContainerInterface $container, array $preparers = []): self
     {
+        $handler = new class ($container) implements RequestHandlerInterface {
+            public function __construct(private readonly ContainerInterface $container) {}
+
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                return $this->container->get(RequestHandlerInterface::class)->handle($request);
+            }
+        };
+
         return new self(
-            $container->get(RequestHandlerInterface::class),
+            $handler,
             $container->get(ServerRequestFactoryInterface::class),
             $container->get(StreamFactoryInterface::class),
             $preparers,

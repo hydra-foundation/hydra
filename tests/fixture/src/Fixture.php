@@ -13,17 +13,16 @@ use Hydra\Core\Application;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Testing\FixedSignerServiceProvider;
-use Hydra\Csrf\CsrfGuard;
 use Hydra\Csrf\Testing\CarriesCsrfToken;
 use Hydra\Database\Contracts\ConnectionInterface;
 use Hydra\Database\PdoConnection;
 use Hydra\Event\EventServiceProvider;
 use Hydra\Http\Testing\Client;
+use Hydra\Http\Testing\TestResponse;
 use Hydra\Kernel\HttpServiceProvider;
 use Hydra\Log\Testing\CapturingLogger;
 use Hydra\Nyholm\NyholmServiceProvider;
 use Hydra\PhpDi\Container;
-use Hydra\Session\Contracts\SessionLifecycleInterface;
 use Hydra\Session\Testing\ArraySessionServiceProvider;
 use Hydra\Tests\Fixture\Entities\Role;
 use Hydra\Tests\Fixture\Providers\FixtureServiceProvider;
@@ -31,11 +30,7 @@ use Hydra\Throttle\ThrottleConfig;
 use Hydra\Throttle\ThrottleServiceProvider;
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Auth\AuthenticateMiddleware;
-use Nyholm\Psr7\Factory\Psr17Factory;
 use PDO;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -53,9 +48,6 @@ final class Fixture
 {
     /** The password every seeded account holds, so a flow never has to say so. */
     public const PASSWORD = 'correct-horse-battery-staple';
-
-    /** The client a request comes from unless a test is about telling clients apart. */
-    public const PEER = '198.51.100.7';
 
     private function __construct(
         private readonly ContainerInterface $container,
@@ -163,53 +155,8 @@ final class Fixture
         return (int) $this->pdo->lastInsertId();
     }
 
-    /**
-     * A request through the real pipeline. An unsafe method carries the
-     * session's own CSRF token, minted inside a started window the way a
-     * rendered form would; a flow that is about the token missing or wrong
-     * builds its request with {@see self::request()} instead.
-     *
-     * @param array<string, string> $headers
-     * @param array<string, mixed>|null $body
-     */
-    public function handle(
-        string $method,
-        string $path,
-        array $headers = [],
-        ?array $body = null,
-        string $peer = self::PEER,
-    ): ResponseInterface {
-        $request = $this->make($method, $path, $peer);
-
-        if (!in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
-            $this->container->get(SessionLifecycleInterface::class)->start();
-            $request = $request->withHeader('X-CSRF-Token', $this->container->get(CsrfGuard::class)->token());
-        }
-
-        foreach ($headers as $name => $value) {
-            $request = $request->withHeader($name, $value);
-        }
-
-        if ($body !== null) {
-            $request = $request->withParsedBody($body);
-        }
-
-        return $this->send($request);
-    }
-
-    /** A request exactly as given: no token, no session window opened. */
-    public function make(string $method, string $path, string $peer = self::PEER): ServerRequestInterface
+    public function login(string $username, string $password = self::PASSWORD): TestResponse
     {
-        return (new Psr17Factory)->createServerRequest($method, $path, ['REMOTE_ADDR' => $peer]);
-    }
-
-    public function send(ServerRequestInterface $request): ResponseInterface
-    {
-        return $this->container->get(RequestHandlerInterface::class)->handle($request);
-    }
-
-    public function login(string $username, string $password = self::PASSWORD): ResponseInterface
-    {
-        return $this->handle('POST', '/login', [], ['username' => $username, 'password' => $password]);
+        return $this->http()->post('/login', ['username' => $username, 'password' => $password]);
     }
 }

@@ -36,6 +36,12 @@ final class TestResponse
         return $this->response->getHeaderLine($name);
     }
 
+    /** An htmx directive the body carries, such as redirect or push-url, or null. */
+    public function directive(string $name): ?string
+    {
+        return HtmxResponse::directive($this->response, $name);
+    }
+
     public function body(): string
     {
         return $this->body ??= (string) $this->response->getBody();
@@ -133,7 +139,7 @@ final class TestResponse
 
     public function assertHtmxRedirect(string $to): self
     {
-        $directive = HtmxResponse::directive($this->response, 'redirect');
+        $directive = $this->directive('redirect');
 
         Assert::assertSame(
             $to,

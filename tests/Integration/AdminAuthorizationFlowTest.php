@@ -34,52 +34,34 @@ final class AdminAuthorizationFlowTest extends TestCase
         // The auth guard fires first: not-signed-in is a 401 mapped to a
         // redirect, never the 403 — an anonymous visitor is not told the page
         // exists for somebody.
-        $response = $this->app->handle('GET', '/admin');
-
-        $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('/login', $response->getHeaderLine('Location'));
+        $this->app->http()->get('/admin')->assertStatus(302)->assertRedirect('/login');
     }
 
     public function test_the_admin_root_names_the_landing_module(): void
     {
         $this->login('clerk');
 
-        $response = $this->app->handle('GET', '/admin');
-
-        $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('/admin/dashboard', $response->getHeaderLine('Location'));
+        $this->app->http()->get('/admin')->assertStatus(302)->assertRedirect('/admin/dashboard');
     }
 
     public function test_logged_in_plain_user_reaches_the_admin_page(): void
     {
         $this->login('clerk');
 
-        $response = $this->app->handle('GET', '/admin/dashboard');
-
         // Signing in is the whole gate: no role check stands between a standard
         // user and the backend.
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertStringContainsString('clerk', (string) $response->getBody());
+        $this->app->http()->get('/admin/dashboard')->assertOk()->assertSee('clerk');
     }
 
     public function test_logged_in_admin_reaches_the_admin_page(): void
     {
         $this->login('boss');
 
-        $response = $this->app->handle('GET', '/admin/dashboard');
-
-        $this->assertSame(200, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        $this->assertStringContainsString('Dashboard', $body);
-        $this->assertStringContainsString('boss', $body);
+        $this->app->http()->get('/admin/dashboard')->assertOk()->assertSee('Dashboard')->assertSee('boss');
     }
 
     private function login(string $username): void
     {
-        $this->assertSame(
-            302,
-            $this->app->login($username)->getStatusCode(),
-            "login as {$username} should succeed",
-        );
+        $this->app->login($username)->assertRedirect('/admin');
     }
 }

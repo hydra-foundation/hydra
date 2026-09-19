@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Tests\Integration;
 
-use Hydra\Http\HtmxResponse;
+use Hydra\Http\Testing\Client;
 use Hydra\Tests\Fixture\Entities\Role;
 use Hydra\Tests\Fixture\Fixture;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -18,11 +18,16 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class AdminModuleFlowTest extends TestCase
 {
+    private const FRAME = 'div#admin-frame';
+
     private Fixture $app;
+
+    private Client $http;
 
     protected function setUp(): void
     {
         $this->app = Fixture::boot();
+        $this->http = $this->app->http();
 
         $this->app->seed('boss', Role::Admin);
         $this->app->seed('clerk');
@@ -35,23 +40,20 @@ final class AdminModuleFlowTest extends TestCase
 
     public function test_the_module_compiles_to_a_route_that_anonymous_visitors_cannot_reach(): void
     {
-        $response = $this->app->handle('GET', '/admin/users');
-
-        $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('/login', $response->getHeaderLine('Location'));
+        $this->http->get('/admin/users')->assertStatus(302)->assertRedirect('/login');
     }
 
     public function test_a_module_ability_keeps_signed_in_non_admins_out(): void
     {
         $this->login('clerk');
 
-        $this->assertSame(403, $this->app->handle('GET', '/admin/users')->getStatusCode());
+        $this->http->get('/admin/users')->assertStatus(403);
     }
 
     public function test_an_admin_sees_the_first_page_of_the_table(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users');
+        $body = $this->body('/admin/users');
 
         $this->assertStringContainsString('<title>Users · Admin</title>', $body);
         $this->assertStringContainsString('id="admin-frame"', $body);
@@ -66,7 +68,7 @@ final class AdminModuleFlowTest extends TestCase
     public function test_a_create_screen_opens_a_blank_form(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users/new');
+        $body = $this->body('/admin/users/new');
 
         $this->assertStringContainsString('<title>New user · Admin</title>', $body);
         $this->assertSame(['Admin', 'Administration', 'Users', 'New'], $this->crumbs($body));
@@ -80,75 +82,63 @@ final class AdminModuleFlowTest extends TestCase
     public function test_a_create_screen_writes_the_row_and_opens_it(): void
     {
         $this->login('boss');
-        $response = $this->app->handle('POST', '/admin/users/new', [], [
+        // 22 seeded rows, so the row just written is 23: the id create() returned.
+        $this->http->post('/admin/users/new', [
             'username' => 'newcomer',
             'role' => 'user',
             'password' => 'correct-horse',
-        ]);
+        ])->assertStatus(302)->assertRedirect('/admin/users/23');
 
-        // 22 seeded rows, so the row just written is 23: the id create() returned.
-        $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('/admin/users/23', $response->getHeaderLine('Location'));
-        $this->assertStringContainsString('>newcomer</td>', $this->body('GET', '/admin/users?q=newcomer'));
+        $this->assertStringContainsString('>newcomer</td>', $this->body('/admin/users?q=newcomer'));
     }
 
     public function test_an_htmx_create_hands_back_the_row_it_wrote(): void
     {
         $this->login('boss');
-        $response = $this->app->handle(
-            'POST',
-            '/admin/users/new',
-            ['HX-Request' => 'true', 'HX-Target' => 'div#admin-frame'],
-            ['username' => 'newcomer', 'role' => 'user', 'password' => 'correct-horse'],
-        );
-        $body = (string) $response->getBody();
+        $response = $this->http->htmx(self::FRAME)
+            ->post('/admin/users/new', ['username' => 'newcomer', 'role' => 'user', 'password' => 'correct-horse'])
+            ->assertOk()
+            ->assertSee('Created')
+            // The show screen for that row, not the table it is one line of.
+            ->assertSee('>newcomer</dd>')
+            ->assertSee('hx-get="/admin/users/23/edit"');
 
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('/admin/users/23', HtmxResponse::directive($response, 'push-url'));
-        $this->assertStringContainsString('Created', $body);
-        // The show screen for that row, not the table it is one line of.
-        $this->assertStringContainsString('>newcomer</dd>', $body);
-        $this->assertStringContainsString('hx-get="/admin/users/23/edit"', $body);
+        $this->assertSame('/admin/users/23', $response->directive('push-url'));
     }
 
     public function test_a_create_screen_can_require_what_the_edit_screen_leaves_optional(): void
     {
         $this->login('boss');
-        $response = $this->app->handle('POST', '/admin/users/new', [], [
+        $this->http->post('/admin/users/new', [
             'username' => 'newcomer',
             'role' => 'user',
             'password' => '',
-        ]);
+        ])->assertStatus(422)->assertSee('Set a password.');
 
-        $this->assertSame(422, $response->getStatusCode());
-        $this->assertStringContainsString('Set a password.', (string) $response->getBody());
-        $this->assertStringContainsString('Nothing to show.', $this->body('GET', '/admin/users?q=newcomer'));
+        $this->assertStringContainsString('Nothing to show.', $this->body('/admin/users?q=newcomer'));
     }
 
     public function test_the_source_rejects_a_name_another_row_already_holds(): void
     {
         $this->login('boss');
-        $response = $this->app->handle('POST', '/admin/users/new', [], [
+        $this->http->post('/admin/users/new', [
             'username' => 'clerk',
             'role' => 'user',
             'password' => 'correct-horse',
-        ]);
-
-        $this->assertSame(422, $response->getStatusCode());
-        $this->assertStringContainsString('already taken', (string) $response->getBody());
+        ])->assertStatus(422)->assertSee('already taken');
     }
 
     public function test_the_list_offers_the_way_to_a_new_row(): void
     {
         $this->login('boss');
 
-        $this->assertStringContainsString('hx-get="/admin/users/new"', $this->body('GET', '/admin/users'));
+        $this->assertStringContainsString('hx-get="/admin/users/new"', $this->body('/admin/users'));
     }
 
     public function test_a_show_screen_reads_one_row(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users/1');
+        $body = $this->body('/admin/users/1');
 
         $this->assertStringContainsString('<title>User · Admin</title>', $body);
         $this->assertSame(['Admin', 'Administration', 'Users', '1'], $this->crumbs($body));
@@ -162,13 +152,13 @@ final class AdminModuleFlowTest extends TestCase
     {
         $this->login('boss');
 
-        $this->assertSame(404, $this->app->handle('GET', '/admin/users/999')->getStatusCode());
+        $this->http->get('/admin/users/999')->assertStatus(404);
     }
 
     public function test_the_table_offers_a_way_into_each_row(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users');
+        $body = $this->body('/admin/users');
 
         // One of each per row, for the 15 rows this page holds.
         $this->assertSame(15, substr_count($body, '>View</a>'));
@@ -179,86 +169,70 @@ final class AdminModuleFlowTest extends TestCase
     public function test_a_delete_removes_the_row_and_returns_to_the_list(): void
     {
         $this->login('boss');
-        $response = $this->app->handle('POST', '/admin/users/2/delete');
+        $this->http->post('/admin/users/2/delete')->assertStatus(302)->assertRedirect('/admin/users');
 
-        $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('/admin/users', $response->getHeaderLine('Location'));
-        $this->assertStringContainsString('Nothing to show.', $this->body('GET', '/admin/users?q=clerk'));
+        $this->assertStringContainsString('Nothing to show.', $this->body('/admin/users?q=clerk'));
     }
 
     public function test_an_htmx_delete_hands_back_the_list_it_would_have_fetched(): void
     {
         $this->login('boss');
-        $response = $this->app->handle('POST', '/admin/users/2/delete', [
-            'HX-Request' => 'true',
-            'HX-Target' => 'div#admin-frame',
-        ]);
+        $response = $this->http->htmx(self::FRAME)
+            ->post('/admin/users/2/delete')
+            ->assertOk()
+            ->assertSee('Deleted')
+            ->assertDontSee('>clerk</td>');
 
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('/admin/users', HtmxResponse::directive($response, 'push-url'));
-        $this->assertStringContainsString('Deleted', (string) $response->getBody());
-        $this->assertStringNotContainsString('>clerk</td>', (string) $response->getBody());
+        $this->assertSame('/admin/users', $response->directive('push-url'));
     }
 
     public function test_a_delete_comes_back_to_the_view_of_the_list_it_was_made_from(): void
     {
         $this->login('boss');
-        $response = $this->app->handle('POST', '/admin/users/2/delete', [
-            'HX-Request' => 'true',
-            'HX-Target' => 'div#admin-frame',
+        $response = $this->http->htmx(self::FRAME)->post('/admin/users/2/delete', [], [
             'HX-Current-URL' => 'http://localhost/admin/users?q=temp&sort=username&dir=asc&page=2',
         ]);
-        $body = (string) $response->getBody();
 
         $this->assertSame(
             '/admin/users?q=temp&sort=username&dir=asc&page=2',
-            urldecode((string) HtmxResponse::directive($response, 'push-url')),
+            urldecode((string) $response->directive('push-url')),
         );
         // The search it came back to is the search it was sent from.
-        $this->assertStringContainsString('value="temp"', $body);
-        $this->assertStringContainsString('>temp16</td>', $body);
-        $this->assertStringNotContainsString('>temp01</td>', $body);
+        $response->assertSee('value="temp"')->assertSee('>temp16</td>')->assertDontSee('>temp01</td>');
     }
 
     public function test_a_delete_that_empties_the_last_page_falls_back_to_the_new_end(): void
     {
         $this->login('boss');
         // 22 rows, 15 to a page: page 2 holds seven, and one search holds one.
-        $response = $this->app->handle('POST', '/admin/users/22/delete', [
-            'HX-Request' => 'true',
-            'HX-Target' => 'div#admin-frame',
+        $response = $this->http->htmx(self::FRAME)->post('/admin/users/22/delete', [], [
             'HX-Current-URL' => 'http://localhost/admin/users?q=temp20&page=2',
         ]);
 
         // The page it was on is gone; the rest of the view it was asked for is not.
         $this->assertSame(
             '/admin/users?q=temp20&sort=id&dir=desc',
-            urldecode((string) HtmxResponse::directive($response, 'push-url')),
+            urldecode((string) $response->directive('push-url')),
         );
-        $this->assertStringContainsString('Nothing to show.', (string) $response->getBody());
+        $response->assertSee('Nothing to show.');
     }
 
     public function test_a_write_sent_without_htmx_lands_on_the_modules_own_view(): void
     {
         $this->login('boss');
 
-        $this->assertSame(
-            '/admin/users',
-            $this->app->handle('POST', '/admin/users/2/delete')->getHeaderLine('Location'),
-        );
+        $this->assertSame('/admin/users', $this->http->post('/admin/users/2/delete')->header('Location'));
     }
 
     public function test_the_source_refuses_to_delete_the_account_doing_the_deleting(): void
     {
         $this->login('boss');
-        $response = $this->app->handle('POST', '/admin/users/1/delete');
-        $body = (string) $response->getBody();
-
-        $this->assertSame(422, $response->getStatusCode());
-        $this->assertStringContainsString('alert-danger', $body);
-        $this->assertStringContainsString('You cannot delete the account you are signed in as.', $body);
+        $this->http->post('/admin/users/1/delete')
+            ->assertStatus(422)
+            ->assertSee('alert-danger')
+            ->assertSee('You cannot delete the account you are signed in as.');
         // A refusal is not a redirect: the row it refused to remove is still there.
-        $this->assertStringContainsString('>boss</td>', $this->body('GET', '/admin/users?q=boss'));
+        $this->assertStringContainsString('>boss</td>', $this->body('/admin/users?q=boss'));
     }
 
     public function test_a_delete_screen_is_a_post_or_it_is_nothing(): void
@@ -266,26 +240,26 @@ final class AdminModuleFlowTest extends TestCase
         $this->login('boss');
 
         // The path is real, the method is not: anything that crawls links gets 405.
-        $this->assertSame(405, $this->app->handle('GET', '/admin/users/2/delete')->getStatusCode());
+        $this->http->get('/admin/users/2/delete')->assertStatus(405);
     }
 
     public function test_both_the_table_and_the_show_screen_offer_a_way_to_remove_a_row(): void
     {
         $this->login('boss');
 
-        $list = $this->body('GET', '/admin/users');
+        $list = $this->body('/admin/users');
         $this->assertSame(15, substr_count($list, '>Delete</button>'));
         $this->assertStringContainsString('hx-post="/admin/users/22/delete"', $list);
         $this->assertStringContainsString('hx-confirm="Delete this user? This cannot be undone."', $list);
 
-        $show = $this->body('GET', '/admin/users/2');
+        $show = $this->body('/admin/users/2');
         $this->assertStringContainsString('hx-post="/admin/users/2/delete"', $show);
     }
 
     public function test_an_edit_screen_hangs_below_its_module(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users/1/edit');
+        $body = $this->body('/admin/users/1/edit');
 
         $this->assertStringContainsString('<title>Edit user · Admin</title>', $body);
         $this->assertSame(['Admin', 'Administration', 'Users', 'Edit 1'], $this->crumbs($body));
@@ -296,7 +270,7 @@ final class AdminModuleFlowTest extends TestCase
     public function test_a_breadcrumb_link_swaps_the_frame_rather_than_reloading(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users/1/edit');
+        $body = $this->body('/admin/users/1/edit');
 
         $this->assertStringContainsString('hx-get="/admin/users"', $body);
         $this->assertStringContainsString('hx-get="/admin/dashboard"', $body);
@@ -306,16 +280,13 @@ final class AdminModuleFlowTest extends TestCase
     public function test_the_admin_root_redirects_to_the_landing_module(): void
     {
         $this->login('boss');
-        $response = $this->app->handle('GET', '/admin');
-
-        $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('/admin/dashboard', $response->getHeaderLine('Location'));
+        $this->http->get('/admin')->assertStatus(302)->assertRedirect('/admin/dashboard');
     }
 
     public function test_a_page_module_needs_no_source_and_is_open_to_any_signed_in_user(): void
     {
         $this->login('clerk');
-        $body = $this->body('GET', '/admin/dashboard');
+        $body = $this->body('/admin/dashboard');
 
         $this->assertStringContainsString('Dashboard', $body);
         $this->assertStringContainsString('Newest accounts', $body);
@@ -326,7 +297,7 @@ final class AdminModuleFlowTest extends TestCase
     public function test_the_presenter_supplies_the_page_its_numbers(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/dashboard');
+        $body = $this->body('/admin/dashboard');
 
         // 22 seeded accounts, one of them an admin. One tile per role, labelled
         // from the enum, so the plain-user tile carries the other 21.
@@ -338,7 +309,7 @@ final class AdminModuleFlowTest extends TestCase
     public function test_the_sidebar_shows_only_the_modules_the_visitor_may_reach(): void
     {
         $this->login('clerk');
-        $body = $this->body('GET', '/admin/dashboard');
+        $body = $this->body('/admin/dashboard');
 
         $this->assertStringContainsString('/admin/dashboard', $body);
         $this->assertStringNotContainsString('/admin/users', $body);
@@ -348,28 +319,28 @@ final class AdminModuleFlowTest extends TestCase
     {
         $this->login('boss');
 
-        $this->assertSame(404, $this->app->handle('GET', '/admin/dashboard/trends')->getStatusCode());
+        $this->http->get('/admin/dashboard/trends')->assertStatus(404);
     }
 
     public function test_an_unknown_slug_under_the_prefix_is_not_a_route(): void
     {
         $this->login('boss');
 
-        $this->assertSame(404, $this->app->handle('GET', '/admin/invoices')->getStatusCode());
+        $this->http->get('/admin/invoices')->assertStatus(404);
     }
 
     public function test_search_filter_and_sort_travel_in_the_query_string(): void
     {
         $this->login('boss');
 
-        $searched = $this->body('GET', '/admin/users?q=clerk');
+        $searched = $this->body('/admin/users?q=clerk');
         $this->assertStringContainsString('Showing 1–1 of 1', $searched);
         $this->assertStringContainsString('clerk', $searched);
 
-        $filtered = $this->body('GET', '/admin/users?role=admin');
+        $filtered = $this->body('/admin/users?role=admin');
         $this->assertStringContainsString('Showing 1–1 of 1', $filtered);
 
-        $sorted = $this->body('GET', '/admin/users?sort=username&dir=asc');
+        $sorted = $this->body('/admin/users?sort=username&dir=asc');
         $this->assertLessThan(strpos($sorted, '>clerk<'), strpos($sorted, '>boss<'));
     }
 
@@ -384,39 +355,39 @@ final class AdminModuleFlowTest extends TestCase
     {
         $this->login('boss');
 
-        $this->app->handle('POST', '/admin/users/new', [], [
+        $this->http->post('/admin/users/new', [
             'username' => 'ada_lovelace',
             'role' => 'user',
             'password' => 'correct-horse',
-        ]);
+        ])->assertRedirect();
 
-        $found = $this->body('GET', '/admin/users?q=ada_lovelace');
+        $found = $this->body('/admin/users?q=ada_lovelace');
         $this->assertStringContainsString('>ada_lovelace</td>', $found);
         $this->assertStringContainsString('Showing 1–1 of 1', $found);
 
         // The other half of the same guard: a bare wildcard is a search for the
         // character, not a request for every row in the table.
-        $this->assertStringContainsString('Nothing to show.', $this->body('GET', '/admin/users?q=%25'));
+        $this->assertStringContainsString('Nothing to show.', $this->body('/admin/users?q=%25'));
     }
 
     public function test_an_undeclared_sort_column_is_ignored(): void
     {
         $this->login('boss');
 
-        $this->assertSame(200, $this->app->handle('GET', '/admin/users?sort=password_hash')->getStatusCode());
+        $this->http->get('/admin/users?sort=password_hash')->assertStatus(200);
     }
 
     public function test_the_second_page_is_its_own_url(): void
     {
         $this->login('boss');
 
-        $this->assertStringContainsString('Showing 16–22 of 22', $this->body('GET', '/admin/users?page=2'));
+        $this->assertStringContainsString('Showing 16–22 of 22', $this->body('/admin/users?page=2'));
     }
 
     public function test_htmx_swaps_only_the_body_when_the_table_is_targeted(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users?page=2', ['HX-Request' => 'true', 'HX-Target' => 'div#admin-body']);
+        $body = $this->body('/admin/users?page=2', ['HX-Request' => 'true', 'HX-Target' => 'div#admin-body']);
 
         $this->assertStringNotContainsString('<html', $body);
         $this->assertStringNotContainsString('admin-sidebar', $body);
@@ -427,7 +398,7 @@ final class AdminModuleFlowTest extends TestCase
     public function test_htmx_swaps_the_frame_when_the_sidebar_navigates(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users', ['HX-Request' => 'true', 'HX-Target' => 'div#admin-frame']);
+        $body = $this->body('/admin/users', ['HX-Request' => 'true', 'HX-Target' => 'div#admin-frame']);
 
         $this->assertStringNotContainsString('<html', $body);
         $this->assertStringNotContainsString('admin-sidebar', $body);
@@ -438,7 +409,7 @@ final class AdminModuleFlowTest extends TestCase
     public function test_a_frame_swap_carries_the_title_and_an_out_of_band_sidebar(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users', ['HX-Request' => 'true', 'HX-Target' => 'div#admin-frame']);
+        $body = $this->body('/admin/users', ['HX-Request' => 'true', 'HX-Target' => 'div#admin-frame']);
 
         // htmx reads the title out of a head block and applies it to the tab.
         $this->assertStringContainsString('<head><title>Users · Admin</title></head>', $body);
@@ -453,7 +424,7 @@ final class AdminModuleFlowTest extends TestCase
     public function test_a_body_swap_leaves_the_sidebar_alone(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users?page=2', ['HX-Request' => 'true', 'HX-Target' => 'div#admin-body']);
+        $body = $this->body('/admin/users?page=2', ['HX-Request' => 'true', 'HX-Target' => 'div#admin-body']);
 
         // The export link rides out of band on purpose: it lives in the toolbar
         // outside the body, and its href carries the criteria. Nothing else may.
@@ -466,7 +437,7 @@ final class AdminModuleFlowTest extends TestCase
     public function test_an_htmx_request_with_no_known_target_still_renders_the_whole_page(): void
     {
         $this->login('boss');
-        $body = $this->body('GET', '/admin/users', ['HX-Request' => 'true', 'HX-Target' => 'div#somewhere-else']);
+        $body = $this->body('/admin/users', ['HX-Request' => 'true', 'HX-Target' => 'div#somewhere-else']);
 
         $this->assertStringContainsString('<html', $body);
         $this->assertStringContainsString('admin-sidebar', $body);
@@ -476,11 +447,11 @@ final class AdminModuleFlowTest extends TestCase
     {
         $this->login('boss');
 
-        $full = $this->body('GET', '/admin/users');
+        $full = $this->body('/admin/users');
         $this->assertStringContainsString('hx-include="#admin-sort-state"', $full);
         $this->assertSame(1, substr_count($full, 'name="sort"'));
 
-        $sorted = $this->body('GET', '/admin/users?sort=username&dir=asc', [
+        $sorted = $this->body('/admin/users?sort=username&dir=asc', [
             'HX-Request' => 'true',
             'HX-Target' => 'div#admin-body',
         ]);
@@ -506,16 +477,13 @@ final class AdminModuleFlowTest extends TestCase
     }
 
     /** @param array<string, string> $headers */
-    private function body(string $method, string $path, array $headers = []): string
+    private function body(string $path, array $headers = []): string
     {
-        $response = $this->app->handle($method, $path, $headers);
-        $this->assertSame(200, $response->getStatusCode());
-
-        return (string) $response->getBody();
+        return $this->http->get($path, $headers)->assertOk()->body();
     }
 
     private function login(string $username): void
     {
-        $this->assertSame(302, $this->app->login($username)->getStatusCode());
+        $this->app->login($username)->assertRedirect('/admin');
     }
 }
