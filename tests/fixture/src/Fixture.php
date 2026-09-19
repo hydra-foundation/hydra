@@ -14,9 +14,11 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Testing\FixedSignerServiceProvider;
 use Hydra\Csrf\CsrfGuard;
+use Hydra\Csrf\Testing\CarriesCsrfToken;
 use Hydra\Database\Contracts\ConnectionInterface;
 use Hydra\Database\PdoConnection;
 use Hydra\Event\EventServiceProvider;
+use Hydra\Http\Testing\Client;
 use Hydra\Kernel\HttpServiceProvider;
 use Hydra\Log\Testing\CapturingLogger;
 use Hydra\Nyholm\NyholmServiceProvider;
@@ -134,6 +136,12 @@ final class Fixture
     public function pdo(): PDO
     {
         return $this->pdo;
+    }
+
+    /** A client whose unsafe requests carry the session's CSRF token. */
+    public function http(): Client
+    {
+        return Client::for($this->container, [CarriesCsrfToken::for($this->container)]);
     }
 
     /** @return mixed */

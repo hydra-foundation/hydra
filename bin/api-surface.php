@@ -192,7 +192,10 @@ foreach ($files as $file) {
             $hidden = !in_array(T_ABSTRACT, $modifiers, true);
         }
 
-        if ($inClassBody && $token->is(T_FUNCTION) && $nextToken?->is(T_STRING)) {
+        // A method may be named with a reserved word (for, default, list), which
+        // tokenizes as that keyword rather than T_STRING.
+        if ($inClassBody && $token->is(T_FUNCTION) && $nextToken !== null
+            && preg_match('/^[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*$/', $nextToken->text) === 1) {
             $name = $nextToken->text;
 
             // From the parameter list to whatever ends the declaration: `{` for

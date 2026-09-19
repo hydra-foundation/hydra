@@ -58,6 +58,30 @@ final class ApiSurfaceTest extends TestCase
         ], $surface);
     }
 
+    public function test_a_method_named_with_a_reserved_word_is_listed(): void
+    {
+        // Csp::default() and Client::for() tokenize as T_DEFAULT and T_FOR, and
+        // were invisible to the gate: either could have been removed in a patch.
+        $surface = $this->surface('<?php
+            namespace Acme;
+            final class Factory
+            {
+                public static function for(string $name): self { return new self; }
+                public static function default(): self { return new self; }
+                public function list(): array { return []; }
+                public function make(): callable { return function () {}; }
+            }
+        ');
+
+        $this->assertSame([
+            'Acme\Factory',
+            'Acme\Factory->list(): array',
+            'Acme\Factory->make(): callable',
+            'Acme\Factory::default(): self',
+            'Acme\Factory::for(string $name): self',
+        ], $surface);
+    }
+
     public function test_a_contract_case_is_its_hooks_and_not_its_tests(): void
     {
         // src/Testing is the one place the relationship is inverted: a user

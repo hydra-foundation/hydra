@@ -9,6 +9,7 @@ use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
@@ -22,6 +23,7 @@ final class NyholmServiceProvider extends ServiceProvider
         $container->singleton(Psr17Factory::class, fn () => new Psr17Factory);
         $container->singleton(ResponseFactoryInterface::class, fn () => $container->get(Psr17Factory::class));
         $container->singleton(StreamFactoryInterface::class, fn () => $container->get(Psr17Factory::class));
+        $container->singleton(ServerRequestFactoryInterface::class, fn () => $container->get(Psr17Factory::class));
 
         $container->singleton(ServerRequestProviderInterface::class, function () use ($container) {
             return NyholmRequestProvider::create($container->get(Psr17Factory::class));

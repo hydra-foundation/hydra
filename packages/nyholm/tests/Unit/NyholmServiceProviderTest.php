@@ -12,6 +12,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
@@ -39,6 +40,7 @@ final class NyholmServiceProviderTest extends TestCase
         // One factory instance serves every PSR-17 role.
         $this->assertSame($factory, $this->container->get(ResponseFactoryInterface::class));
         $this->assertSame($factory, $this->container->get(StreamFactoryInterface::class));
+        $this->assertSame($factory, $this->container->get(ServerRequestFactoryInterface::class));
     }
 
     public function test_binds_the_request_provider_seam_to_the_nyholm_adapter(): void
