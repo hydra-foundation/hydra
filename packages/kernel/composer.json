@@ -3,6 +3,7 @@
     "description": "Hydra's default composition root and HTTP plumbing, kept in one place instead of copied per app.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Kernel\\": "src/"

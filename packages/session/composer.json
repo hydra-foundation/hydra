@@ -3,6 +3,7 @@
     "description": "Session handling as PSR-15 middleware, behind split data and lifecycle interfaces.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Session\\": "src/"

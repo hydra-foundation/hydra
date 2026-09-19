@@ -3,6 +3,7 @@
     "description": "A composable admin backend for Hydra apps: declare a module, get routes and htmx screens.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Admin\\": "src/"

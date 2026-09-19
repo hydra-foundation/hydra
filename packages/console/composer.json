@@ -3,6 +3,7 @@
     "description": "The generic console commands every Hydra app needs, powered by Symfony Console.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Console\\": "src/"

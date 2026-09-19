@@ -3,6 +3,7 @@
     "description": "Outgoing mail behind one transport contract: SMTP for delivery, log and array transports so tests and local development never send.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Mail\\": "src/"

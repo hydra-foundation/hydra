@@ -3,6 +3,7 @@
     "description": "A small key/value store behind one contract, with the atomic counters rate limiting needs.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Cache\\": "src/"

@@ -3,6 +3,7 @@
     "description": "Synchronizer-token CSRF protection as PSR-15 middleware.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Csrf\\": "src/"

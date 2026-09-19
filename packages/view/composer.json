@@ -3,6 +3,7 @@
     "description": "Native PHP templating with template inheritance and escape-by-convention safety. No compile step.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\View\\": "src/"

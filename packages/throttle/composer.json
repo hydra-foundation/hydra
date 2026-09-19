@@ -3,6 +3,7 @@
     "description": "Request rate limiting as PSR-15 middleware, counted in a shared store.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Throttle\\": "src/"

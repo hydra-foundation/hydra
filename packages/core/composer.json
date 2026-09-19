@@ -3,6 +3,7 @@
     "description": "Application object, container and service-provider contracts, and typed environment loading. Interfaces only.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Core\\": "src/"

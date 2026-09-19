@@ -3,6 +3,7 @@
     "description": "PSR-7/PSR-15 HTTP layer: request lifecycle, routing, and middleware pipeline.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Http\\": "src/"

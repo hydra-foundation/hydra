@@ -3,6 +3,7 @@
     "description": "Hydra PHP framework development monorepo. Install the individual hydrakit/* packages, not this.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "authors": [
         {
             "name": "William Hleucka",

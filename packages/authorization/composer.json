@@ -3,6 +3,7 @@
     "description": "Ability-based authorization for Hydra, on top of hydrakit/auth.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Authorization\\": "src/"

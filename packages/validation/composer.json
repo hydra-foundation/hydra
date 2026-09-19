@@ -3,6 +3,7 @@
     "description": "Zero-dependency input validation: per-field rules, stateless, shareable.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Validation\\": "src/"

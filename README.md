@@ -1,6 +1,7 @@
 # Hydra
 
-Development monorepo for the Hydra PHP framework.
+Development monorepo for the [Hydra PHP framework](https://hydra.williamhleucka.com).
+Documentation: [hydra.williamhleucka.com/docs](https://hydra.williamhleucka.com/docs/).
 
 ## Layout
 

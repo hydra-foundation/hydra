@@ -3,6 +3,7 @@
     "description": "Authentication for Hydra: identity only, behind a swappable guard.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Auth\\": "src/"

@@ -3,6 +3,7 @@
     "description": "A minimal PSR-14 event dispatcher and listener provider.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Event\\": "src/"

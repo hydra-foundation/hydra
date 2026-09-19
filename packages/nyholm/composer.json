@@ -3,6 +3,7 @@
     "description": "Nyholm PSR-7/PSR-17 adapter: the default message and factory implementation for Hydra.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
     "autoload": {
         "psr-4": {
             "Hydra\\Nyholm\\": "src/"
