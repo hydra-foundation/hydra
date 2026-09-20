@@ -66,6 +66,24 @@ final class DashboardWidgetTest extends TestCase
         $this->assertSame(6, substr_count($this->card($grid, 'accounts'), 'admin-bar'));
     }
 
+    public function test_the_placeholder_is_drawn_in_the_shape_the_card_declared(): void
+    {
+        // The count alone says nothing: six rows of a list and six ranked bars
+        // are the same number and not the same height, and for a while they
+        // were also the same placeholder.
+        $grid = $this->dashboard();
+
+        $this->assertStringContainsString('admin-widget-loading is-bars', $this->card($grid, 'accounts'));
+        $this->assertStringContainsString('admin-widget-loading is-lines', $this->card($grid, 'live'));
+
+        // And on the card itself, in both states, which is what a stylesheet
+        // needs to say how the filled version uses its height and not only how
+        // tall the placeholder stands. (card() starts after the class list, so
+        // the grid is searched whole.)
+        $this->assertStringContainsString('admin-widget h-100 is-bars', $grid);
+        $this->assertStringContainsString('admin-widget h-100 is-bars', $this->widget('/admin/overview/w/accounts'));
+    }
+
     public function test_a_card_that_declares_nothing_holds_open_a_default(): void
     {
         $this->assertSame(3, substr_count($this->card($this->dashboard(), 'live'), 'admin-bar'));
@@ -107,13 +125,23 @@ final class DashboardWidgetTest extends TestCase
         $this->assertStringNotContainsString('hx-trigger', $this->widget('/admin/overview/w/accounts'));
     }
 
-    public function test_a_filled_card_offers_to_be_asked_again(): void
+    public function test_a_filled_card_that_asked_for_one_offers_to_be_asked_again(): void
     {
-        $body = $this->widget('/admin/overview/w/accounts');
+        // A card that polls is a card where now matters, so it is also a card
+        // worth being able to ask sooner.
+        $body = $this->widget('/admin/overview/w/live');
 
         $this->assertStringContainsString('admin-widget-refresh', $body);
-        $this->assertStringContainsString('hx-target="#admin-widget-accounts"', $body);
-        $this->assertStringContainsString('aria-label="Refresh Accounts"', $body);
+        $this->assertStringContainsString('hx-target="#admin-widget-live"', $body);
+        $this->assertStringContainsString('aria-label="Refresh Live"', $body);
+    }
+
+    public function test_a_filled_card_that_did_not_ask_for_one_is_left_alone(): void
+    {
+        // The page's refresh is up in the masthead and asks every card at once.
+        // One per card was six controls each doing a sixth of a job, at an
+        // opacity nobody was going to find.
+        $this->assertStringNotContainsString('admin-widget-refresh', $this->widget('/admin/overview/w/accounts'));
     }
 
     public function test_a_card_still_fetching_is_not_offered_a_refresh(): void

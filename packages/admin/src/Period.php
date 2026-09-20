@@ -60,12 +60,12 @@ enum Period: string
         $midnight = $now->setTime(0, 0);
 
         return match ($this) {
-            self::Today => new Window($this, $midnight),
-            self::Yesterday => new Window($this, $midnight->modify('-1 day'), $midnight),
-            self::Week => new Window($this, $now->modify('-7 days')),
-            self::Month => new Window($this, $now->modify('-30 days')),
-            self::Year => new Window($this, $now->modify('-365 days')),
-            self::All => new Window($this),
+            self::Today => new Window($this, $midnight, now: $now),
+            self::Yesterday => new Window($this, $midnight->modify('-1 day'), $midnight, $now),
+            self::Week => new Window($this, $now->modify('-7 days'), now: $now),
+            self::Month => new Window($this, $now->modify('-30 days'), now: $now),
+            self::Year => new Window($this, $now->modify('-365 days'), now: $now),
+            self::All => new Window($this, now: $now),
         };
     }
 }

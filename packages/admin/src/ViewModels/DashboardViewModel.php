@@ -9,6 +9,7 @@ use Hydra\Admin\Period;
 use Hydra\Admin\Screens\DashboardScreen;
 use Hydra\Admin\Screens\WidgetScreen;
 use Hydra\Admin\Widget;
+use Hydra\Admin\Window;
 
 /**
  * What a grid of widgets reads: the cards this visitor may see, where each one
@@ -30,6 +31,12 @@ final readonly class DashboardViewModel
         private array $cards = [],
         public Period $period = Period::DEFAULT,
         public ?Widget $summary = null,
+        /**
+         * The period resolved against the clock, when the caller has one to
+         * hand. Null where only the choice is needed and not the dates it came
+         * out as — the card URLs carry the key, not the bounds.
+         */
+        public ?Window $window = null,
     ) {}
 
     /** @return list<Widget> */
@@ -41,9 +48,17 @@ final readonly class DashboardViewModel
     /**
      * Whether to offer the period control at all. A dashboard whose every card
      * answers for all time has nothing to set.
+     *
+     * The strip counts. It is not in the grid, but it is on the page, and a
+     * page whose headline figures follow the period and whose cards do not
+     * still has a period — without this it would have had no way to set it.
      */
     public function hasPeriod(): bool
     {
+        if ($this->summary?->isPeriodic()) {
+            return true;
+        }
+
         foreach ($this->cards as $card) {
             if ($card->isPeriodic()) {
                 return true;
@@ -87,5 +102,15 @@ final readonly class DashboardViewModel
         $path = trim($this->screen->path(), '/');
 
         return rtrim($this->prefix, '/') . '/' . $this->blueprint->slug . ($path === '' ? '' : '/' . $path);
+    }
+
+    /**
+     * The same dashboard at the period showing. The select sends its own value
+     * and so needs no period on the URL; a button has no value to send, and
+     * without this one asking again would quietly reset the page to today.
+     */
+    public function refreshUrl(): string
+    {
+        return $this->dashboardUrl() . '?period=' . rawurlencode($this->period->value);
     }
 }

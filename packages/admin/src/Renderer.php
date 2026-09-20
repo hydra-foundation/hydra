@@ -44,12 +44,18 @@ final class Renderer
      *
      * $oob is the price of that. A toolbar outside the swap is a toolbar that
      * does not re-render when the body does, so a control in it that depends on
-     * the body's state is stale the moment somebody filters. This template is
-     * sent after the body on a body swap, out of band, to put such a control
-     * back in step; at the other two depths the toolbar renders it inline and
-     * this is not used, which is what keeps its id unique.
+     * the body's state is stale the moment somebody filters. These templates are
+     * sent after the body on a body swap, out of band, to put such controls
+     * back in step; at the other two depths the toolbar renders them inline and
+     * this is not used, which is what keeps their ids unique.
+     *
+     * Plural because "toolbar things that depend on the body" is plural by
+     * nature: a dashboard has both the line saying what it is answering for and
+     * the totals strip, and one slot meant the second could not be kept current
+     * without evicting the first.
      *
      * @param array<string, mixed> $data the body and toolbar templates' payload
+     * @param list<string>|string|null $oob
      */
     public function screen(
         Request $request,
@@ -58,7 +64,7 @@ final class Renderer
         array $data = [],
         ?string $toolbar = null,
         int|Status $status = Status::Ok,
-        ?string $oob = null,
+        string|array|null $oob = null,
     ): Response {
         $target = Htmx::fromRequest($request)->targetId();
 
@@ -69,11 +75,13 @@ final class Renderer
         $data = [...$data, 'screen' => $screen];
 
         if ($target === self::BODY) {
-            return $this->respond->html(
-                $this->view->render($body, $data, layout: false)
-                . ($oob === null ? '' : $this->view->render($oob, [...$data, 'oob' => true], layout: false)),
-                $status,
-            );
+            $html = $this->view->render($body, $data, layout: false);
+
+            foreach ((array) $oob as $template) {
+                $html .= $this->view->render($template, [...$data, 'oob' => true], layout: false);
+            }
+
+            return $this->respond->html($html, $status);
         }
 
         $bag = ['screen' => $screen, 'body' => $body, 'toolbar' => $toolbar, 'data' => $data];

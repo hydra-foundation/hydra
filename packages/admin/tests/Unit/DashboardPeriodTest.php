@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Unit;
 
+use DateTimeImmutable;
 use Hydra\Admin\Period;
 use Hydra\Admin\Tests\Support\AdminHarness;
 use Hydra\Admin\Tests\Support\CountPresenter;
+use Hydra\Admin\Tests\Support\PeriodicStatsPresenter;
 use Hydra\Admin\Tests\Support\StatsPresenter;
 use Hydra\Admin\Tests\Support\TrendPresenter;
 use Hydra\Admin\Tests\Support\WidgetDashboardModule;
@@ -66,20 +68,41 @@ final class DashboardPeriodTest extends TestCase
         $this->assertStringContainsString('Today', $this->widget('/admin/overview/w/trend?period=nonsense'));
     }
 
-    public function test_the_totals_survive_a_change_of_period(): void
+    public function test_a_strip_that_answers_for_all_time_survives_a_change_of_period(): void
     {
-        // What a change of period actually asks for. The strip answers for all
-        // of time, so it must not be in what the period replaces — and it is
-        // kept out by where it renders rather than by a marker asking htmx to
-        // spare it, which is one fewer instruction to get right.
+        // What a change of period actually asks for. This strip is not about
+        // the period, so the change leaves it alone — and it is left alone by
+        // where it renders rather than by a marker asking htmx to spare it,
+        // which is one fewer instruction to get right.
         $admin = $this->admin;
 
-        $swapped = (string) $admin->controller->dashboard(
-            $admin->request('GET', '/admin/overview?period=month', $admin->body()),
-        )->getBody();
+        $swapped = $this->swap($admin);
 
         $this->assertStringContainsString('admin-widgets', $swapped);
         $this->assertStringNotContainsString('admin-summary-card', $swapped);
+    }
+
+    public function test_a_strip_that_follows_the_period_comes_back_with_the_grid(): void
+    {
+        // Sitting outside the swap is what keeps the select alive across it;
+        // for a strip that does follow the period it is also what makes it
+        // stale. Out of band is how both are true at once, and it goes back
+        // empty so it fetches the new figures the way it did on first paint.
+        $swapped = $this->swap($this->harness(summaryPeriodic: true));
+
+        $this->assertStringContainsString('admin-widgets', $swapped);
+        $this->assertStringContainsString('id="admin-summary-card" hx-swap-oob="true"', $swapped);
+        $this->assertStringContainsString('aria-busy="true"', $swapped);
+    }
+
+    public function test_a_strip_that_follows_the_period_is_reason_enough_to_offer_one(): void
+    {
+        // The control is offered off the whole page, not off the grid: a page
+        // whose headline figures move with the period and whose cards do not
+        // still has a period, and without this it had no way to set it.
+        $body = $this->dashboard('', periodic: false, summaryPeriodic: true);
+
+        $this->assertStringContainsString('id="admin-period"', $body);
     }
 
     public function test_the_control_is_not_in_what_it_replaces(): void
@@ -87,11 +110,7 @@ final class DashboardPeriodTest extends TestCase
         // A select inside its own target is destroyed by its own answer: focus
         // goes to the document, and in a browser that fires change on arrow
         // keys the control is torn out from under the keystroke.
-        $admin = $this->admin;
-
-        $this->assertStringNotContainsString('id="admin-period"', (string) $admin->controller->dashboard(
-            $admin->request('GET', '/admin/overview?period=month', $admin->body()),
-        )->getBody());
+        $this->assertStringNotContainsString('id="admin-period"', $this->swap($this->admin));
     }
 
     public function test_a_body_swap_says_what_the_cards_are_now_answering_for(): void
@@ -99,11 +118,7 @@ final class DashboardPeriodTest extends TestCase
         // The line beside the control is the one part of the toolbar the swap
         // makes stale, so it comes back out of band. It is also the only thing
         // that announces the change: the grid is replaced silently.
-        $admin = $this->admin;
-
-        $swapped = (string) $admin->controller->dashboard(
-            $admin->request('GET', '/admin/overview?period=month', $admin->body()),
-        )->getBody();
+        $swapped = $this->swap($this->admin);
 
         $this->assertStringContainsString('hx-swap-oob="true"', $swapped);
         $this->assertStringContainsString('Showing last 30 days', $swapped);
@@ -113,11 +128,7 @@ final class DashboardPeriodTest extends TestCase
     {
         // An out-of-band swap addressed to an element the page does not have is
         // one htmx cannot land.
-        $admin = $this->harness(periodic: false);
-
-        $this->assertStringNotContainsString('hx-swap-oob', (string) $admin->controller->dashboard(
-            $admin->request('GET', '/admin/overview', $admin->body()),
-        )->getBody());
+        $this->assertStringNotContainsString('hx-swap-oob', $this->swap($this->harness(periodic: false)));
     }
 
     public function test_the_summary_is_fetched_like_any_other_card(): void
@@ -160,6 +171,37 @@ final class DashboardPeriodTest extends TestCase
         );
     }
 
+    public function test_every_period_reads_as_dates_a_reader_can_tell_apart(): void
+    {
+        // The whole job of the line: the select says "Last 7 days" and "Last 30
+        // days" in the same six characters, and this is where they stop looking
+        // alike. No clock time in any of them — a rolling window starts at
+        // whatever o'clock it is now, and saying so buys nothing but noise.
+        $clock = new FrozenClock;
+
+        $this->assertSame([
+            'Today' => '1 Jan 2026',
+            'Yesterday' => '31 Dec 2025',
+            'Last 7 days' => '25 Dec 2025 – 1 Jan 2026',
+            'Last 30 days' => '2 Dec 2025 – 1 Jan 2026',
+            'Last 12 months' => '1 Jan 2025 – 1 Jan 2026',
+            'All time' => null,
+        ], array_combine(
+            array_map(fn (Period $period) => $period->label(), Period::cases()),
+            array_map(fn (Period $period) => $period->window($clock)->range(), Period::cases()),
+        ));
+    }
+
+    public function test_a_window_that_was_never_told_when_now_was_says_only_where_it_starts(): void
+    {
+        // Rather than reading the clock behind the caller's back to finish the
+        // sentence, which is how one card names an end its own query stopped
+        // short of.
+        $since = new DateTimeImmutable('2026-01-01 09:30:00');
+
+        $this->assertSame('Since 1 Jan 2026', (new Window(Period::Week, $since))->range());
+    }
+
     public function test_a_rolling_period_ends_open_and_a_calendar_one_does_not(): void
     {
         $clock = new FrozenClock;
@@ -195,12 +237,20 @@ final class DashboardPeriodTest extends TestCase
         Period::Week->window(new FrozenClock)->condition('created_at = 1 OR 1');
     }
 
-    private function dashboard(string $query = '', bool $periodic = true): string
+    private function dashboard(string $query = '', bool $periodic = true, bool $summaryPeriodic = false): string
     {
-        $admin = $periodic ? $this->admin : $this->harness(periodic: false);
+        $admin = $periodic && !$summaryPeriodic ? $this->admin : $this->harness($periodic, $summaryPeriodic);
 
         return (string) $admin->controller->dashboard(
             $admin->request('GET', '/admin/overview' . $query),
+        )->getBody();
+    }
+
+    /** The dashboard as the period select asks for it: a body swap, nothing else. */
+    private function swap(AdminHarness $admin): string
+    {
+        return (string) $admin->controller->dashboard(
+            $admin->request('GET', '/admin/overview?period=month', $admin->body()),
         )->getBody();
     }
 
@@ -209,16 +259,18 @@ final class DashboardPeriodTest extends TestCase
         return (string) $this->admin->controller->widget($this->admin->request('GET', $path))->getBody();
     }
 
-    private function harness(bool $periodic = true, ?StatsPresenter $stats = null): AdminHarness
-    {
-        $module = $periodic ? new WidgetDashboardModule : new WidgetDashboardModule(periodic: false);
-
+    private function harness(
+        bool $periodic = true,
+        bool $summaryPeriodic = false,
+        ?StatsPresenter $stats = null,
+    ): AdminHarness {
         return new AdminHarness(
             [
-                WidgetDashboardModule::class => $module,
+                WidgetDashboardModule::class => new WidgetDashboardModule($periodic, $summaryPeriodic),
                 CountPresenter::class => new CountPresenter,
                 TrendPresenter::class => new TrendPresenter,
                 StatsPresenter::class => $stats ?? new StatsPresenter,
+                PeriodicStatsPresenter::class => new PeriodicStatsPresenter,
             ],
             [WidgetDashboardModule::class],
         );

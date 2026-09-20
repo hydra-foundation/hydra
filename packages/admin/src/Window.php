@@ -24,11 +24,54 @@ final readonly class Window
         public Period $period,
         public ?DateTimeImmutable $since = null,
         public ?DateTimeImmutable $until = null,
+        /**
+         * When the window was resolved, which is where an open end actually
+         * falls. Told rather than read, for the reason above: a window that
+         * looked up the clock to describe itself could name an end its own
+         * query had not counted up to.
+         */
+        public ?DateTimeImmutable $now = null,
     ) {}
 
     public function label(): string
     {
         return $this->period->label();
+    }
+
+    /**
+     * The window in dates, or null when it has no bounds to state.
+     *
+     * What the select cannot say: "Last 7 days" is the name of a choice, and
+     * this is the stretch it turned out to mean. Rendered beside the grid, it
+     * is also the only thing on the page that distinguishes one rolling period
+     * from another at a glance.
+     */
+    public function range(): ?string
+    {
+        if ($this->since === null) {
+            return null;
+        }
+
+        // An open end runs up to now. The bound on a closed one is exclusive,
+        // so the last instant inside it is a moment earlier — without which a
+        // single day reads as spanning two.
+        $last = $this->until?->modify('-1 second') ?? $this->now;
+
+        if ($last === null) {
+            return 'Since ' . $this->since->format('j M Y');
+        }
+
+        if ($this->since->format('j M Y') === $last->format('j M Y')) {
+            return $last->format('j M Y');
+        }
+
+        // The year is stated once where both ends share it, and twice where
+        // they do not — twelve months back is a different year for most of it.
+        $start = $this->since->format('Y') === $last->format('Y')
+            ? $this->since->format('j M')
+            : $this->since->format('j M Y');
+
+        return $start . ' – ' . $last->format('j M Y');
     }
 
     /**

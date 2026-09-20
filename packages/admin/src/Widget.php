@@ -31,7 +31,9 @@ final class Widget
     private int $width = 6;
     private int $refresh = 0;
     private int $reserve = 3;
+    private Shape $shape = Shape::Lines;
     private bool $periodic = false;
+    private bool $refreshable = false;
     private ?string $ability = null;
     private ?string $presenter = null;
 
@@ -78,21 +80,34 @@ final class Widget
     }
 
     /**
-     * How many lines of body to hold open while the card fetches itself.
+     * How many items of body to hold open while the card fetches itself.
      *
      * Every card starts empty and grows to whatever its query returns, and the
-     * grid reflows under each one as it lands. Three lines is a guess that
-     * suits a figure and a caption; a card that will come back as a list of
-     * eight says eight, and the page stops moving beneath the reader's cursor.
+     * grid reflows under each one as it lands. An item is whatever {@see
+     * shaped()} says one is, so this is the same number as the LIMIT the
+     * presenter runs under — a card showing six paths reserves six — and not a
+     * count of abstract bars arrived at by squinting at the result.
      *
      * It is a declaration and not a measurement, so it can be wrong. Wrong by
-     * a line is a small settle; not declared at all is the whole dashboard
+     * an item is a small settle; not declared at all is the whole dashboard
      * jumping twice a second while five cards land.
      */
-    public function reserving(int $lines): self
+    public function reserving(int $items): self
     {
         $clone = clone $this;
-        $clone->reserve = min(max(1, $lines), self::ROWS);
+        $clone->reserve = min(max(1, $items), self::ROWS);
+
+        return $clone;
+    }
+
+    /**
+     * What one of those items looks like, which is what gives the count a
+     * height. {@see Shape} for the four, and why a count alone was not enough.
+     */
+    public function shaped(Shape $shape): self
+    {
+        $clone = clone $this;
+        $clone->shape = $shape;
 
         return $clone;
     }
@@ -106,6 +121,23 @@ final class Widget
     {
         $clone = clone $this;
         $clone->refresh = max(0, $seconds);
+
+        return $clone;
+    }
+
+    /**
+     * Offer a button that asks this card again, now.
+     *
+     * Off by default, and that is the correction: every card carried one, so a
+     * dashboard of six offered six controls each doing a sixth of a job, none
+     * of them the page's. The dashboard's own refresh is beside the period, and
+     * a card earns one of its own only where "a moment ago" is a real answer —
+     * which is why polling implies it.
+     */
+    public function refreshable(): self
+    {
+        $clone = clone $this;
+        $clone->refreshable = true;
 
         return $clone;
     }
@@ -177,6 +209,17 @@ final class Widget
     public function reserve(): int
     {
         return $this->reserve;
+    }
+
+    public function shape(): Shape
+    {
+        return $this->shape;
+    }
+
+    /** A card that polls is a card where now matters, so it offers the button too. */
+    public function isRefreshable(): bool
+    {
+        return $this->refreshable || $this->refresh > 0;
     }
 
     public function isPeriodic(): bool

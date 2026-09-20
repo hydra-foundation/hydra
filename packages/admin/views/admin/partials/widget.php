@@ -21,8 +21,13 @@
 
    aria-busy and not aria-live: the card replaces itself outerHTML, so a live
    region declared here is destroyed before the text it would announce arrives.
-   busy is read on demand and survives that. */ ?>
-<div class="card admin-widget h-100" id="<?= $this->e($id) ?>"
+   busy is read on demand and survives that.
+
+   The shape is on the card and not only on the placeholder, because it says
+   what the card holds in both states: a card holding one block wants that block
+   to take the height the row turns out to be, rather than sit at its own size
+   with air underneath. */ ?>
+<div class="card admin-widget h-100 is-<?= $this->e($widget->shape()->value) ?>" id="<?= $this->e($id) ?>"
      role="region" aria-labelledby="<?= $this->e($id) ?>-title"
      aria-busy="<?= $data === null ? 'true' : 'false' ?>"
      hx-nonce="<?= $this->e($this->cspNonce()) ?>"
@@ -37,22 +42,29 @@
                 <?php if ($widget->icon() !== null): ?><i class="bi bi-<?= $this->e($widget->icon()) ?>" aria-hidden="true"></i><?php endif ?>
                 <?= $this->e($widget->title()) ?>
             </h2>
-            <?php /* Offered only once there is something to replace: a card
-               still fetching itself is already doing what the button asks. */ ?>
-            <?php if ($data !== null && $url !== null): ?>
+            <?php /* Offered only once there is something to replace — a card
+               still fetching itself is already doing what the button asks — and
+               only where the widget asked for one. The page's own refresh is up
+               in the masthead; a button per card meant six controls each doing a
+               sixth of a job, at an opacity nobody was going to find. */ ?>
+            <?php if ($data !== null && $url !== null && $widget->isRefreshable()): ?>
                 <?= $this->partial('admin/partials/refresh', [
                     'url' => $url,
                     'target' => '#' . $id,
                     'label' => $widget->title(),
+                    'class' => 'admin-widget-refresh',
                 ]) ?>
             <?php endif ?>
         </div>
 
         <?php if ($data === null): ?>
-            <?php /* As many bars as the widget reserved, so the card is about
-               the height it will be and the grid stops settling under the
-               reader as five cards land one after another. */ ?>
-            <div class="admin-widget-loading" aria-hidden="true">
+            <?php /* As many bars as the widget reserved, at the stride of the
+               shape it declared, so the card is about the height it will be and
+               the grid stops settling under the reader as five cards land one
+               after another. The shape is what makes the count mean anything:
+               five rows of a list and five ranked bars are not the same
+               placeholder, and for a while they were. */ ?>
+            <div class="admin-widget-loading is-<?= $this->e($widget->shape()->value) ?>" aria-hidden="true">
                 <?php for ($line = 0; $line < $widget->reserve(); $line++): ?>
                     <span class="admin-bar"></span>
                 <?php endfor ?>

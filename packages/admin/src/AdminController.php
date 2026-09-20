@@ -213,6 +213,7 @@ final class AdminController
         }
 
         $heading = $screen->heading();
+        $period = $this->period($request);
 
         return $this->renderer->screen(
             $request,
@@ -228,18 +229,18 @@ final class AdminController
                     $screen->cards(),
                     fn (Widget $card): bool => $card->ability() === null || $this->gate->allows($card->ability()),
                 )),
-                $this->period($request),
+                $period,
                 $this->visible($screen->summary()),
+                $period->window($this->clock, $this->timezone->zone()),
             )],
             // The strip and the period control render above the body rather
-            // than inside it. The control targets the body, and a select that
-            // sits in what it replaces loses focus to its own answer; the strip
-            // answers for all of time, so being outside the swap is how it
-            // survives a period change without being told to.
+            // than inside it: the control targets the body, and a select that
+            // sits in what it replaces loses focus to its own answer.
             toolbar: 'admin/partials/dashboard-toolbar',
-            // Which leaves one thing in the toolbar that a body swap makes
-            // stale: the line saying what the cards are answering for.
-            oob: 'admin/partials/period-status',
+            // Which leaves everything in the toolbar that depends on the period
+            // stale the moment one is picked — the dates the grid is covering,
+            // and the totals, which answer for the period like the cards do.
+            oob: ['admin/partials/period-status', 'admin/partials/summary-oob'],
         );
     }
 
@@ -270,9 +271,9 @@ final class AdminController
 
         $period = $this->period($request);
 
-        // The strip above the grid is a card with different chrome and a
-        // standing instruction to survive a period change, so it comes back
-        // drawn as itself rather than as one of the cards below.
+        // The strip above the grid is a card with different chrome — a band of
+        // figures rather than a box — so it comes back drawn as itself rather
+        // than as one of the cards below.
         $partial = $dashboard->summary()?->key() === $key
             ? 'admin/partials/summary-body'
             : 'admin/partials/widget';
@@ -323,6 +324,7 @@ final class AdminController
         }
 
         $heading = $screen->heading();
+        $period = $this->period($request);
 
         return $this->renderer->screen(
             $request,
