@@ -94,12 +94,12 @@
     ],
     "require": {
         "php": ">=8.2",
-        "hydrakit/core": "^0.5",
-        "hydrakit/database": "^0.5",
-        "hydrakit/http": "^0.5",
-        "hydrakit/validation": "^0.5",
-        "hydrakit/view": "^0.5",
-        "hydrakit/authorization": "^0.5",
+        "hydrakit/core": "^0.6",
+        "hydrakit/database": "^0.6",
+        "hydrakit/http": "^0.6",
+        "hydrakit/validation": "^0.6",
+        "hydrakit/view": "^0.6",
+        "hydrakit/authorization": "^0.6",
         "psr/clock": "^1.0",
         "psr/event-dispatcher": "^1.0",
         "psr/http-message": "^2.0",
@@ -114,7 +114,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.5.x-dev"
+            "dev-main": "0.6.x-dev"
         }
     }
 }
