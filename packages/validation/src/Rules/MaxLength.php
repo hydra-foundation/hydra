@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Validation\Rules;
 
+use Hydra\Validation\Context;
 use Hydra\Validation\Contracts\RuleInterface;
 
 /**
@@ -20,7 +21,7 @@ final class MaxLength implements RuleInterface
         $this->message = $message ?? "Must be {$max} characters or fewer.";
     }
 
-    public function validate(mixed $value): ?string
+    public function validate(mixed $value, Context $context): ?string
     {
         if (!$this->isTextual($value)) {
             return $this->message;

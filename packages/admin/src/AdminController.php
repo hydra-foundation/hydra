@@ -373,7 +373,7 @@ final class AdminController
         }
 
         $submitted = $this->submitted($request, $screen);
-        $result = $this->validator->validate($submitted, $screen->rulesFor($submitted));
+        $result = $this->validator->validate($submitted, $screen->rules());
 
         if ($result->fails()) {
             return $this->form($request, $blueprint, $screen, null, $submitted, $result->errors(), Status::UnprocessableEntity);
@@ -416,7 +416,7 @@ final class AdminController
         }
 
         $submitted = $this->submitted($request, $screen);
-        $result = $this->validator->validate($submitted, $screen->rulesFor($submitted));
+        $result = $this->validator->validate($submitted, $screen->rules());
 
         if ($result->fails()) {
             return $this->form($request, $blueprint, $screen, $id, $submitted, $result->errors(), Status::UnprocessableEntity);

@@ -11,3 +11,10 @@ Part of the [Hydra PHP framework](https://hydra.williamhleucka.com). Documentati
 Validates a set of input values against a per-field list of rules. Stateless.
 The rules travel with each call, so one `Validator` can be shared and autowired.
 Ships **no** `ServiceProvider`; the validator has no dependencies to bind.
+
+Rule keys are dot paths, and `*` walks a list: `items.*.qty` runs its rules
+once per entry and keys each error to `items.0.qty`. A rule is an object
+implementing `RuleInterface`, handed the value and a `Context` holding the rest
+of the input, which is how `Confirmed`, `Same` and the conditional `Required*`
+rules see the field they compare against. `Exists` and `Unique` live in
+`hydrakit/database`, which is where the connection is.

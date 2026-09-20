@@ -10,3 +10,6 @@ Part of the [Hydra PHP framework](https://hydra.williamhleucka.com). Documentati
 
 A thin data-access seam over PDO and a raw-SQL migration runner.
 Repositories write their own SQL and pass bound parameters.
+
+Also ships the two validation rules that need a connection, `Exists` and
+`Unique`, under `Hydra\Database\Validation`.

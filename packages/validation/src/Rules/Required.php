@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Validation\Rules;
 
+use Hydra\Validation\Context;
 use Hydra\Validation\Contracts\RuleInterface;
 
 /**
@@ -11,14 +12,12 @@ use Hydra\Validation\Contracts\RuleInterface;
  */
 final class Required implements RuleInterface
 {
+    use PresentValue;
+
     public function __construct(private readonly string $message = 'This field is required.') {}
 
-    public function validate(mixed $value): ?string
+    public function validate(mixed $value, Context $context): ?string
     {
-        $missing = $value === null
-            || $value === ''
-            || (is_array($value) && $value === []);
-
-        return $missing ? $this->message : null;
+        return $this->isMissing($value) ? $this->message : null;
     }
 }

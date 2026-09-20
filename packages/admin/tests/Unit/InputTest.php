@@ -7,6 +7,8 @@ namespace Hydra\Admin\Tests\Unit;
 use Hydra\Admin\Input;
 use Hydra\Admin\InputType;
 use Hydra\Validation\Rules\MinLength;
+use Hydra\Validation\Rules\Nullable;
+use Hydra\Validation\Validator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -31,18 +33,23 @@ final class InputTest extends TestCase
         $this->assertTrue(Input::text('username')->required()->isRequired());
     }
 
-    public function test_a_blank_optional_control_is_exempt_from_its_rules(): void
+    public function test_an_optional_control_leads_with_nullable(): void
     {
         $optional = Input::password('password')->rules(new MinLength(8));
+        $validator = new Validator;
+        $rules = ['password' => $optional->ruleSet()];
 
-        $this->assertSame([], $optional->rulesFor(''));
-        $this->assertSame([], $optional->rulesFor(null));
-        $this->assertCount(1, $optional->rulesFor('short'));
+        $this->assertInstanceOf(Nullable::class, $optional->ruleSet()[0]);
+        $this->assertTrue($validator->validate(['password' => ''], $rules)->passes());
+        $this->assertTrue($validator->validate(['password' => 'short'], $rules)->fails());
     }
 
     public function test_a_blank_required_control_is_still_checked(): void
     {
-        $this->assertCount(2, Input::text('username')->required()->rules(new MinLength(3))->rulesFor(''));
+        $required = Input::text('username')->required()->rules(new MinLength(3));
+
+        $this->assertCount(2, $required->ruleSet());
+        $this->assertTrue((new Validator)->validate(['username' => ''], ['username' => $required->ruleSet()])->fails());
     }
 
     public function test_it_hands_back_the_stored_value_not_a_reading_of_it(): void

@@ -112,17 +112,15 @@ final class FormScreen implements ScreenInterface, SubmittableInterface
 
     /**
      * The rule set {@see \Hydra\Validation\Validator} wants, keyed by input name.
-     * Built against the submission because a blank optional control is exempt.
      *
-     * @param array<string, mixed> $values
      * @return array<string, list<\Hydra\Validation\Contracts\RuleInterface>>
      */
-    public function rulesFor(array $values): array
+    public function rules(): array
     {
         $rules = [];
 
         foreach ($this->inputs as $input) {
-            $rules[$input->name()] = $input->rulesFor($values[$input->name()] ?? null);
+            $rules[$input->name()] = $input->ruleSet();
         }
 
         return $rules;

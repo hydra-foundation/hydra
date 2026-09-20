@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Admin;
 
 use Hydra\Validation\Contracts\RuleInterface;
+use Hydra\Validation\Rules\Nullable;
 use Hydra\Validation\Rules\Required;
 
 /**
@@ -135,19 +136,15 @@ final class Input
     }
 
     /**
-     * The rules to check this submission against. An optional control left blank
-     * is not checked at all: a length rule on an optional password means "if you
-     * are changing it, make it long enough", not "you must change it".
+     * The rules to check this submission against. An optional control leads
+     * with {@see Nullable}, so a length rule on an optional password means "if
+     * you are changing it, make it long enough", not "you must change it".
      *
      * @return list<RuleInterface>
      */
-    public function rulesFor(mixed $value): array
+    public function ruleSet(): array
     {
-        if (!$this->required && ($value === null || $value === '')) {
-            return [];
-        }
-
-        return $this->rules;
+        return $this->required ? $this->rules : [new Nullable, ...$this->rules];
     }
 
     /**

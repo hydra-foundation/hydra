@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Validation\Tests\Unit;
 
+use Hydra\Validation\Context;
 use Hydra\Validation\Result;
 use Hydra\Validation\Contracts\RuleInterface;
 use Hydra\Validation\Rules\MaxLength;
 use Hydra\Validation\Rules\MinLength;
+use Hydra\Validation\Rules\Nullable;
 use Hydra\Validation\Rules\Pattern;
 use Hydra\Validation\Rules\Required;
 use Hydra\Validation\Validator;
@@ -65,7 +67,7 @@ final class ValidatorTest extends TestCase
     {
         // Required fails first, so MaxLength must never run.
         $exploding = new class implements RuleInterface {
-            public function validate(mixed $value): ?string
+            public function validate(mixed $value, Context $context): ?string
             {
                 throw new \RuntimeException('second rule should not run');
             }
@@ -216,5 +218,77 @@ final class ValidatorTest extends TestCase
         $this->assertTrue($result->fails());
         // Short-circuit: MinLength fails first, so its message wins.
         $this->assertSame('Must be at least 3 characters.', $result->first('name'));
+    }
+
+    public function test_a_dot_path_rule_reaches_a_nested_field(): void
+    {
+        $result = $this->validator->validate(
+            ['address' => ['city' => '', 'street' => '1 Main']],
+            [
+                'address.city' => [new Required('Give a city.')],
+                'address.street' => [new Required],
+            ],
+        );
+
+        $this->assertSame(['address.city' => 'Give a city.'], $result->errors());
+    }
+
+    public function test_a_wildcard_rule_runs_once_per_entry_and_keys_each_error_to_its_path(): void
+    {
+        $result = $this->validator->validate(
+            ['items' => [['qty' => '2'], ['qty' => ''], ['qty' => '5']]],
+            ['items.*.qty' => [new Required('How many?')]],
+        );
+
+        $this->assertSame(['items.1.qty' => 'How many?'], $result->errors());
+    }
+
+    public function test_validated_rebuilds_the_nesting_it_validated(): void
+    {
+        $result = $this->validator->validate(
+            ['items' => [['qty' => '2', 'note' => 'drop'], ['qty' => '5', 'note' => 'drop']], 'coupon' => 'X'],
+            ['items.*.qty' => [new Required]],
+        );
+
+        // 'note' had no rule and 'coupon' was not named, so neither survives.
+        $this->assertSame(['items' => [['qty' => '2'], ['qty' => '5']]], $result->validated());
+    }
+
+    public function test_a_wildcard_over_a_missing_container_validates_nothing(): void
+    {
+        // The rule on the container itself is what should complain; the
+        // per-entry rules have no entries to speak about.
+        $result = $this->validator->validate(
+            [],
+            ['items' => [new Required('Add something to the basket.')], 'items.*.qty' => [new Required]],
+        );
+
+        $this->assertSame(['items' => 'Add something to the basket.'], $result->errors());
+    }
+
+    public function test_a_short_circuiting_rule_stops_the_chain_without_failing_it(): void
+    {
+        $exploding = new class implements RuleInterface {
+            public function validate(mixed $value, Context $context): ?string
+            {
+                throw new \RuntimeException('the rule after Nullable should not run');
+            }
+        };
+
+        $result = $this->validator->validate(['bio' => ''], ['bio' => [new Nullable, $exploding]]);
+
+        $this->assertTrue($result->passes());
+    }
+
+    public function test_a_short_circuiting_rule_can_still_be_reached_by_a_failure_before_it(): void
+    {
+        // Ordering is the developer's: a Required ahead of a Nullable wins,
+        // which is what makes "required, and then only if long enough" work.
+        $result = $this->validator->validate(
+            ['bio' => ''],
+            ['bio' => [new Required('Say something.'), new Nullable, new MinLength(10)]],
+        );
+
+        $this->assertSame('Say something.', $result->first('bio'));
     }
 }

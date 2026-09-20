@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Validation\Rules;
 
+use Hydra\Validation\Context;
 use Hydra\Validation\Contracts\RuleInterface;
 use InvalidArgumentException;
 
@@ -23,7 +24,7 @@ final class Pattern implements RuleInterface
         }
     }
 
-    public function validate(mixed $value): ?string
+    public function validate(mixed $value, Context $context): ?string
     {
         if (!$this->isTextual($value)) {
             return $this->message;

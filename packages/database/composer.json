@@ -22,7 +22,8 @@
     ],
     "require": {
         "php": ">=8.2",
-        "ext-pdo": "*"
+        "ext-pdo": "*",
+        "hydrakit/validation": "^0.5"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0",

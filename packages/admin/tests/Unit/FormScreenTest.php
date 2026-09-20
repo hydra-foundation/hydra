@@ -14,6 +14,7 @@ use Hydra\Admin\Screens\RowPath;
 use Hydra\Admin\Screens\ShowScreen;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Validation\Rules\MinLength;
+use Hydra\Validation\Validator;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;
@@ -87,23 +88,22 @@ final class FormScreenTest extends TestCase
         $create = FormScreen::create()->inputs(Input::password('password')->required());
         $edit = FormScreen::edit()->inputs(Input::password('password'));
 
-        $this->assertCount(1, $create->rulesFor(['password' => ''])['password']);
-        $this->assertSame([], $edit->rulesFor(['password' => ''])['password']);
+        $validator = new Validator;
+
+        $this->assertTrue($validator->validate(['password' => ''], $create->rules())->fails());
+        $this->assertTrue($validator->validate(['password' => ''], $edit->rules())->passes());
     }
 
-    public function test_the_rule_set_is_built_against_the_submission(): void
+    public function test_a_blank_optional_control_is_exempt_from_its_rules(): void
     {
         $screen = FormScreen::edit()->inputs(
             Input::text('username')->required(),
             Input::password('password')->rules(new MinLength(8)),
         );
+        $validator = new Validator;
 
-        $blank = $screen->rulesFor(['username' => 'ada', 'password' => '']);
-        $changing = $screen->rulesFor(['username' => 'ada', 'password' => 'short']);
-
-        $this->assertSame([], $blank['password']);
-        $this->assertCount(1, $changing['password']);
-        $this->assertCount(1, $blank['username']);
+        $this->assertTrue($validator->validate(['username' => 'ada', 'password' => ''], $screen->rules())->passes());
+        $this->assertTrue($validator->validate(['username' => 'ada', 'password' => 'short'], $screen->rules())->fails());
     }
 
     public function test_an_edit_path_that_names_no_row_is_rejected_where_it_is_declared(): void
