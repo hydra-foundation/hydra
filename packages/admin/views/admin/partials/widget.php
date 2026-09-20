@@ -17,8 +17,14 @@
 <?php /* The nonce is unconditional: it vouches for the card, not for the fetch
    on it, and htmx gates every root it swaps in whether or not that root asks
    for anything. A filled card that does not poll asks for nothing, and tying
-   the nonce to the fetch left every one of those refused on arrival. */ ?>
+   the nonce to the fetch left every one of those refused on arrival.
+
+   aria-busy and not aria-live: the card replaces itself outerHTML, so a live
+   region declared here is destroyed before the text it would announce arrives.
+   busy is read on demand and survives that. */ ?>
 <div class="card admin-widget h-100" id="<?= $this->e($id) ?>"
+     role="region" aria-labelledby="<?= $this->e($id) ?>-title"
+     aria-busy="<?= $data === null ? 'true' : 'false' ?>"
      hx-nonce="<?= $this->e($this->cspNonce()) ?>"
      <?php if ($loading || $polling): ?>
      hx-get="<?= $this->e((string) $url) ?>"
@@ -27,7 +33,7 @@
      <?php endif ?>>
     <div class="card-body">
         <div class="admin-widget-head">
-            <h2 class="admin-widget-title">
+            <h2 class="admin-widget-title admin-eyebrow" id="<?= $this->e($id) ?>-title">
                 <?php if ($widget->icon() !== null): ?><i class="bi bi-<?= $this->e($widget->icon()) ?>" aria-hidden="true"></i><?php endif ?>
                 <?= $this->e($widget->title()) ?>
             </h2>
@@ -43,10 +49,13 @@
         </div>
 
         <?php if ($data === null): ?>
-            <div class="admin-widget-loading placeholder-glow" aria-hidden="true">
-                <span class="placeholder col-7"></span>
-                <span class="placeholder col-4"></span>
-                <span class="placeholder col-6"></span>
+            <?php /* As many bars as the widget reserved, so the card is about
+               the height it will be and the grid stops settling under the
+               reader as five cards land one after another. */ ?>
+            <div class="admin-widget-loading" aria-hidden="true">
+                <?php for ($line = 0; $line < $widget->reserve(); $line++): ?>
+                    <span class="admin-bar"></span>
+                <?php endfor ?>
             </div>
             <span class="visually-hidden">Loading <?= $this->e($widget->title()) ?></span>
         <?php else: ?>

@@ -2,27 +2,21 @@
 <?php /** @var \Hydra\Admin\ViewModels\DashboardViewModel $vm */ ?>
 <?php /* The grid, and nothing in it. Every card is a placeholder that fetches
    its own body, so what the visitor waits for here is the layout rather than
-   the slowest query on it. */ ?>
+   the slowest query on it.
+
+   The summary strip and the period control are not here: they render in the
+   toolbar, above the region this one swaps. See dashboard-toolbar. */ ?>
 <?php $cards = $vm->cards() ?>
 
-<?php if ($vm->summary !== null): ?>
-    <?= $this->partial('admin/partials/summary', [
-        'widget' => $vm->summary,
-        'url' => $vm->url($vm->summary),
-        'data' => null,
-    ]) ?>
-<?php endif ?>
-
-<?php if ($vm->hasPeriod()): ?>
-    <?= $this->partial('admin/partials/period', ['vm' => $vm]) ?>
-<?php endif ?>
-
 <?php if ($cards === []): ?>
-    <p class="text-body-secondary">This dashboard declares no widgets yet.</p>
+    <?= $this->partial('admin/partials/widget-empty', ['message' => 'This dashboard declares no widgets yet.']) ?>
 <?php else: ?>
-    <div class="row g-3 admin-widgets" hx-nonce="<?= $this->e($this->cspNonce()) ?>">
+    <?php /* The nonce and no hx- attributes: this is a root of the fragment the
+       period swaps in, and htmx gates every root whether or not it asks for
+       anything. */ ?>
+    <div class="admin-widgets" hx-nonce="<?= $this->e($this->cspNonce()) ?>">
         <?php foreach ($cards as $widget): ?>
-            <div class="col-12 col-lg-<?= $this->e((string) $widget->width()) ?>">
+            <div class="admin-widget-cell" data-span="<?= $this->e((string) $widget->width()) ?>">
                 <?= $this->partial('admin/partials/widget', [
                     'widget' => $widget,
                     'url' => $vm->url($widget),

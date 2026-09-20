@@ -34,6 +34,7 @@ final class WidgetDashboardModule implements ModuleInterface
                             ->titled('Accounts')
                             ->withIcon('people')
                             ->spanning(4)
+                            ->reserving(6)
                             ->from(CountPresenter::class),
                         Widget::make('live', 'admin/widgets/count')
                             ->titled('Live')

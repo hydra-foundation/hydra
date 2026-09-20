@@ -56,11 +56,37 @@ final class DashboardWidgetTest extends TestCase
         $this->assertStringContainsString('hx-trigger="load"', $body);
     }
 
+    public function test_a_card_holds_open_the_height_it_declared(): void
+    {
+        // Every card starts empty and grows to whatever its query returns. A
+        // placeholder the size of the answer is what keeps the grid from
+        // settling under the reader five times while five cards land.
+        $grid = $this->dashboard();
+
+        $this->assertSame(6, substr_count($this->card($grid, 'accounts'), 'admin-bar'));
+    }
+
+    public function test_a_card_that_declares_nothing_holds_open_a_default(): void
+    {
+        $this->assertSame(3, substr_count($this->card($this->dashboard(), 'live'), 'admin-bar'));
+    }
+
+    /** One card's markup, from the grid, without its neighbours. */
+    private function card(string $grid, string $key): string
+    {
+        $start = strpos($grid, 'id="admin-widget-' . $key . '"');
+        $this->assertIsInt($start, "no {$key} card on the grid");
+
+        $end = strpos($grid, 'admin-widget-cell', $start);
+
+        return substr($grid, $start, ($end === false ? strlen($grid) : $end) - $start);
+    }
+
     public function test_a_declared_width_reaches_the_grid(): void
     {
-        $this->assertStringContainsString('col-lg-4', $this->dashboard());
+        $this->assertStringContainsString('data-span="4"', $this->dashboard());
         // The default, for the card that did not ask for one.
-        $this->assertStringContainsString('col-lg-6', $this->dashboard());
+        $this->assertStringContainsString('data-span="6"', $this->dashboard());
     }
 
     public function test_a_card_comes_back_filled(): void

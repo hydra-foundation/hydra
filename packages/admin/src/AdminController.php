@@ -231,6 +231,15 @@ final class AdminController
                 $this->period($request),
                 $this->visible($screen->summary()),
             )],
+            // The strip and the period control render above the body rather
+            // than inside it. The control targets the body, and a select that
+            // sits in what it replaces loses focus to its own answer; the strip
+            // answers for all of time, so being outside the swap is how it
+            // survives a period change without being told to.
+            toolbar: 'admin/partials/dashboard-toolbar',
+            // Which leaves one thing in the toolbar that a body swap makes
+            // stale: the line saying what the cards are answering for.
+            oob: 'admin/partials/period-status',
         );
     }
 

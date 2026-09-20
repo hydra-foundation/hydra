@@ -68,32 +68,56 @@ final class DashboardPeriodTest extends TestCase
 
     public function test_the_totals_survive_a_change_of_period(): void
     {
-        // hx-preserve is what keeps the one thing on the page the period cannot
-        // affect from being the thing that reloads most.
-        $this->assertStringContainsString('hx-preserve="true"', $this->dashboard());
+        // What a change of period actually asks for. The strip answers for all
+        // of time, so it must not be in what the period replaces — and it is
+        // kept out by where it renders rather than by a marker asking htmx to
+        // spare it, which is one fewer instruction to get right.
+        $admin = $this->admin;
+
+        $swapped = (string) $admin->controller->dashboard(
+            $admin->request('GET', '/admin/overview?period=month', $admin->body()),
+        )->getBody();
+
+        $this->assertStringContainsString('admin-widgets', $swapped);
+        $this->assertStringNotContainsString('admin-summary-card', $swapped);
     }
 
-    public function test_what_is_preserved_never_also_replaces_itself(): void
+    public function test_the_control_is_not_in_what_it_replaces(): void
     {
-        // Preserving means "keep the node already here and drop the one that
-        // arrived". An element that also swaps itself asks htmx to do both to
-        // one node, which it attempts and fails at, taking the summary's first
-        // fetch down with a removeChild on a parent it no longer has.
-        $preserved = $this->tag($this->dashboard(), 'hx-preserve');
+        // A select inside its own target is destroyed by its own answer: focus
+        // goes to the document, and in a browser that fires change on arrow
+        // keys the control is torn out from under the keystroke.
+        $admin = $this->admin;
 
-        $this->assertStringNotContainsString('hx-get', $preserved);
-        $this->assertStringNotContainsString('hx-swap', $preserved);
+        $this->assertStringNotContainsString('id="admin-period"', (string) $admin->controller->dashboard(
+            $admin->request('GET', '/admin/overview?period=month', $admin->body()),
+        )->getBody());
     }
 
-    /** The one opening tag carrying $attribute, without its contents. */
-    private function tag(string $html, string $attribute): string
+    public function test_a_body_swap_says_what_the_cards_are_now_answering_for(): void
     {
-        $this->assertSame(1, substr_count($html, $attribute), "expected one {$attribute}");
+        // The line beside the control is the one part of the toolbar the swap
+        // makes stale, so it comes back out of band. It is also the only thing
+        // that announces the change: the grid is replaced silently.
+        $admin = $this->admin;
 
-        $start = strrpos(substr($html, 0, strpos($html, $attribute) ?: 0), '<');
-        $this->assertIsInt($start);
+        $swapped = (string) $admin->controller->dashboard(
+            $admin->request('GET', '/admin/overview?period=month', $admin->body()),
+        )->getBody();
 
-        return substr($html, $start, (strpos($html, '>', $start) ?: $start) - $start + 1);
+        $this->assertStringContainsString('hx-swap-oob="true"', $swapped);
+        $this->assertStringContainsString('Showing last 30 days', $swapped);
+    }
+
+    public function test_a_dashboard_with_no_period_sends_no_stale_line_out_of_band(): void
+    {
+        // An out-of-band swap addressed to an element the page does not have is
+        // one htmx cannot land.
+        $admin = $this->harness(periodic: false);
+
+        $this->assertStringNotContainsString('hx-swap-oob', (string) $admin->controller->dashboard(
+            $admin->request('GET', '/admin/overview', $admin->body()),
+        )->getBody());
     }
 
     public function test_the_summary_is_fetched_like_any_other_card(): void

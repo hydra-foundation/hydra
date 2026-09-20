@@ -20,13 +20,17 @@ use LogicException;
  */
 final class Widget
 {
-    /** Bootstrap's grid, which is what the dashboard lays out on. */
+    /** The grid the dashboard lays out on. */
     private const COLUMNS = 12;
+
+    /** Beyond this a placeholder is taller than anything it stands in for. */
+    private const ROWS = 12;
 
     private string $title;
     private ?string $icon = null;
     private int $width = 6;
     private int $refresh = 0;
+    private int $reserve = 3;
     private bool $periodic = false;
     private ?string $ability = null;
     private ?string $presenter = null;
@@ -69,6 +73,26 @@ final class Widget
     {
         $clone = clone $this;
         $clone->width = min(max(1, $width), self::COLUMNS);
+
+        return $clone;
+    }
+
+    /**
+     * How many lines of body to hold open while the card fetches itself.
+     *
+     * Every card starts empty and grows to whatever its query returns, and the
+     * grid reflows under each one as it lands. Three lines is a guess that
+     * suits a figure and a caption; a card that will come back as a list of
+     * eight says eight, and the page stops moving beneath the reader's cursor.
+     *
+     * It is a declaration and not a measurement, so it can be wrong. Wrong by
+     * a line is a small settle; not declared at all is the whole dashboard
+     * jumping twice a second while five cards land.
+     */
+    public function reserving(int $lines): self
+    {
+        $clone = clone $this;
+        $clone->reserve = min(max(1, $lines), self::ROWS);
 
         return $clone;
     }
@@ -148,6 +172,11 @@ final class Widget
     public function refresh(): int
     {
         return $this->refresh;
+    }
+
+    public function reserve(): int
+    {
+        return $this->reserve;
     }
 
     public function isPeriodic(): bool
