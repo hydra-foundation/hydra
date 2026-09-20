@@ -106,4 +106,27 @@ final class PathTest extends TestCase
     {
         $this->assertSame(['a', 'b'], Path::expand(['a' => 1, 'b' => 2], '*'));
     }
+
+    public function test_a_wildcard_over_a_list_names_its_keys_as_strings(): void
+    {
+        // PHP stores a numeric string key as an int, so a top-level wildcard
+        // meets keys the signature says cannot be there.
+        $data = array_combine(['0', '1'], ['a', 'b']);
+
+        $this->assertSame(['0', '1'], Path::expand($data, '*'));
+    }
+
+    public function test_every_match_carries_the_segments_that_follow_it(): void
+    {
+        $data = ['items' => [['qty' => 1], ['qty' => 2]]];
+
+        $this->assertSame(['items.0.qty', 'items.1.qty'], Path::expand($data, 'items.*.qty'));
+    }
+
+    public function test_a_branch_that_cannot_be_descended_skips_only_itself(): void
+    {
+        $data = ['a' => 1, 'b' => ['x' => 2]];
+
+        $this->assertSame(['b.x'], Path::expand($data, '*.*'));
+    }
 }

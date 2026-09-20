@@ -167,4 +167,38 @@ final class ComparisonRulesTest extends TestCase
         // the type rules' job, and claiming "reserved" here would be a lie.
         $this->assertNull((new NotInList(['admin']))->validate(['admin'], new Context([], 'username')));
     }
+
+    public function test_same_takes_a_message_of_its_own(): void
+    {
+        $rule = new Same('password', 'Both must match.');
+        $context = new Context(['password' => 'a', 'confirm' => 'b'], 'confirm');
+
+        $this->assertSame('Both must match.', $rule->validate('b', $context));
+    }
+
+    public function test_a_denied_number_is_compared_as_text(): void
+    {
+        $rule = new NotInList([5]);
+        $context = new Context([], 'code');
+
+        $this->assertSame('That value is not available.', $rule->validate('5', $context));
+        $this->assertSame('That value is not available.', $rule->validate(5, $context));
+    }
+
+    public function test_a_case_sensitive_list_denies_only_the_spelling_it_was_given(): void
+    {
+        $rule = new NotInList(['Admin']);
+        $context = new Context([], 'username');
+
+        $this->assertNull($rule->validate('admin', $context));
+        $this->assertSame('That value is not available.', $rule->validate('Admin', $context));
+    }
+
+    public function test_a_case_insensitive_list_denies_every_spelling(): void
+    {
+        $rule = new NotInList(['Admin'], null, false);
+        $context = new Context([], 'username');
+
+        $this->assertSame('That value is not available.', $rule->validate('ADMIN', $context));
+    }
 }

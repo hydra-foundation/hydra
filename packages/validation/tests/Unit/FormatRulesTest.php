@@ -201,4 +201,62 @@ final class FormatRulesTest extends TestCase
             }
         }
     }
+
+    public function test_alpha_anchors_at_both_ends(): void
+    {
+        $this->assertSame('Use letters only.', (new Alpha)->validate('1abc', $this->context));
+    }
+
+    public function test_an_address_may_be_as_long_as_the_rfc_allows_and_no_longer(): void
+    {
+        $rule = new Email;
+        $label = str_repeat('b', 61);
+        $limit = str_repeat('a', 64) . "@{$label}.{$label}.{$label}.com";
+        $over = str_repeat('a', 64) . '@' . str_repeat('b', 62) . ".{$label}.{$label}.com";
+
+        $this->assertSame(254, strlen($limit));
+        $this->assertSame(255, strlen($over));
+        $this->assertNull($rule->validate($limit, $this->context));
+        $this->assertSame('Enter a valid email address.', $rule->validate($over, $this->context));
+    }
+
+    public function test_json_may_be_held_to_a_single_level(): void
+    {
+        $rule = new Json(1);
+
+        $this->assertNull($rule->validate('1', $this->context));
+        $this->assertSame('Must be valid JSON.', $rule->validate('{"a":1}', $this->context));
+    }
+
+    public function test_json_refuses_whitespace(): void
+    {
+        $this->assertSame('Must be valid JSON.', (new Json)->validate("  \n ", $this->context));
+    }
+
+    public function test_a_url_scheme_is_compared_without_case(): void
+    {
+        $this->assertNull((new Url)->validate('HTTPS://example.com', $this->context));
+        $this->assertNull((new Url(['FTP']))->validate('ftp://example.com', $this->context));
+    }
+
+    public function test_a_url_the_filter_refuses_is_not_rescued_by_its_scheme(): void
+    {
+        $this->assertSame('Enter a valid URL.', (new Url)->validate('http://exa mple.com', $this->context));
+    }
+
+    public function test_uuid_accepts_the_lowest_and_the_highest_version(): void
+    {
+        $this->assertNull((new Uuid(1))->validate('3f2504e0-4f89-11d3-9a0c-0305e82c3301', $this->context));
+        $this->assertNull((new Uuid(8))->validate('017f22e2-79b0-8cc3-98c4-dc0c0c07398f', $this->context));
+    }
+
+    public function test_json_is_read_no_deeper_than_its_limit(): void
+    {
+        $rule = new Json;
+        $within = str_repeat('[', 511) . '1' . str_repeat(']', 511);
+        $past = str_repeat('[', 512) . '1' . str_repeat(']', 512);
+
+        $this->assertNull($rule->validate($within, $this->context));
+        $this->assertSame('Must be valid JSON.', $rule->validate($past, $this->context));
+    }
 }

@@ -166,4 +166,60 @@ final class TypeRulesTest extends TestCase
 
         new CountRange(-1);
     }
+
+    public function test_boolean_reads_a_padded_and_capitalised_value(): void
+    {
+        $rule = new Boolean;
+
+        $this->assertNull($rule->validate(' TRUE ', $this->context));
+        $this->assertNull($rule->validate("\tOff\n", $this->context));
+    }
+
+    public function test_count_range_allows_a_minimum_of_zero(): void
+    {
+        $this->assertNull((new CountRange(0, 2))->validate([], $this->context));
+    }
+
+    public function test_count_range_allows_equal_bounds(): void
+    {
+        $rule = new CountRange(2, 2);
+
+        $this->assertNull($rule->validate(['a', 'b'], $this->context));
+        $this->assertSame('Must have between 2 and 2 entries.', $rule->validate(['a'], $this->context));
+    }
+
+    public function test_count_range_takes_a_message_of_its_own(): void
+    {
+        $this->assertSame('Pick two.', (new CountRange(2, 2, 'Pick two.'))->validate([], $this->context));
+        $this->assertSame('Pick some.', (new CountRange(1, null, 'Pick some.'))->validate([], $this->context));
+    }
+
+    public function test_numeric_range_allows_equal_bounds(): void
+    {
+        $this->assertNull((new NumericRange(5, 5))->validate(5, $this->context));
+    }
+
+    public function test_numeric_range_takes_a_message_of_its_own(): void
+    {
+        $this->assertSame('Out of range.', (new NumericRange(1, 5, 'Out of range.'))->validate(9, $this->context));
+    }
+
+    public function test_numeric_range_refuses_text_rather_than_reading_it_as_zero(): void
+    {
+        // PHP reads null against an int as a bool, so a lower bound of zero is
+        // the case where an unread value would pass the range check.
+        $rule = new NumericRange(0, 5);
+
+        $this->assertSame('Must be a number between 0 and 5.', $rule->validate('abc', $this->context));
+    }
+
+    public function test_a_number_may_arrive_padded(): void
+    {
+        $this->assertNull((new Numeric)->validate(' 1.5 ', $this->context));
+    }
+
+    public function test_a_magnitude_php_cannot_hold_is_not_a_number(): void
+    {
+        $this->assertNotNull((new Numeric)->validate('1e400', $this->context));
+    }
 }

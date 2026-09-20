@@ -16,7 +16,10 @@ final class Path
      * field still fires; a wildcard expands to nothing when its container is
      * absent, because the rule on the container itself is what should complain.
      *
-     * @param array<string, mixed> $data
+     * The keys are array-key rather than string because PHP stores a numeric
+     * string key as an int, which is what a repeated form field arrives as.
+     *
+     * @param array<array-key, mixed> $data
      * @return list<string>
      */
     public static function expand(array $data, string $pattern): array

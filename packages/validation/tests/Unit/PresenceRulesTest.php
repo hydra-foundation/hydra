@@ -174,4 +174,23 @@ final class PresenceRulesTest extends TestCase
         $this->assertSame('This must be accepted.', $rule->validate(0, $context));
         $this->assertSame('This must be accepted.', $rule->validate(['1'], $context));
     }
+
+    public function test_acceptance_ignores_case_and_padding(): void
+    {
+        $rules = ['terms' => [new Accepted]];
+
+        $this->assertTrue($this->validator->validate(['terms' => ' YES '], $rules)->passes());
+        $this->assertTrue($this->validator->validate(['terms' => "\tOn"], $rules)->passes());
+    }
+
+    public function test_required_if_matches_a_numeric_trigger_value(): void
+    {
+        $rules = ['seats' => [new RequiredIf('plan', [2])]];
+
+        $this->assertTrue($this->validator->validate(['plan' => '2', 'seats' => '4'], $rules)->passes());
+        $this->assertSame(
+            'This field is required.',
+            $this->validator->validate(['plan' => '2'], $rules)->first('seats'),
+        );
+    }
 }

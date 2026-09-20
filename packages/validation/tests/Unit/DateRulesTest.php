@@ -8,6 +8,7 @@ use Hydra\Validation\Context;
 use Hydra\Validation\Rules\Date;
 use Hydra\Validation\Rules\DateRange;
 use Hydra\Validation\Rules\ParsesDates;
+use Exception;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;
@@ -119,8 +120,53 @@ final class DateRulesTest extends TestCase
 
     public function test_date_range_refuses_a_bound_it_cannot_read(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        try {
+            new DateRange(min: 'the day before yesteryear');
+            $this->fail('An unreadable bound should not build a rule.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame(0, $e->getCode());
+            $this->assertInstanceOf(Exception::class, $e->getPrevious());
+        }
+    }
 
-        new DateRange(min: 'the day before yesteryear');
+    public function test_date_range_allows_equal_bounds(): void
+    {
+        $rule = new DateRange('2026-01-01', '2026-01-01');
+
+        $this->assertNull($rule->validate('2026-01-01', $this->context));
+    }
+
+    public function test_a_lower_bound_on_its_own_still_refuses_an_earlier_date(): void
+    {
+        $rule = new DateRange('2026-01-01');
+
+        $this->assertSame(
+            'Enter a date no earlier than 2026-01-01.',
+            $rule->validate('2025-12-31', $this->context),
+        );
+    }
+
+    public function test_the_date_rules_take_a_message_of_their_own(): void
+    {
+        $this->assertSame('Bad date.', (new Date('Y-m-d', 'Bad date.'))->validate('nope', $this->context));
+        $this->assertSame(
+            'Too early.',
+            (new DateRange('2026-01-01', null, 'Y-m-d', 'Too early.'))->validate('2025-01-01', $this->context),
+        );
+    }
+
+    public function test_an_upper_bound_on_its_own_still_refuses_an_unreadable_date(): void
+    {
+        $rule = new DateRange(max: '2026-12-31');
+
+        $this->assertSame('Enter a date no later than 2026-12-31.', $rule->validate('nope', $this->context));
+    }
+
+    public function test_a_date_that_is_not_text_is_not_a_date(): void
+    {
+        $this->assertSame(
+            'Enter a date in the format Y-m-d.',
+            (new Date)->validate(20260101, $this->context),
+        );
     }
 }
