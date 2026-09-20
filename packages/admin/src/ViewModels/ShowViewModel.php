@@ -26,6 +26,12 @@ final readonly class ShowViewModel
         private array $row = [],
         /** The reader's zone, in which stored instants become times of day. */
         private ?DateTimeZone $zone = null,
+        /**
+         * The view of the list this row was opened from, as a query string.
+         * Back leads there rather than to the module's defaults, and the ways
+         * on from here carry it so the next screen can do the same.
+         */
+        private string $listQuery = '',
     ) {}
 
     /** @return list<Field> */
@@ -39,7 +45,14 @@ final readonly class ShowViewModel
         return $field->display(Surface::Show, $this->row, $this->zone);
     }
 
+    /** Where Back leads: the list as the visitor had it when they opened this row. */
     public function listUrl(): string
+    {
+        return $this->root() . $this->listQuery;
+    }
+
+    /** The module's own URL, which every screen of it hangs off. */
+    private function root(): string
     {
         return rtrim($this->prefix, '/') . '/' . $this->blueprint->slug;
     }
@@ -74,6 +87,8 @@ final readonly class ShowViewModel
 
         return $path === null
             ? null
-            : $this->listUrl() . '/' . str_replace('{id}', rawurlencode($this->id), trim($path, '/'));
+            : $this->root()
+                . '/' . str_replace('{id}', rawurlencode($this->id), trim($path, '/'))
+                . $this->listQuery;
     }
 }

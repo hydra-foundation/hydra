@@ -27,6 +27,12 @@ final readonly class FormViewModel
         public string $prefix,
         private array $values = [],
         private array $errors = [],
+        /**
+         * The view of the list this form was opened from, as a query string.
+         * Cancel leads there, and the action carries it so that a submission
+         * without htmx to report the page it came from can find it too.
+         */
+        private string $listQuery = '',
     ) {}
 
     /** @return list<Input> */
@@ -37,8 +43,9 @@ final readonly class FormViewModel
 
     public function action(): string
     {
-        return rtrim($this->prefix, '/') . '/' . $this->blueprint->slug
-            . '/' . str_replace('{id}', rawurlencode($this->id ?? ''), trim($this->screen->path(), '/'));
+        return $this->root()
+            . '/' . str_replace('{id}', rawurlencode($this->id ?? ''), trim($this->screen->path(), '/'))
+            . $this->listQuery;
     }
 
     /**
@@ -50,7 +57,14 @@ final readonly class FormViewModel
         return $this->id !== null;
     }
 
+    /** Where Cancel leads: the list as the visitor had it when they opened this form. */
     public function cancelUrl(): string
+    {
+        return $this->root() . $this->listQuery;
+    }
+
+    /** The module's own URL, which every screen of it hangs off. */
+    private function root(): string
     {
         return rtrim($this->prefix, '/') . '/' . $this->blueprint->slug;
     }

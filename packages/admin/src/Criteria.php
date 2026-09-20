@@ -220,4 +220,19 @@ final readonly class Criteria
 
         return array_filter([...$params, ...$filters], static fn (?string $value): bool => $value !== null);
     }
+
+    /**
+     * The query string this view of the list is reached by, ready to hang off a
+     * URL that leads to or away from it.
+     *
+     * Empty when the criteria are the module's own defaults, so a list nobody
+     * has narrowed keeps the bare URL a visitor would type, and only a view
+     * somebody actually asked for is spelled out.
+     */
+    public function queryString(Blueprint $blueprint): string
+    {
+        $query = $this->toQuery();
+
+        return $query === self::defaults($blueprint)->toQuery() ? '' : '?' . http_build_query($query);
+    }
 }

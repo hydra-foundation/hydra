@@ -492,6 +492,10 @@ final class AdminController
             return $this->done($request, $blueprint, $notice);
         }
 
+        // With the list it was created from still on it, so that Back from the
+        // new row goes where the New button was pressed.
+        $url .= $this->listState($request, $blueprint)->queryString($blueprint);
+
         if (!Htmx::fromRequest($request)->isHtmx()) {
             return $this->respond->redirect($url);
         }
@@ -514,7 +518,14 @@ final class AdminController
             $request,
             $this->chrome->screen($blueprint, $screen->heading() ?? $blueprint->title, $id, $notice),
             'admin/partials/show',
-            ['vm' => new ShowViewModel($blueprint, $id, $this->registry->prefix(), $row, $this->timezone->zone())],
+            ['vm' => new ShowViewModel(
+                $blueprint,
+                $id,
+                $this->registry->prefix(),
+                $row,
+                $this->timezone->zone(),
+                $this->listState($request, $blueprint)->queryString($blueprint),
+            )],
         );
     }
 
@@ -558,17 +569,24 @@ final class AdminController
     }
 
     /**
-     * The list the write was made from. htmx reports the page the browser is on,
-     * which is where the criteria live; a write sent without it (a form posted
-     * with no htmx) has only its own URL to go on, and lands on the defaults.
+     * The view of the list this request belongs to.
+     *
+     * Its own query string first: every URL a list draws now carries the
+     * criteria it was narrowed by, so a row screen and a form posted to one can
+     * both answer the question themselves, with or without htmx. Failing that,
+     * the page the browser reports being on, which is what a delete button in
+     * the table has to go on. Failing both, the module's own default view.
      */
     private function listState(Request $request, Blueprint $blueprint): Criteria
     {
         $current = Htmx::fromRequest($request)->currentUrl();
 
-        return $current === null
-            ? Criteria::defaults($blueprint)
-            : Criteria::fromQuery(Query::fromUrl($current), $blueprint);
+        return Criteria::fromQuery(
+            $request->getQueryParams() === [] && $current !== null
+                ? Query::fromUrl($current)
+                : Query::fromRequest($request),
+            $blueprint,
+        );
     }
 
     /**
@@ -594,12 +612,7 @@ final class AdminController
      */
     private function listUrl(Blueprint $blueprint, Criteria $criteria): string
     {
-        $root = $this->registry->root($blueprint);
-        $query = $criteria->toQuery();
-
-        return $query === Criteria::defaults($blueprint)->toQuery()
-            ? $root
-            : $root . '?' . http_build_query($query);
+        return $this->registry->root($blueprint) . $criteria->queryString($blueprint);
     }
 
     private function table(
@@ -673,7 +686,15 @@ final class AdminController
                 $notice,
             ),
             'admin/partials/form',
-            ['vm' => new FormViewModel($blueprint, $screen, $id, $this->registry->prefix(), $values, $errors)],
+            ['vm' => new FormViewModel(
+                $blueprint,
+                $screen,
+                $id,
+                $this->registry->prefix(),
+                $values,
+                $errors,
+                $this->listState($request, $blueprint)->queryString($blueprint),
+            )],
             status: $status,
         );
     }

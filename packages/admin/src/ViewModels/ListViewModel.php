@@ -179,7 +179,7 @@ final readonly class ListViewModel
         $screen = $this->blueprint->screen('create');
 
         return $screen instanceof FormScreen
-            ? $this->url() . '/' . trim($screen->path(), '/')
+            ? $this->url() . '/' . trim($screen->path(), '/') . $this->listQuery()
             : null;
     }
 
@@ -331,7 +331,25 @@ final readonly class ListViewModel
             return null;
         }
 
-        return $this->url() . '/' . str_replace('{id}', rawurlencode((string) $id), trim($path, '/'));
+        return $this->url()
+            . '/' . str_replace('{id}', rawurlencode((string) $id), trim($path, '/'))
+            . $this->listQuery();
+    }
+
+    /**
+     * The view of the list a row screen is opened from, carried on the URL that
+     * opens it.
+     *
+     * A row lives at a URL of its own, and until now that URL said nothing about
+     * the table it was reached through: opening one and leaving it again landed
+     * the visitor on the module's defaults, with whatever filter link, search,
+     * order or page they had the list narrowed to silently discarded. The screen
+     * that comes back hands this to its own Back and Cancel, so leaving a row
+     * returns to the table the visitor was actually looking at.
+     */
+    private function listQuery(): string
+    {
+        return $this->page->criteria->queryString($this->blueprint);
     }
 
     /** @param array<string, string|null> $overrides */
