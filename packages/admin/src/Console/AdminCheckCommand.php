@@ -135,6 +135,26 @@ final class AdminCheckCommand extends Command
             }
         }
 
+        // A filter link pins a column the way a toolbar filter does, and goes
+        // wrong the same way when the source does not list it: the link
+        // renders, the tally beside it counts every row in the table, and
+        // clicking it narrows nothing. Worse than the toolbar case, because a
+        // link that reads "Suspended 4,113" looks like an answer.
+        foreach ($blueprint->links as $link) {
+            foreach (array_keys($link->filters()) as $column) {
+                if ($description->filtersBy($column)) {
+                    continue;
+                }
+
+                $problems[] = sprintf(
+                    '%s: filter link "%s" pins "%s", which the source does not filter by',
+                    $blueprint->slug,
+                    $link->label(),
+                    $column,
+                );
+            }
+        }
+
         // The default sort is the one column a list screen orders by before a
         // visitor has touched anything, so a module naming one the source will
         // not honour is wrong on the very first request.

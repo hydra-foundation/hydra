@@ -1,7 +1,7 @@
 <?php /** @var \Hydra\View\Template $this */ ?>
 <?php /** @var \Hydra\Admin\ViewModels\ScreenViewModel $screen */ ?>
 <?php /** @var bool $oob */ ?>
-<div id="admin-nav"<?= $oob ? ' hx-swap-oob="true"' : '' ?>>
+<div id="admin-nav"<?= $oob ? ' hx-swap-oob="true"' : '' ?> hx-nonce="<?= $this->e($this->cspNonce()) ?>">
     <?php foreach ($screen->groups() as $group): ?>
         <?php if ($group['title'] !== null): ?>
             <h2 class="text-body-secondary text-uppercase small fw-semibold mt-3 mb-1 px-2"><?= $this->e($group['title']) ?></h2>

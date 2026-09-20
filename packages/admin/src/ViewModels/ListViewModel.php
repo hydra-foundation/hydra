@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\ViewModels;
 
+use DateTimeZone;
 use Hydra\Admin\Blueprint;
 use Hydra\Admin\Field;
+use Hydra\Admin\Link;
 use Hydra\Admin\Page;
 use Hydra\Admin\Screens\DeleteScreen;
 use Hydra\Admin\Screens\ExportScreen;
@@ -25,6 +27,13 @@ final readonly class ListViewModel
         public Blueprint $blueprint,
         public Page $page,
         public string $prefix,
+        /**
+         * Spent on the counts URL to put it beyond the browser's cache, which
+         * a write needs and a plain read does not. {@see countsUrl()}.
+         */
+        public ?string $countsToken = null,
+        /** The reader's zone, in which stored instants become times of day. */
+        public ?DateTimeZone $zone = null,
     ) {}
 
     public function url(): string
@@ -42,6 +51,90 @@ final readonly class ListViewModel
     public function filters(): array
     {
         return $this->blueprint->filterable();
+    }
+
+    /** @return list<Link> */
+    public function links(): array
+    {
+        return $this->blueprint->links;
+    }
+
+    public function isActiveLink(Link $link): bool
+    {
+        return ($this->page->criteria->view?->key() ?? $this->standingView()) === $link->key();
+    }
+
+    /**
+     * The link the list is already on before anybody clicks one. A module that
+     * offers an "All" declares it as a link pinning nothing, and that is the
+     * same list the module's own URL serves, so arriving at it and clicking the
+     * link are the same place — but only the second names a view, which left
+     * the bar drawn with nothing current until the visitor clicked the link
+     * they were already looking at.
+     *
+     * Null when every link pins something: there the unfiltered list is a view
+     * the bar does not offer, and none of them is current.
+     */
+    private function standingView(): ?string
+    {
+        foreach ($this->links() as $link) {
+            if ($link->filters() === []) {
+                return $link->key();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Where this link's view of the list lives. The search and the order come
+     * along, because they are the visitor's and not the link's; the toolbar
+     * filters the link pins do not, so that clicking it settles the question
+     * rather than losing to whatever a select was left on.
+     */
+    public function linkUrl(Link $link): string
+    {
+        return $this->link([
+            'view' => $link->key(),
+            'page' => null,
+            ...array_map(static fn (): null => null, $link->filters()),
+        ]);
+    }
+
+    /**
+     * Where the tally beside each link is fetched from, or null when the module
+     * declares none. It carries the search and the toolbar filters so the
+     * numbers answer for the table in front of the visitor, and drops the page,
+     * which is the one thing a count is not about. The active link stays on:
+     * each tally pins its own link regardless, and the fragment that comes back
+     * replaces this bar, so it has to know which one to draw as current.
+     */
+    public function countsUrl(): ?string
+    {
+        $screen = $this->blueprint->screen('counts');
+
+        if ($screen === null || $this->links() === []) {
+            return null;
+        }
+
+        // The order rows would come back in cannot change how many there are,
+        // so sort and dir only ever put one answer behind several URLs. The
+        // view is a different matter and stays: no tally is counted through it,
+        // but the bar that comes back is rendered from it, and without it every
+        // link returns drawn as not current.
+        $query = $this->page->criteria->toQuery();
+        unset($query['page'], $query['sort'], $query['dir']);
+
+        // Underscored because nothing reads it: it exists to be different from
+        // last time, and a plain name could one day be a column somebody wants
+        // to filter by.
+        if ($this->countsToken !== null) {
+            $query['_fresh'] = $this->countsToken;
+        }
+
+        $url = $this->url() . '/' . trim($screen->path(), '/');
+
+        return $query === [] ? $url : $url . '?' . http_build_query($query);
     }
 
     public function isSearchable(): bool
@@ -157,7 +250,7 @@ final readonly class ListViewModel
     /** @param array<string, mixed> $row */
     public function cell(Field $field, array $row): string|HtmlView
     {
-        return $field->display(Surface::List, $row);
+        return $field->display(Surface::List, $row, $this->zone);
     }
 
     /** 'asc' or 'desc' when the table is ordered by this field, null otherwise. */

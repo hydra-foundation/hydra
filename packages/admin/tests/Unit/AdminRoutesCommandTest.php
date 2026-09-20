@@ -13,6 +13,8 @@ use Hydra\Admin\Tests\Support\CrudUsersModule;
 use Hydra\Admin\Tests\Support\EditableUsersModule;
 use Hydra\Admin\Tests\Support\LandingModule;
 use Hydra\Admin\Tests\Support\TypoModule;
+use Hydra\Admin\Tests\Support\TypoWidgetModule;
+use Hydra\Admin\Tests\Support\WidgetDashboardModule;
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
@@ -115,11 +117,49 @@ final class AdminRoutesCommandTest extends TestCase
         );
     }
 
+    public function test_a_widget_naming_a_template_nobody_ships_is_reported(): void
+    {
+        // Nothing else looks: compile() has no view to ask, and the widget
+        // route renders whichever card the URL names, so the first sign of it
+        // otherwise is one dead card on an otherwise working dashboard.
+        $tester = $this->tester(new TypoWidgetModule);
+        $tester->execute([]);
+
+        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
+        $this->assertStringContainsString('admin/widgets/cuonts', $tester->getDisplay());
+    }
+
+    public function test_the_widget_route_is_shown_with_the_cards_it_serves(): void
+    {
+        $tester = $this->tester(new TypoWidgetModule);
+        $tester->execute([]);
+
+        $this->assertStringContainsString('/w/{widget}', $tester->getDisplay());
+        $this->assertStringContainsString('1 widget', $tester->getDisplay());
+    }
+
+    public function test_a_dashboard_whose_cards_all_exist_passes(): void
+    {
+        // The count in the widget row is a tally, not a template. Asking the
+        // view for "5 widgets" is a question it can only answer no to, which
+        // failed every dashboard that was in fact complete.
+        $tester = $this->tester(new WidgetDashboardModule);
+        $tester->execute([]);
+
+        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $this->assertStringContainsString('5 widgets', $tester->getDisplay());
+        $this->assertStringNotContainsString('No template found', $tester->getDisplay());
+    }
+
     private function tester(object $module): CommandTester
     {
         return new CommandTester(new AdminRoutesCommand(
             $this->registry($module),
-            new PhpView(AdminServiceProvider::views(), new CspNonce),
+            new PhpView(
+                dirname(__DIR__) . '/views',
+                new CspNonce,
+                fallbacks: [AdminServiceProvider::views()],
+            ),
         ));
     }
 

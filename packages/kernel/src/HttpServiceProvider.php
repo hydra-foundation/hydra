@@ -51,6 +51,7 @@ final class HttpServiceProvider extends ServiceProvider
             return new Responder(
                 $container->get(ResponseFactoryInterface::class),
                 $container->get(StreamFactoryInterface::class),
+                $container->get(CspNonce::class),
             );
         });
 

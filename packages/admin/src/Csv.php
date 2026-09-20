@@ -50,6 +50,11 @@ final class Csv
             $columns,
         ));
 
+        // No zone is passed, so timestamps leave as they are stored: UTC. A
+        // file is handed to something else — a spreadsheet, another system, a
+        // colleague in another country — and an instant shifted into whichever
+        // zone the person who clicked Export happens to read in would arrive
+        // with nothing saying so.
         foreach ($rows as $row) {
             $csv .= self::line(array_map(
                 static fn (Field $field): string|HtmlView => $field->display($surface, $row),

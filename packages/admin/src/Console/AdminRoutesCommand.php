@@ -8,7 +8,9 @@ use Hydra\Admin\Blueprint;
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\ModuleScanner;
+use Hydra\Admin\Screens\DashboardScreen;
 use Hydra\Admin\Screens\PageScreen;
+use Hydra\Admin\Screens\WidgetScreen;
 use Hydra\View\Contracts\ViewInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -52,11 +54,19 @@ final class AdminRoutesCommand extends Command
             ['Method', 'Path', 'Name', 'Ability', 'Template'],
             array_map(
                 function (array $route) use ($blueprints, &$missing): array {
-                    $template = $this->template($blueprints, $route['name']);
+                    [$slug] = explode('.', $route['name'], 2);
+                    $screen = $this->screen($blueprints, $route['name']);
+                    $template = $this->template($screen);
 
-                    if ($template !== null && $this->view !== null && !$this->view->has($template)) {
+                    if ($template === null) {
+                        $cell = $screen instanceof WidgetScreen
+                            ? $this->cardCount($blueprints[$slug], $screen)
+                            : self::NONE;
+                    } elseif ($this->view !== null && !$this->view->has($template)) {
                         $missing[] = $template;
-                        $template = "<error>{$template}</error>";
+                        $cell = "<error>{$template}</error>";
+                    } else {
+                        $cell = $template;
                     }
 
                     return [
@@ -64,12 +74,18 @@ final class AdminRoutesCommand extends Command
                         $route['path'],
                         $route['name'],
                         $this->ability($blueprints, $route['name']) ?? self::NONE,
-                        $template ?? self::NONE,
+                        $cell,
                     ];
                 },
                 $routes,
             ),
         );
+
+        // A dashboard's cards render templates of their own, and no route names
+        // one: the widget route serves every card on the screen. They go wrong
+        // exactly the way a page screen's template does, so they are checked
+        // here too, one pass over the declarations rather than over the routes.
+        $missing = [...$missing, ...$this->missingWidgetTemplates($blueprints)];
 
         if ($missing === []) {
             return Command::SUCCESS;
@@ -88,13 +104,64 @@ final class AdminRoutesCommand extends Command
      * blueprint: a table and a form are the package's own templates, and are
      * covered by the package's own tests.
      *
-     * @param array<string, Blueprint> $blueprints
+     * Only a name the view can be asked for belongs here. A widget route names
+     * no single template — it serves every card on its dashboard — so it is
+     * printed by {@see cardCount()} and checked by
+     * {@see missingWidgetTemplates()} instead.
      */
-    private function template(array $blueprints, string $name): ?string
+    private function template(?ScreenInterface $screen): ?string
     {
-        $screen = $this->screen($blueprints, $name);
+        return match (true) {
+            $screen instanceof PageScreen, $screen instanceof DashboardScreen => $screen->template(),
+            default => null,
+        };
+    }
 
-        return $screen instanceof PageScreen ? $screen->template() : null;
+    /**
+     * What the widget route serves, as a count rather than a list: a dashboard
+     * of a dozen cards would otherwise put a dozen template names in one cell.
+     * The names themselves are only interesting when one is missing, and the
+     * error below names those.
+     */
+    private function cardCount(Blueprint $blueprint, WidgetScreen $screen): string
+    {
+        $dashboard = $blueprint->screen($screen->dashboard());
+        // The summary strip answers at this route like any other card, so a
+        // count that left it out would not add up to what the route serves.
+        $cards = $dashboard instanceof DashboardScreen
+            ? count($dashboard->cards()) + ($dashboard->summary() === null ? 0 : 1)
+            : 0;
+
+        return $cards === 1 ? '1 widget' : $cards . ' widgets';
+    }
+
+    /**
+     * @param array<string, Blueprint> $blueprints
+     * @return list<string>
+     */
+    private function missingWidgetTemplates(array $blueprints): array
+    {
+        if ($this->view === null) {
+            return [];
+        }
+
+        $missing = [];
+
+        foreach ($blueprints as $blueprint) {
+            foreach ($blueprint->screens as $screen) {
+                if (!$screen instanceof DashboardScreen) {
+                    continue;
+                }
+
+                foreach ([...$screen->cards(), ...array_filter([$screen->summary()])] as $card) {
+                    if (!$this->view->has($card->template())) {
+                        $missing[] = $card->template();
+                    }
+                }
+            }
+        }
+
+        return $missing;
     }
 
     /**

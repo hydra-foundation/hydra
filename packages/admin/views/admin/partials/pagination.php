@@ -1,7 +1,7 @@
 <?php /** @var \Hydra\View\Template $this */ ?>
 <?php /** @var \Hydra\Admin\ViewModels\ListViewModel $vm */ ?>
 <?php $page = $vm->page ?>
-<div class="admin-pager">
+<div class="admin-pager" hx-nonce="<?= $this->e($this->cspNonce()) ?>">
     <small class="text-body-secondary">
         <?= $page->isEmpty() ? 'No results' : sprintf('Showing %d–%d of %d', $page->from(), $page->to(), $page->total) ?>
     </small>

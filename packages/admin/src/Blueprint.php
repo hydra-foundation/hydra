@@ -16,6 +16,7 @@ final readonly class Blueprint
     /**
      * @param list<Field> $fields
      * @param list<ScreenInterface> $screens
+     * @param list<Link> $links
      */
     public function __construct(
         public string $slug,
@@ -26,6 +27,7 @@ final readonly class Blueprint
         public SourceInterface|string|null $source,
         public array $fields,
         public array $screens,
+        public array $links,
         public int $perPage,
         public ?string $defaultSort,
         public string $defaultDirection,
@@ -64,6 +66,18 @@ final readonly class Blueprint
         foreach ($this->fields as $field) {
             if ($field->type() === FieldType::Id) {
                 return $field->name();
+            }
+        }
+
+        return null;
+    }
+
+    /** The filter link a "view" key names, or null when no link answers to it. */
+    public function link(string $key): ?Link
+    {
+        foreach ($this->links as $link) {
+            if ($link->key() === $key) {
+                return $link;
             }
         }
 

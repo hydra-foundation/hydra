@@ -25,7 +25,17 @@ final class HtmxResponse
 
     private string $swap = 'outerHTML';
 
-    public function __construct(private readonly StreamFactoryInterface $streams) {}
+    public function __construct(
+        private readonly StreamFactoryInterface $streams,
+        /**
+         * Both elements below are roots of the fragment htmx swaps, and htmx
+         * gates every root it swaps in whether or not that root asks for
+         * anything. They asked for nothing, so they were refused and logged on
+         * every write — a directive the page never saw, and a console line
+         * behind every saved form.
+         */
+        private readonly ?string $nonce = null,
+    ) {}
 
     /**
      * Navigate the browser rather than swapping the response in. Read before
@@ -68,9 +78,9 @@ final class HtmxResponse
         $body = (string) $response->getBody();
 
         if ($this->target !== null) {
-            $body = '<div hx-swap-oob="' . $this->e($this->swap . ':' . $this->target) . '">'
-                . $body
-                . '</div>';
+            $body = '<div hx-swap-oob="' . $this->e($this->swap . ':' . $this->target) . '"'
+                . $this->vouched()
+                . '>' . $body . '</div>';
         }
 
         return $response->withBody($this->streams->createStream($body . $this->markup()));
@@ -103,6 +113,12 @@ final class HtmxResponse
         return $this;
     }
 
+    /** The page nonce as an attribute, or nothing when there is no policy. */
+    private function vouched(): string
+    {
+        return $this->nonce === null ? '' : ' hx-nonce="' . $this->e($this->nonce) . '"';
+    }
+
     private function markup(): string
     {
         if ($this->markers === []) {
@@ -115,7 +131,7 @@ final class HtmxResponse
             $attributes .= ' ' . $name . '="' . $this->e($value) . '"';
         }
 
-        return '<div' . $attributes . ' hidden></div>';
+        return '<div' . $attributes . $this->vouched() . ' hidden></div>';
     }
 
     /** A list URL carries a query string, so & has to survive the attribute. */

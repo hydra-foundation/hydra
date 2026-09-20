@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Hydra\Admin;
 
 use Closure;
+use DateTimeImmutable;
+use DateTimeZone;
+use Exception;
 use Hydra\View\HtmlView;
 use LogicException;
 
@@ -203,8 +206,17 @@ final class Field
             && !$this->formatters[$surface->value]['decorates'];
     }
 
-    /** @param array<string, mixed> $row */
-    public function display(Surface $surface, array $row): string|HtmlView
+    /**
+     * What this field reads as on one surface.
+     *
+     * $zone is the reader's, and only a datetime is affected by it. Leaving it
+     * out renders the stored instant unchanged, which is what an export wants:
+     * a file that goes somewhere else should carry the one timezone everything
+     * else in it is already in.
+     *
+     * @param array<string, mixed> $row
+     */
+    public function display(Surface $surface, array $row, ?DateTimeZone $zone = null): string|HtmlView
     {
         $value = $row[$this->name] ?? null;
         $placeholder = $this->placeholders[$surface->value] ?? null;
@@ -223,7 +235,33 @@ final class Field
             return $this->options[(string) $value] ?? (string) $value;
         }
 
+        if ($this->type === FieldType::DateTime && $zone !== null && is_scalar($value)) {
+            return $this->inZone((string) $value, $zone);
+        }
+
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
+     * A stored instant as a time of day where the reader is.
+     *
+     * Read as UTC because that is what the row holds, and handed back untouched
+     * when it cannot be read at all: a column that turns out not to be a
+     * datetime is a declaration to fix, not a cell to blank out mid-page.
+     */
+    private function inZone(string $value, DateTimeZone $zone): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        try {
+            return (new DateTimeImmutable($value, new DateTimeZone('UTC')))
+                ->setTimezone($zone)
+                ->format('Y-m-d H:i:s');
+        } catch (Exception) {
+            return $value;
+        }
     }
 
     /** @param list<Surface> $on */

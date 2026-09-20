@@ -1,6 +1,6 @@
 <?php /** @var \Hydra\View\Template $this */ ?>
 <?php /** @var \Hydra\Admin\ViewModels\ListViewModel $vm */ ?>
-<div class="admin-filters d-flex justify-content-between align-items-end gap-3">
+<div hx-nonce="<?= $this->e($this->cspNonce()) ?>" class="admin-filters d-flex justify-content-between align-items-end gap-3">
 <form class="row g-2 align-items-end"
       hx-nonce="<?= $this->e($this->cspNonce()) ?>"
       hx-get="<?= $this->e($vm->url()) ?>"

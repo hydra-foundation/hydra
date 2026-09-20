@@ -3,7 +3,7 @@
 <?php /** @var string $body */ ?>
 <?php /** @var string|null $toolbar */ ?>
 <?php /** @var array<string, mixed> $data */ ?>
-<nav aria-label="breadcrumb">
+<nav aria-label="breadcrumb" hx-nonce="<?= $this->e($this->cspNonce()) ?>">
     <ol class="breadcrumb">
         <?php /* The last crumb is where the visitor is; an earlier one without a
            url is a name with no page behind it, such as a sidebar group. Those
@@ -25,13 +25,13 @@
     </ol>
 </nav>
 
-<h1 class="admin-title"><?= $this->e($screen->title) ?></h1>
+<h1 class="admin-title" hx-nonce="<?= $this->e($this->cspNonce()) ?>"><?= $this->e($screen->title) ?></h1>
 
 <?php if ($screen->notice !== null): ?>
-    <div class="alert alert-<?= $this->e($screen->notice->style()) ?>"
+    <div hx-nonce="<?= $this->e($this->cspNonce()) ?>" class="alert alert-<?= $this->e($screen->notice->style()) ?>"
          role="<?= $this->e($screen->notice->role()) ?>"><?= $this->e($screen->notice->text) ?></div>
 <?php endif ?>
 
 <?php if ($toolbar !== null): ?><?= $this->partial($toolbar, $data) ?><?php endif ?>
 
-<div id="admin-body"><?= $this->partial($body, $data) ?></div>
+<div id="admin-body" hx-nonce="<?= $this->e($this->cspNonce()) ?>"><?= $this->partial($body, $data) ?></div>

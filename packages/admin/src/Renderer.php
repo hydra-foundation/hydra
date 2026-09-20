@@ -27,6 +27,18 @@ final class Renderer
     ) {}
 
     /**
+     * One template, rendered on its own: a region that refreshes itself rather
+     * than arriving as part of a screen. No layout, no chrome, no target to
+     * read — what asked for it already knows where to put it.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function fragment(string $template, array $data = [], int|Status $status = Status::Ok): Response
+    {
+        return $this->respond->html($this->view->render($template, $data, layout: false), $status);
+    }
+
+    /**
      * $toolbar renders above the swappable body rather than inside it, so a
      * filter input keeps focus across a swap.
      *

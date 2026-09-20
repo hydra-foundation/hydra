@@ -80,6 +80,16 @@ final class AdminCheckCommandTest extends TestCase
         $this->assertStringContainsString('is filterable, but the source does not filter by it', $tester->getDisplay());
     }
 
+    public function test_a_filter_link_the_source_will_not_narrow_on_is_reported(): void
+    {
+        // Worse than the toolbar case above: a link reading "Admins 4,113" looks
+        // like an answer, and what it leads to is the whole table.
+        $tester = $this->tester(new DescribedSource(filterable: ['note']));
+
+        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
+        $this->assertStringContainsString('filter link "Admins" pins "role"', $tester->getDisplay());
+    }
+
     public function test_a_default_sort_the_source_will_not_honour_is_reported(): void
     {
         // Wrong on the very first request, before a visitor has touched a header.

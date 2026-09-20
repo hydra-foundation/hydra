@@ -47,7 +47,14 @@ final readonly class Criteria
 
     public ?string $search;
 
-    /** @param array<string, string> $filters */
+    /**
+     * The filter link this view sits on, or null when the list is being read
+     * without one. Its own filters are folded into $filters below, so a source
+     * answers a link without ever being told one was clicked.
+     */
+    public ?Link $view;
+
+    /** @param array<string, string> $filters filters asked for on top of $view */
     public function __construct(
         int $page = 1,
         int $perPage = 25,
@@ -55,12 +62,14 @@ final readonly class Criteria
         string $direction = 'asc',
         array $filters = [],
         ?string $search = null,
+        ?Link $view = null,
     ) {
         $this->page = min(max(1, $page), self::MAX_PAGE);
         $this->perPage = max(1, $perPage);
         $this->sort = $sort;
         $this->direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
-        $this->filters = $filters;
+        $this->view = $view;
+        $this->filters = [...$view?->filters() ?? [], ...$filters];
         // Normalised rather than refused, like page above: a list filter that
         // errors on a long paste is worse for the reader than one that matches
         // on as much of it as could ever be useful.
@@ -77,8 +86,15 @@ final readonly class Criteria
         );
     }
 
-    public static function fromQuery(Query $query, Blueprint $blueprint): self
+    /**
+     * $pinned forces a filter link on regardless of what the query string asks
+     * for, and takes its columns off the table while it is on: it is how a
+     * link's own tally is counted, where the question is what clicking it would
+     * show rather than what is showing now.
+     */
+    public static function fromQuery(Query $query, Blueprint $blueprint, ?Link $pinned = null): self
     {
+        $view = $pinned ?? $blueprint->link($query->string('view'));
         $sortable = array_map(static fn (Field $field): string => $field->name(), $blueprint->sortable());
         $requested = $query->string('sort');
         $sort = in_array($requested, $sortable, true) ? $requested : $blueprint->defaultSort;
@@ -86,6 +102,10 @@ final readonly class Criteria
         $filters = [];
 
         foreach ($blueprint->filterable() as $field) {
+            if ($pinned !== null && array_key_exists($field->name(), $pinned->filters())) {
+                continue;
+            }
+
             $value = $query->string($field->name());
             $options = $field->options();
 
@@ -104,6 +124,7 @@ final readonly class Criteria
             direction: in_array($direction, ['asc', 'desc'], true) ? $direction : $blueprint->defaultDirection,
             filters: $filters,
             search: $search === '' ? null : $search,
+            view: $view,
         );
     }
 
@@ -117,6 +138,7 @@ final readonly class Criteria
             direction: $this->direction,
             filters: $this->filters,
             search: $this->search,
+            view: $this->view,
         );
     }
 
@@ -134,6 +156,7 @@ final readonly class Criteria
             direction: $this->direction,
             filters: $this->filters,
             search: $this->search,
+            view: $this->view,
         );
     }
 
@@ -184,9 +207,17 @@ final readonly class Criteria
             'q' => $this->search,
             'sort' => $this->sort,
             'dir' => $this->sort === null ? null : $this->direction,
+            'view' => $this->view?->key(),
             'page' => $this->page > 1 ? (string) $this->page : null,
         ];
 
-        return array_filter([...$params, ...$this->filters], static fn (?string $value): bool => $value !== null);
+        // What the link already pins is left out: it is spelled once, as the
+        // link, and a URL repeating it would survive a change to the link's
+        // definition as a filter nobody asked for.
+        $filters = $this->view === null
+            ? $this->filters
+            : array_diff_assoc($this->filters, $this->view->filters());
+
+        return array_filter([...$params, ...$filters], static fn (?string $value): bool => $value !== null);
     }
 }

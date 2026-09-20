@@ -7,6 +7,7 @@ namespace Hydra\Admin;
 use Hydra\Admin\Contracts\CreateSourceInterface;
 use Hydra\Admin\Contracts\DeleteSourceInterface;
 use Hydra\Admin\Contracts\ModuleInterface;
+use Hydra\Admin\Contracts\PeriodAwareInterface;
 use Hydra\Admin\Contracts\PresenterInterface;
 use Hydra\Admin\Contracts\RowSourceInterface;
 use Hydra\Admin\Contracts\ScreenInterface;
@@ -196,6 +197,56 @@ final class ModuleRegistry
                 $service,
                 PresenterInterface::class,
             ));
+        }
+
+        return $presenter->present();
+    }
+
+    /**
+     * What one widget has to say. The same contract a page screen's presenter
+     * answers, resolved the same way — a widget is a small page, and giving it
+     * an interface of its own would be two names for one idea.
+     *
+     * A periodic card is given the window before it is asked anything. The
+     * declaration and the contract are checked against each other here because
+     * they are written in two files and only one of them is read before the
+     * grid decides what to redraw: a card that says it follows the period and
+     * cannot be told what it is would quietly answer for all time instead.
+     *
+     * @return array<string, mixed>
+     */
+    public function presentWidget(Widget $widget, Window $window): array
+    {
+        $service = $widget->presenter();
+
+        if ($service === null) {
+            return [];
+        }
+
+        $presenter = $this->container->get($service);
+
+        if (!$presenter instanceof PresenterInterface) {
+            throw new RuntimeException(sprintf(
+                '%s must implement %s to fill the "%s" widget.',
+                $service,
+                PresenterInterface::class,
+                $widget->key(),
+            ));
+        }
+
+        if ($widget->isPeriodic() !== $presenter instanceof PeriodAwareInterface) {
+            throw new RuntimeException(sprintf(
+                $widget->isPeriodic()
+                    ? 'The "%s" widget is declared periodic, so %s must implement %s.'
+                    : 'The "%s" widget is not declared periodic, so %s must not implement %s.',
+                $widget->key(),
+                $service,
+                PeriodAwareInterface::class,
+            ));
+        }
+
+        if ($presenter instanceof PeriodAwareInterface) {
+            $presenter = $presenter->withWindow($window);
         }
 
         return $presenter->present();

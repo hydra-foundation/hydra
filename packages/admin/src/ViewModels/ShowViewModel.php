@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\ViewModels;
 
+use DateTimeZone;
 use Hydra\Admin\Blueprint;
 use Hydra\Admin\Field;
 use Hydra\Admin\Screens\DeleteScreen;
@@ -23,6 +24,8 @@ final readonly class ShowViewModel
         public string $id,
         public string $prefix,
         private array $row = [],
+        /** The reader's zone, in which stored instants become times of day. */
+        private ?DateTimeZone $zone = null,
     ) {}
 
     /** @return list<Field> */
@@ -33,7 +36,7 @@ final readonly class ShowViewModel
 
     public function value(Field $field): string|HtmlView
     {
-        return $field->display(Surface::Show, $this->row);
+        return $field->display(Surface::Show, $this->row, $this->zone);
     }
 
     public function listUrl(): string

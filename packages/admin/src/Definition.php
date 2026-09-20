@@ -6,9 +6,12 @@ namespace Hydra\Admin;
 
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Contracts\SourceInterface;
+use Hydra\Admin\Screens\DashboardScreen;
 use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Screens\FormScreen;
+use Hydra\Admin\Screens\LinkCountsScreen;
 use Hydra\Admin\Screens\ListScreen;
+use Hydra\Admin\Screens\WidgetScreen;
 use Hydra\Admin\Sources\CallableSource;
 use LogicException;
 
@@ -29,6 +32,9 @@ final class Definition
 
     /** @var list<ScreenInterface> */
     private array $screens = [];
+
+    /** @var list<Link> */
+    private array $links = [];
 
     private int $perPage = 25;
     private ?string $defaultSort = null;
@@ -106,6 +112,19 @@ final class Definition
         return $clone;
     }
 
+    /**
+     * Named views of the list, offered above the table as one-click filters.
+     * They pin columns the source already filters on, so the toolbar's own
+     * filters still apply on top of whichever link is showing.
+     */
+    public function links(Link ...$links): self
+    {
+        $clone = clone $this;
+        $clone->links = [...$this->links, ...array_values($links)];
+
+        return $clone;
+    }
+
     public function perPage(int $perPage): self
     {
         $clone = clone $this;
@@ -136,12 +155,20 @@ final class Definition
         $this->assertSearchableFieldsAreFindable();
         $this->assertRowScreensHaveSomethingToName();
         $this->assertExportHasSomethingToWrite();
+        $this->assertLinksHaveSomethingToCount();
+        $this->assertWidgetsAreDistinct();
 
         $screens = $this->screens;
 
         if ($this->source !== null && $this->fields !== [] && $this->screenNamed('list') === null) {
             $screens = [new ListScreen, ...$screens];
         }
+
+        if ($this->links !== [] && $this->screenNamed('counts') === null) {
+            $screens = [...$screens, new LinkCountsScreen];
+        }
+
+        $screens = [...$screens, ...$this->widgetRoutes($screens)];
 
         if ($screens === []) {
             throw new LogicException("Admin module \"{$this->slug}\" declares no screens.");
@@ -176,10 +203,109 @@ final class Definition
             source: $this->source,
             fields: $this->fields,
             screens: $screens,
+            links: $this->links,
             perPage: $this->perPage,
             defaultSort: $this->defaultSort,
             defaultDirection: $this->defaultDirection,
         );
+    }
+
+    /**
+     * A route per dashboard screen for its cards to fetch themselves over.
+     * Added here rather than declared, because a dashboard with widgets always
+     * needs exactly one and a dashboard without them never does.
+     *
+     * @param list<ScreenInterface> $screens
+     * @return list<WidgetScreen>
+     */
+    private function widgetRoutes(array $screens): array
+    {
+        $routes = [];
+
+        foreach ($screens as $screen) {
+            if (!$screen instanceof DashboardScreen || $screen->cards() === []) {
+                continue;
+            }
+
+            $named = $screen->name() . '.widget';
+
+            foreach ($screens as $existing) {
+                if ($existing->name() === $named) {
+                    continue 2;
+                }
+            }
+
+            $routes[] = new WidgetScreen(
+                $screen->name(),
+                trim(trim($screen->path(), '/') . '/w/{widget}', '/'),
+                $screen->ability(),
+            );
+        }
+
+        return $routes;
+    }
+
+    /**
+     * Two cards at one key on one dashboard: the second is unreachable, since
+     * the key is the whole of what its URL carries, and the grid would render
+     * both and fill the same one twice.
+     */
+    private function assertWidgetsAreDistinct(): void
+    {
+        foreach ($this->screens as $screen) {
+            if (!$screen instanceof DashboardScreen) {
+                continue;
+            }
+
+            $seen = [];
+
+            foreach ($screen->cards() as $widget) {
+                if (isset($seen[$widget->key()])) {
+                    throw new LogicException(sprintf(
+                        'Admin module "%s" declares two dashboard widgets keyed "%s".',
+                        $this->slug,
+                        $widget->key(),
+                    ));
+                }
+
+                $seen[$widget->key()] = true;
+            }
+        }
+    }
+
+    /**
+     * A link is a filtered view of a source's rows and a tally of how many
+     * there are, and without a source it is neither: the bar would render,
+     * every link would lead to an empty table, and the count beside it would
+     * never arrive. Duplicate keys are the other way the bar goes wrong — two
+     * links at one URL, one of them unreachable.
+     */
+    private function assertLinksHaveSomethingToCount(): void
+    {
+        if ($this->links === []) {
+            return;
+        }
+
+        if ($this->source === null) {
+            throw new LogicException(sprintf(
+                'Admin module "%s" declares filter links with no source to filter.',
+                $this->slug,
+            ));
+        }
+
+        $seen = [];
+
+        foreach ($this->links as $link) {
+            if (isset($seen[$link->key()])) {
+                throw new LogicException(sprintf(
+                    'Admin module "%s" declares two filter links keyed "%s".',
+                    $this->slug,
+                    $link->key(),
+                ));
+            }
+
+            $seen[$link->key()] = true;
+        }
     }
 
     private function assertSearchableFieldsAreFindable(): void

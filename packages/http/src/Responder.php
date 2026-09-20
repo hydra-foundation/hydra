@@ -16,6 +16,13 @@ final class Responder
     public function __construct(
         private readonly ResponseFactoryInterface $responses,
         private readonly StreamFactoryInterface $streams,
+        /**
+         * OPTIONAL, and last, so an application with no policy in front of it
+         * builds a Responder the way it always did. Without one the directive
+         * elements below carry no nonce, which is correct: there is nothing for
+         * them to be vouched against.
+         */
+        private readonly ?CspNonce $nonce = null,
     ) {}
 
     public function text(string $body, int|Status $status = Status::Ok): ResponseInterface
@@ -80,7 +87,7 @@ final class Responder
      */
     public function htmx(): HtmxResponse
     {
-        return new HtmxResponse($this->streams);
+        return new HtmxResponse($this->streams, $this->nonce?->value());
     }
 
     private function make(string $body, int|Status $status, string $contentType): ResponseInterface

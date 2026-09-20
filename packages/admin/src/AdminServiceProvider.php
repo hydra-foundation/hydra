@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Admin;
 
 use Hydra\Admin\Contracts\ModuleInterface;
+use Hydra\Admin\Contracts\TimezoneInterface;
 use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Core\Clock\SystemClock;
 use Hydra\Core\Contracts\ContainerInterface;
@@ -94,6 +95,13 @@ final class AdminServiceProvider extends ServiceProvider
                 $container->get(Validator::class),
                 $events,
                 $container->bound(ClockInterface::class) ? $container->get(ClockInterface::class) : new SystemClock,
+                // Optional on the same terms, and with the same trap: an
+                // application that binds a reader's zone and gets UTC anyway
+                // would show every stored instant an hour or six out with
+                // nothing on screen admitting it.
+                $container->bound(TimezoneInterface::class)
+                    ? $container->get(TimezoneInterface::class)
+                    : new FixedTimezone,
             );
         });
     }

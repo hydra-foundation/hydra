@@ -7,7 +7,7 @@
    the table and would leave a button here still pointing at the unfiltered
    list. So it is its own element with its own id, and a body swap sends a fresh
    copy of it out of band, the way the sidebar is kept current. */ ?>
-<div id="admin-export"<?= ($oob ?? false) ? ' hx-swap-oob="true"' : '' ?>>
+<div id="admin-export"<?= ($oob ?? false) ? ' hx-swap-oob="true"' : '' ?> hx-nonce="<?= $this->e($this->cspNonce()) ?>">
     <?php if ($vm->exportUrl() !== null): ?>
         <?php /* No htmx on the link itself, deliberately: the response is a file
            and not a fragment, so a swap would put a CSV where the table is. */ ?>

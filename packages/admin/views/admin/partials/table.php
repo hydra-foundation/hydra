@@ -2,14 +2,24 @@
 <?php /** @var \Hydra\Admin\ViewModels\ListViewModel $vm */ ?>
 <?php $columns = $vm->columns() ?>
 <?php $criteria = $vm->page->criteria ?>
-<div id="admin-sort-state">
+<?php /* The list state the toolbar form does not hold inputs for. It renders
+   inside the swappable body, where the criteria are current, and the toolbar
+   pulls it in with hx-include, so searching or filtering keeps the order and
+   the filter link rather than dropping back to the module's defaults. The page
+   is deliberately absent: narrowing a list returns to the start of it. */ ?>
+<div id="admin-sort-state" hx-nonce="<?= $this->e($this->cspNonce()) ?>">
     <?php if ($criteria->sort !== null): ?>
         <input type="hidden" name="sort" value="<?= $this->e($criteria->sort) ?>">
         <input type="hidden" name="dir" value="<?= $this->e($criteria->direction) ?>">
     <?php endif ?>
+    <?php if ($criteria->view !== null): ?>
+        <input type="hidden" name="view" value="<?= $this->e($criteria->view->key()) ?>">
+    <?php endif ?>
 </div>
 
-<div class="table-responsive">
+<?= $this->partial('admin/partials/links', ['vm' => $vm]) ?>
+
+<div class="table-responsive" hx-nonce="<?= $this->e($this->cspNonce()) ?>">
     <table class="table table-hover align-middle mb-3">
         <thead>
             <tr>

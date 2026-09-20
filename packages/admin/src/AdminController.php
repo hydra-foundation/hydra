@@ -5,17 +5,23 @@ declare(strict_types=1);
 namespace Hydra\Admin;
 
 use Hydra\Admin\Contracts\RowSourceInterface;
+use Hydra\Admin\Contracts\TimezoneInterface;
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Events\Exported;
 use Hydra\Admin\Events\RowCreated;
 use Hydra\Admin\Events\RowDeleted;
 use Hydra\Admin\Events\RowUpdated;
 use Hydra\Admin\Exceptions\WriteRejected;
+use Hydra\Admin\Period;
+use Hydra\Admin\Screens\DashboardScreen;
 use Hydra\Admin\Screens\DeleteScreen;
 use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Screens\FormScreen;
+use Hydra\Admin\Screens\LinkCountsScreen;
 use Hydra\Admin\Screens\PageScreen;
 use Hydra\Admin\Screens\ShowScreen;
+use Hydra\Admin\Screens\WidgetScreen;
+use Hydra\Admin\ViewModels\DashboardViewModel;
 use Hydra\Admin\ViewModels\FormViewModel;
 use Hydra\Admin\ViewModels\ListViewModel;
 use Hydra\Admin\ViewModels\ShowViewModel;
@@ -40,6 +46,15 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  */
 final class AdminController
 {
+    /**
+     * How long a browser may answer its own counts request from cache.
+     *
+     * Long enough to cover a spell of clicking around one list, short enough
+     * that a tally another session moved is wrong for less time than it takes
+     * to notice. A write made in *this* session does not wait it out.
+     */
+    private const COUNTS_MAX_AGE = 10;
+
     public function __construct(
         private readonly ModuleRegistry $registry,
         private readonly Chrome $chrome,
@@ -56,6 +71,12 @@ final class AdminController
          */
         private readonly ?EventDispatcherInterface $events = null,
         private readonly ClockInterface $clock = new SystemClock,
+        /**
+         * OPTIONAL, and last, for the same reason as the dispatcher above: an
+         * application that binds none reads its rows in the zone they are
+         * stored in, which is what it saw before there was a setting at all.
+         */
+        private readonly TimezoneInterface $timezone = new FixedTimezone,
     ) {}
 
     public function list(Request $request): Response
@@ -64,6 +85,59 @@ final class AdminController
         $criteria = Criteria::fromQuery(Query::fromRequest($request), $blueprint);
 
         return $this->table($request, $blueprint, $this->registry->source($blueprint)->page($criteria));
+    }
+
+    /**
+     * How many rows sit behind each of the module's filter links, as the bar
+     * that asked for them, ready to render in their place.
+     *
+     * A tally per link is a query per link, which is why it is a request of its
+     * own and arrives after the table: the list is what the visitor is waiting
+     * for, and a slow count should hold nothing up. Each one is counted the way
+     * clicking that link would be read, so the number beside a link and the
+     * table it leads to can never disagree.
+     */
+    public function counts(Request $request): Response
+    {
+        [$blueprint, $screen] = $this->resolve($request);
+
+        if (!$screen instanceof LinkCountsScreen) {
+            throw new NotFoundException;
+        }
+
+        $query = Query::fromRequest($request);
+        $source = $this->registry->source($blueprint);
+        $counts = [];
+
+        foreach ($blueprint->links as $link) {
+            // The smallest page there is, rather than none: page() is the whole
+            // of what a source promises, and the total rides along with it.
+            $counts[$link->key()] = $source->page(
+                Criteria::fromQuery($query, $blueprint, $link)->inPagesOf(1),
+            )->total;
+        }
+
+        return $this->renderer->fragment('admin/partials/links', [
+            // No rows are read for this and none are rendered: the bar asks the
+            // view model only which link is current and where the others lead,
+            // both of which are the criteria's to answer.
+            'vm' => new ListViewModel(
+                $blueprint,
+                new Page([], 0, Criteria::fromQuery($query, $blueprint)),
+                $this->registry->prefix(),
+            ),
+            'counts' => $counts,
+        ])
+            // The bar is re-rendered empty by every body swap and asks for these
+            // again each time, though clicking a link or a column heading cannot
+            // change a single one of them. A few seconds of browser cache turns
+            // that back into one request per thing that actually moves the
+            // numbers. Private, and varying on the cookie, because a tally is
+            // one account's view of the table and not the next visitor's; and
+            // short, because this is the only thing standing between a write and
+            // a stale number — see done(), which spends a token to skip it.
+            ->withHeader('Cache-Control', 'private, max-age=' . self::COUNTS_MAX_AGE)
+            ->withHeader('Vary', 'Cookie');
     }
 
     /**
@@ -123,6 +197,112 @@ final class AdminController
 
             yield $row;
         }
+    }
+
+    /**
+     * A grid of widgets, and none of their contents. Every card comes back as a
+     * placeholder that fetches its own body, so the page is done as soon as the
+     * layout is: no query on this dashboard runs before the visitor sees it.
+     */
+    public function dashboard(Request $request): Response
+    {
+        [$blueprint, $screen] = $this->resolve($request);
+
+        if (!$screen instanceof DashboardScreen) {
+            throw new NotFoundException;
+        }
+
+        $heading = $screen->heading();
+
+        return $this->renderer->screen(
+            $request,
+            trim($screen->path(), '/') === ''
+                ? $this->chrome->module($blueprint, $heading)
+                : $this->chrome->screen($blueprint, $heading ?? $blueprint->title),
+            $screen->template(),
+            ['vm' => new DashboardViewModel(
+                $blueprint,
+                $screen,
+                $this->registry->prefix(),
+                array_values(array_filter(
+                    $screen->cards(),
+                    fn (Widget $card): bool => $card->ability() === null || $this->gate->allows($card->ability()),
+                )),
+                $this->period($request),
+                $this->visible($screen->summary()),
+            )],
+        );
+    }
+
+    /**
+     * One card, filled. A widget's own ability is checked here and not only
+     * where the grid drew it, because the URL is reachable on its own and a
+     * card left off a dashboard is not a card withheld.
+     */
+    public function widget(Request $request): Response
+    {
+        [$blueprint, $screen] = $this->resolve($request);
+        $key = $request->getAttribute('widget');
+
+        if (!$screen instanceof WidgetScreen || !is_string($key)) {
+            throw new NotFoundException;
+        }
+
+        $dashboard = $blueprint->screen($screen->dashboard());
+        $widget = $dashboard instanceof DashboardScreen ? $dashboard->card($key) : null;
+
+        if ($widget === null) {
+            throw new NotFoundException;
+        }
+
+        if ($widget->ability() !== null) {
+            $this->gate->authorize($widget->ability());
+        }
+
+        $period = $this->period($request);
+
+        // The strip above the grid is a card with different chrome and a
+        // standing instruction to survive a period change, so it comes back
+        // drawn as itself rather than as one of the cards below.
+        $partial = $dashboard->summary()?->key() === $key
+            ? 'admin/partials/summary-body'
+            : 'admin/partials/widget';
+
+        return $this->renderer->fragment($partial, [
+            'widget' => $widget,
+            'url' => (new DashboardViewModel(
+                $blueprint,
+                $dashboard,
+                $this->registry->prefix(),
+                period: $period,
+            ))->url($widget),
+            'data' => $this->registry->presentWidget(
+                $widget,
+                $period->window($this->clock, $this->timezone->zone()),
+            ),
+        ])->withHeader('Cache-Control', 'no-store');
+    }
+
+    /**
+     * The stretch of time the request is asking about. Read off the URL and
+     * nowhere else, so that a card's address is the whole question and the
+     * refresh beside it can simply ask again.
+     */
+    private function period(Request $request): Period
+    {
+        $period = $request->getQueryParams()['period'] ?? null;
+
+        return Period::fromKey(is_string($period) ? $period : null);
+    }
+
+    /** The summary strip, unless this visitor is not allowed it. */
+    private function visible(?Widget $summary): ?Widget
+    {
+        if ($summary === null || $summary->ability() === null) {
+            return $summary;
+        }
+
+        return $this->gate->allows($summary->ability()) ? $summary : null;
     }
 
     public function page(Request $request): Response
@@ -325,7 +505,7 @@ final class AdminController
             $request,
             $this->chrome->screen($blueprint, $screen->heading() ?? $blueprint->title, $id, $notice),
             'admin/partials/show',
-            ['vm' => new ShowViewModel($blueprint, $id, $this->registry->prefix(), $row)],
+            ['vm' => new ShowViewModel($blueprint, $id, $this->registry->prefix(), $row, $this->timezone->zone())],
         );
     }
 
@@ -353,7 +533,19 @@ final class AdminController
 
         return $this->respond->htmx()
             ->pushUrl($this->listUrl($blueprint, $page->criteria))
-            ->applyTo($this->table($request, $blueprint, $page, $notice, $status));
+            ->applyTo($this->table(
+                $request,
+                $blueprint,
+                $page,
+                $notice,
+                $status,
+                // The row that just changed is very likely one of the rows a
+                // tally counts, and the browser is holding an answer from
+                // before it changed. This is the one moment the cache must not
+                // be allowed to speak, so the bar is sent to an address it has
+                // never seen.
+                countsToken: $this->clock->now()->format('Uu'),
+            ));
     }
 
     /**
@@ -407,12 +599,19 @@ final class AdminController
         Page $page,
         ?Notice $notice = null,
         int|Status $status = Status::Ok,
+        ?string $countsToken = null,
     ): Response {
         return $this->renderer->screen(
             $request,
             $this->chrome->module($blueprint, notice: $notice),
             'admin/partials/table',
-            ['vm' => new ListViewModel($blueprint, $page, $this->registry->prefix())],
+            ['vm' => new ListViewModel(
+                $blueprint,
+                $page,
+                $this->registry->prefix(),
+                $countsToken,
+                $this->timezone->zone(),
+            )],
             toolbar: 'admin/partials/filters',
             status: $status,
             // The export link lives in the toolbar and depends on the criteria

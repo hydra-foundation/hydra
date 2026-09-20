@@ -157,7 +157,7 @@ final class AdminExportTest extends TestCase
             $this->admin->request('GET', '/admin/users?role=admin&q=ada', $this->admin->body()),
         )->getBody();
 
-        $this->assertStringContainsString('<div id="admin-export" hx-swap-oob="true">', $swap);
+        $this->assertStringContainsString('<div id="admin-export" hx-swap-oob="true"', $swap);
         $this->assertStringContainsString('/admin/users/export?q=ada', $swap);
         $this->assertStringContainsString('role=admin', $swap);
     }
@@ -177,7 +177,7 @@ final class AdminExportTest extends TestCase
             // (The frame carries an out-of-band sidebar of its own, which is why
             // this asks about the export element rather than about the response.)
             $this->assertSame(1, substr_count($body, 'id="admin-export"'));
-            $this->assertStringContainsString('<div id="admin-export">', $body);
+            $this->assertStringNotContainsString('id="admin-export" hx-swap-oob', $body);
         }
     }
 

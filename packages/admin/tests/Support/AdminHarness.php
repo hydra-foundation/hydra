@@ -8,6 +8,8 @@ use Hydra\Admin\AdminController;
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Admin\Chrome;
 use Hydra\Admin\Contracts\ModuleInterface;
+use Hydra\Admin\Contracts\TimezoneInterface;
+use Hydra\Admin\FixedTimezone;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Navigation;
 use Hydra\Admin\Renderer;
@@ -45,8 +47,14 @@ final class AdminHarness
      * @param array<string, object> $services sources and modules, by service id
      * @param list<class-string<ModuleInterface>> $modules
      */
-    public function __construct(array $services, array $modules, bool $allowed = true, string $prefix = '/admin')
-    {
+    public function __construct(
+        array $services,
+        array $modules,
+        bool $allowed = true,
+        string $prefix = '/admin',
+        /** The zone the visitor reads in. UTC unless a test is about zones. */
+        private readonly TimezoneInterface $timezone = new FixedTimezone,
+    ) {
         $psr17 = new Psr17Factory;
         $session = new ArraySessionStore;
         $session->start();
@@ -54,10 +62,16 @@ final class AdminHarness
         $this->registry = new ModuleRegistry(new ArrayContainer($services), $modules, $prefix);
         $this->navigation = new Navigation($this->registry, new AdminsOnlyGate($allowed));
         $this->chrome = new Chrome($this->registry, $this->navigation);
-        $this->responder = new Responder($psr17, $psr17);
+        // One nonce for both, as the container binds it: the page stamps it on
+        // what it vouches for and the responder stamps it on the directive
+        // elements it appends, and a test holding two of them would pass while
+        // the browser refused half the markup.
+        $nonce = new CspNonce;
+
+        $this->responder = new Responder($psr17, $psr17, $nonce);
         $this->view = new PhpView(
             dirname(__DIR__) . '/views',
-            new CspNonce,
+            $nonce,
             new CsrfGuard($session, Signer::fromHex(str_repeat('ab', 32))),
             fallbacks: [AdminServiceProvider::views()],
         );
@@ -73,6 +87,7 @@ final class AdminHarness
             new Validator,
             $this->events,
             $this->clock,
+            $this->timezone,
         );
     }
 
