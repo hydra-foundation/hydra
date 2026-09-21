@@ -84,6 +84,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../cache",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "authors": [
@@ -100,6 +107,7 @@
         "hydrakit/validation": "^0.6",
         "hydrakit/view": "^0.6",
         "hydrakit/authorization": "^0.6",
+        "hydrakit/cache": "^0.6",
         "psr/clock": "^1.0",
         "psr/event-dispatcher": "^1.0",
         "psr/http-message": "^2.0",

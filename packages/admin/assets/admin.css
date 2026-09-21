@@ -1052,8 +1052,16 @@
 /* A failure rate is a caution and not a destructive action, which is what it
    read as while it shared the delete button's red. */
 .widget-stat.is-warning,
+.widget-figure.is-warning,
 .is-warning {
     color: var(--warn);
+}
+
+/* The other end of the same scale: a service that is not answering at all. */
+.widget-stat.is-down,
+.widget-figure.is-down,
+.is-down {
+    color: var(--danger);
 }
 
 .widget-caption {
@@ -1364,6 +1372,25 @@
 
 .widget-bar::-moz-progress-bar {
     background: var(--accent);
+}
+
+/* A gauge near its limit drawn in the accent contradicts the figure beside it.
+   The two vendor pseudo elements cannot share a rule: a selector one of them
+   does not understand invalidates the whole list. */
+.widget-bar.is-warning::-webkit-progress-value {
+    background: var(--warn);
+}
+
+.widget-bar.is-warning::-moz-progress-bar {
+    background: var(--warn);
+}
+
+.widget-bar.is-down::-webkit-progress-value {
+    background: var(--danger);
+}
+
+.widget-bar.is-down::-moz-progress-bar {
+    background: var(--danger);
 }
 
 /* Narrow screens ----------------------------------------------------------- */
