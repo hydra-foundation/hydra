@@ -14,6 +14,15 @@ use Psr\Http\Message\ResponseInterface;
  */
 final class Emitter implements EmitterInterface
 {
+    /** @var \Closure(string, bool, int=): void */
+    private readonly \Closure $header;
+
+    /** @param (\Closure(string, bool, int=): void)|null $header stands in for header() where no SAPI records it */
+    public function __construct(?\Closure $header = null)
+    {
+        $this->header = $header ?? header(...);
+    }
+
     public function emit(ResponseInterface $response): void
     {
         // If output has already begun, the status line and headers are lost and
@@ -23,7 +32,7 @@ final class Emitter implements EmitterInterface
             throw new \RuntimeException("Cannot emit response: headers already sent in {$file}:{$line}.");
         }
 
-        header(sprintf(
+        ($this->header)(sprintf(
             'HTTP/%s %d %s',
             $response->getProtocolVersion(),
             $response->getStatusCode(),
@@ -41,7 +50,7 @@ final class Emitter implements EmitterInterface
             $replace = true;
 
             foreach ($values as $value) {
-                header("{$name}: {$value}", $replace);
+                ($this->header)("{$name}: {$value}", $replace);
                 $replace = false;
             }
         }

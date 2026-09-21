@@ -11,8 +11,8 @@ use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The one thing an emitter can be tested for without a live SAPI: that the
- * response body reaches output. Headers and status need a real request.
+ * The CLI SAPI records no headers, so the header lines are read through the
+ * constructor's stand-in for header() and only the body through real output.
  */
 #[CoversClass(Emitter::class)]
 final class EmitterTest extends TestCase
@@ -35,5 +35,27 @@ final class EmitterTest extends TestCase
         $output = ob_get_clean();
 
         $this->assertSame('hello world', $output);
+    }
+
+    #[RunInSeparateProcess]
+    public function test_a_name_replaces_on_its_first_value_and_appends_after_it(): void
+    {
+        $calls = [];
+        $response = (new Psr17Factory)->createResponse(304)
+            ->withHeader('Cache-Control', 'public, max-age=0')
+            ->withHeader('Set-Cookie', ['a=1', 'b=2']);
+
+        ob_start();
+        (new Emitter(function (string $line, bool $replace, int $code = 0) use (&$calls): void {
+            $calls[] = [$line, $replace];
+        }))->emit($response);
+        ob_end_clean();
+
+        $this->assertSame([
+            ['HTTP/1.1 304 Not Modified', true],
+            ['Cache-Control: public, max-age=0', true],
+            ['Set-Cookie: a=1', true],
+            ['Set-Cookie: b=2', false],
+        ], $calls);
     }
 }
