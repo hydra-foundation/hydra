@@ -20,12 +20,8 @@ final class Versions
 
     public function __construct(private readonly string $basePath) {}
 
-    public function hydra(): ?string
+    public function hydra(): string
     {
-        if (!InstalledVersions::isInstalled(self::PACKAGE)) {
-            return null;
-        }
-
         // Versionless when the root replaces it, as the monorepo does.
         return InstalledVersions::getPrettyVersion(self::PACKAGE)
             ?? InstalledVersions::getRootPackage()['pretty_version'];
