@@ -31,8 +31,18 @@ final class Emitter implements EmitterInterface
         ), true, $response->getStatusCode());
 
         foreach ($response->getHeaders() as $name => $values) {
+            // Replace on a name's first value and append after it. The
+            // response is the authority on a header it sets, including over
+            // one PHP set on its own -- session_start()'s cache limiter is the
+            // one that bites, since it makes every response uncacheable and no
+            // amount of withHeader() can say otherwise. Appending from the
+            // second value on is what keeps a name that legitimately repeats,
+            // Set-Cookie above all, from losing all but its last.
+            $replace = true;
+
             foreach ($values as $value) {
-                header("{$name}: {$value}", false);
+                header("{$name}: {$value}", $replace);
+                $replace = false;
             }
         }
 

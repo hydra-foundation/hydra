@@ -14,6 +14,7 @@ enum Status: int
     case NoContent = 204;
     case MovedPermanently = 301;
     case Found = 302;
+    case NotModified = 304;
     case BadRequest = 400;
     case Unauthorized = 401;
     case Forbidden = 403;
@@ -33,6 +34,7 @@ enum Status: int
             self::NoContent => 'No Content',
             self::MovedPermanently => 'Moved Permanently',
             self::Found => 'Found',
+            self::NotModified => 'Not Modified',
             self::BadRequest => 'Bad Request',
             self::Unauthorized => 'Unauthorized',
             self::Forbidden => 'Forbidden',
