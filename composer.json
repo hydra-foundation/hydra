@@ -13,6 +13,7 @@
     "require": {
         "php": ">=8.2",
         "ext-pdo": "*",
+        "composer-runtime-api": "^2.0",
         "nyholm/psr7": "^1.8",
         "nyholm/psr7-server": "^1.0",
         "php-di/php-di": "^7.0",
