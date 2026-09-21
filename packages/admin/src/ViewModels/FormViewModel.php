@@ -74,6 +74,11 @@ final readonly class FormViewModel
         return $input->valueFrom($this->values);
     }
 
+    public function checked(Input $input): bool
+    {
+        return $input->isChecked($this->values);
+    }
+
     public function hasErrors(): bool
     {
         return $this->errors !== [];

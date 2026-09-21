@@ -13,5 +13,8 @@ enum FieldType: string
     case Id = 'id';
     case Text = 'text';
     case Select = 'select';
+    case Number = 'number';
+    case Date = 'date';
+    case Boolean = 'boolean';
     case DateTime = 'datetime';
 }

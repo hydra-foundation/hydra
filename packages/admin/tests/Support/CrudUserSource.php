@@ -32,6 +32,9 @@ final class CrudUserSource implements SourceInterface, RowSourceInterface, Updat
                 'username' => $username,
                 'note' => "about {$username}",
                 'role' => $index < 2 ? 'admin' : 'user',
+                // An int, the way a driver hands a TINYINT back, so a test of
+                // the checkbox is a test of what a real row holds.
+                'active' => $index < 3 ? 1 : 0,
             ]);
         }
     }
@@ -79,7 +82,7 @@ final class CrudUserSource implements SourceInterface, RowSourceInterface, Updat
     {
         $this->reject($data);
         $id = (string) $this->nextId++;
-        $this->rows[$id] = ['id' => (int) $id, 'username' => '', 'note' => '', 'role' => 'user', ...$data];
+        $this->rows[$id] = ['id' => (int) $id, 'username' => '', 'note' => '', 'role' => 'user', 'active' => 0, ...$data];
 
         return $id;
     }

@@ -33,6 +33,14 @@ final class Field
     private bool $searchable = false;
     private bool $filterable = false;
 
+    private int $decimals = 0;
+    private bool $grouped = false;
+    private string $suffix = '';
+    private bool $relative = false;
+
+    /** @var array<string, int> keyed by Surface->value */
+    private array $truncations = [];
+
     /** @var array<string, array{fn: Closure, decorates: bool}> keyed by Surface->value */
     private array $formatters = [];
 
@@ -69,6 +77,31 @@ final class Field
         return new self($name, FieldType::Select, $options);
     }
 
+    /**
+     * The reading half of {@see Input::checkbox()}. The two words are the
+     * field's options, so a filterable() boolean gets the same Yes/No select
+     * every other option-carrying field gets, with no second declaration.
+     */
+    public static function boolean(string $name, string $true = 'Yes', string $false = 'No'): self
+    {
+        return new self($name, FieldType::Boolean, ['0' => $false, '1' => $true]);
+    }
+
+    /**
+     * A quantity. Renders flush right in tabular figures, so a column of them
+     * lines up on the decimal point and can be read down rather than across.
+     */
+    public static function number(string $name): self
+    {
+        return new self($name, FieldType::Number);
+    }
+
+    /** A calendar day, with no time of day to be in anyone's zone. */
+    public static function date(string $name): self
+    {
+        return new self($name, FieldType::Date);
+    }
+
     public static function datetime(string $name): self
     {
         return new self($name, FieldType::DateTime);
@@ -102,6 +135,80 @@ final class Field
     {
         $clone = clone $this;
         $clone->filterable = $filterable;
+
+        return $clone;
+    }
+
+    /** Places after the decimal point. A count wants none; a rate wants two. */
+    public function decimals(int $places): self
+    {
+        $clone = $this->onlyNumber(__FUNCTION__);
+        $clone->decimals = max(0, $places);
+
+        return $clone;
+    }
+
+    /** Thousands separators. Right for a tally, wrong for a year or a port. */
+    public function grouped(bool $grouped = true): self
+    {
+        $clone = $this->onlyNumber(__FUNCTION__);
+        $clone->grouped = $grouped;
+
+        return $clone;
+    }
+
+    /**
+     * Appended verbatim, so the caller owns the spacing: ' ms' and '%' are
+     * both right and only one of them takes a space.
+     */
+    public function suffix(string $suffix): self
+    {
+        $clone = $this->onlyNumber(__FUNCTION__);
+        $clone->suffix = $suffix;
+
+        return $clone;
+    }
+
+    /**
+     * How long ago, rather than when. The exact instant stays in a title
+     * attribute, because "2 months ago" is the answer to a different question
+     * than the one somebody reading an audit trail eventually asks.
+     *
+     * Only where a screen supplies the reader's clock: an export carries the
+     * stored instant, since a file read next week must not say "an hour ago"
+     * about the moment it was written.
+     */
+    public function relative(bool $relative = true): self
+    {
+        if ($this->type !== FieldType::DateTime) {
+            throw new LogicException(sprintf(
+                'Admin field "%s" is a %s; only a datetime can be shown as a relative time.',
+                $this->name,
+                $this->type->value,
+            ));
+        }
+
+        $clone = clone $this;
+        $clone->relative = $relative;
+
+        return $clone;
+    }
+
+    /**
+     * Shorten the value for display, with the whole of it in a title
+     * attribute. A decoration and not a format(): the stored value does reach
+     * the output, so the field may stay searchable().
+     *
+     * The list alone unless surfaces are named, because a row screen and an
+     * export are the two places somebody went looking for the whole thing.
+     */
+    public function truncate(int $length, Surface ...$on): self
+    {
+        $clone = clone $this;
+
+        foreach ($this->surfacesFor($on === [] ? [Surface::List] : $on) as $surface) {
+            $clone->truncations[$surface->value] = max(1, $length);
+        }
 
         return $clone;
     }
@@ -200,8 +307,18 @@ final class Field
         return in_array($surface, $this->surfaces, true);
     }
 
+    /**
+     * Whether what this field shows on a surface no longer contains what the
+     * column stores, which is what makes searching it a lie. truncate() and
+     * relative() do not count: both keep the whole of the stored value in a
+     * title attribute, which is exactly what decorate() means.
+     */
     public function rewritesValueOn(Surface $surface): bool
     {
+        if ($this->type === FieldType::Number && ($this->grouped || $this->decimals > 0 || $this->suffix !== '')) {
+            return true;
+        }
+
         return ($this->formatters[$surface->value] ?? null) !== null
             && !$this->formatters[$surface->value]['decorates'];
     }
@@ -216,8 +333,12 @@ final class Field
      *
      * @param array<string, mixed> $row
      */
-    public function display(Surface $surface, array $row, ?DateTimeZone $zone = null): string|HtmlView
-    {
+    public function display(
+        Surface $surface,
+        array $row,
+        ?DateTimeZone $zone = null,
+        ?DateTimeImmutable $now = null,
+    ): string|HtmlView {
         $value = $row[$this->name] ?? null;
         $placeholder = $this->placeholders[$surface->value] ?? null;
 
@@ -231,15 +352,166 @@ final class Field
             return $this->formatted($formatter($value, $row));
         }
 
+        if ($this->type === FieldType::Boolean) {
+            // Ahead of the options lookup below, which would be a miss on the
+            // null of a never-written column and on the true a source may
+            // compute: what a stored flag means is Flag's to say, not a key's.
+            return $this->options[Flag::of($value) ? '1' : '0'] ?? '';
+        }
+
+        // The four below are never shortened: a quantity and a date are as
+        // long as they are, and cutting either one produces a different value
+        // rather than a hint of the same one.
+        if ($this->type === FieldType::Number) {
+            return $this->quantity($value);
+        }
+
+        if ($this->type === FieldType::Date && is_scalar($value)) {
+            return $this->day((string) $value);
+        }
+
+        if ($this->type === FieldType::DateTime && is_scalar($value)) {
+            return $this->instant((string) $value, $zone, $now);
+        }
+
         if ($this->options !== null && is_scalar($value)) {
-            return $this->options[(string) $value] ?? (string) $value;
+            return $this->shortened($this->options[(string) $value] ?? (string) $value, $surface);
         }
 
-        if ($this->type === FieldType::DateTime && $zone !== null && is_scalar($value)) {
-            return $this->inZone((string) $value, $zone);
+        return $this->shortened(is_scalar($value) ? (string) $value : '', $surface);
+    }
+
+    /**
+     * A quantity as declared. A value that is not a number is handed back
+     * untouched rather than rounded to zero: a column that turns out not to
+     * hold numbers is a declaration to fix, not a cell to fill with 0.00.
+     */
+    private function quantity(mixed $value): string
+    {
+        if (!is_numeric($value)) {
+            return is_scalar($value) ? (string) $value : '';
         }
 
-        return is_scalar($value) ? (string) $value : '';
+        return number_format((float) $value, $this->decimals, '.', $this->grouped ? ',' : '') . $this->suffix;
+    }
+
+    /**
+     * The calendar day of a stored value, in no zone at all. A date column
+     * holds a day rather than an instant, and shifting one by a few hours is
+     * how a birthday lands on the wrong date for half the world.
+     */
+    private function day(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        try {
+            return (new DateTimeImmutable($value))->format('Y-m-d');
+        } catch (Exception) {
+            return $value;
+        }
+    }
+
+    /**
+     * A stored instant, as whichever of the two readings the screen supplied
+     * the means for: relative needs the reader's clock, a time of day needs
+     * their zone, and an export supplies neither and gets the stored value.
+     */
+    private function instant(string $value, ?DateTimeZone $zone, ?DateTimeImmutable $now): string|HtmlView
+    {
+        if ($this->relative && $now !== null && $value !== '') {
+            try {
+                $at = new DateTimeImmutable($value, new DateTimeZone('UTC'));
+            } catch (Exception) {
+                return $value;
+            }
+
+            $exact = $zone === null ? $at : $at->setTimezone($zone);
+
+            return new HtmlView(sprintf(
+                '<time datetime="%s" title="%s">%s</time>',
+                $this->escaped($at->format(DateTimeImmutable::ATOM)),
+                $this->escaped($exact->format('Y-m-d H:i:s')),
+                $this->escaped($this->ago($at, $now)),
+            ));
+        }
+
+        return $zone === null ? $value : $this->inZone($value, $zone);
+    }
+
+    /**
+     * How long ago in the largest unit that still says something: a log read
+     * on the day it was written wants minutes, and one read a year later does
+     * not want 525,600 of them. Months and years are approximated, which is
+     * the point of a relative time; the exact instant is in the title.
+     */
+    private function ago(DateTimeImmutable $at, DateTimeImmutable $now): string
+    {
+        $seconds = $now->getTimestamp() - $at->getTimestamp();
+        $ahead = $seconds < 0;
+        $seconds = abs($seconds);
+
+        $said = match (true) {
+            $seconds < 45 => 'a moment',
+            $seconds < 3600 => $this->plural((int) round($seconds / 60), 'minute'),
+            $seconds < 86400 => $this->plural((int) round($seconds / 3600), 'hour'),
+            $seconds < 2592000 => $this->plural((int) round($seconds / 86400), 'day'),
+            $seconds < 31536000 => $this->plural((int) round($seconds / 2592000), 'month'),
+            default => $this->plural((int) round($seconds / 31536000), 'year'),
+        };
+
+        return $ahead ? "in {$said}" : "{$said} ago";
+    }
+
+    private function plural(int $count, string $unit): string
+    {
+        return $count . ' ' . $unit . ($count === 1 ? '' : 's');
+    }
+
+    /**
+     * The value cut to length for one surface, with the whole of it in a
+     * title attribute. Nothing is cut when it already fits, so a column of
+     * short values carries no markup it did not need.
+     */
+    private function shortened(string $value, Surface $surface): string|HtmlView
+    {
+        $length = $this->truncations[$surface->value] ?? null;
+
+        if ($length === null || mb_strlen($value) <= $length) {
+            return $value;
+        }
+
+        return new HtmlView(sprintf(
+            '<span title="%s">%s&hellip;</span>',
+            $this->escaped($value),
+            $this->escaped(rtrim(mb_substr($value, 0, $length))),
+        ));
+    }
+
+    /**
+     * This class builds the only markup the admin produces outside a
+     * template, so it escapes its own: a title attribute holding a stored
+     * value is exactly where an unescaped quote would matter.
+     */
+    private function escaped(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /** A modifier that only a number has any meaning for. */
+    private function onlyNumber(string $method): self
+    {
+        if ($this->type !== FieldType::Number) {
+            throw new LogicException(sprintf(
+                'Admin field "%s" is a %s; %s() is a number\'s.',
+                $this->name,
+                $this->type->value,
+                $method,
+            ));
+        }
+
+        return clone $this;
     }
 
     /**

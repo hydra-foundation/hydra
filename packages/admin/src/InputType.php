@@ -14,4 +14,6 @@ enum InputType: string
     case Password = 'password';
     case Textarea = 'textarea';
     case Select = 'select';
+    case Radios = 'radios';
+    case Checkbox = 'checkbox';
 }

@@ -24,7 +24,10 @@
         <thead>
             <tr>
                 <?php foreach ($columns as $field): ?>
-                    <th scope="col">
+                    <?php /* The same type class the cells carry, so a column
+                       that aligns one way aligns that way whole: a right-set
+                       number under a left-set heading reads as two columns. */ ?>
+                    <th scope="col" class="type-<?= $this->e($field->type()->value) ?>">
                         <?php if ($field->isSortable()): ?>
                             <a class="text-decoration-none text-body-emphasis"
                                href="<?= $this->e($vm->sortLink($field)) ?>"

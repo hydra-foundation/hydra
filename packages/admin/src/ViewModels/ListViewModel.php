@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\ViewModels;
 
+use DateTimeImmutable;
 use DateTimeZone;
 use Hydra\Admin\Blueprint;
 use Hydra\Admin\Field;
@@ -34,6 +35,8 @@ final readonly class ListViewModel
         public ?string $countsToken = null,
         /** The reader's zone, in which stored instants become times of day. */
         public ?DateTimeZone $zone = null,
+        /** The reader's now, against which a relative() field is measured. */
+        public ?DateTimeImmutable $now = null,
     ) {}
 
     public function url(): string
@@ -250,7 +253,7 @@ final readonly class ListViewModel
     /** @param array<string, mixed> $row */
     public function cell(Field $field, array $row): string|HtmlView
     {
-        return $field->display(Surface::List, $row, $this->zone);
+        return $field->display(Surface::List, $row, $this->zone, $this->now);
     }
 
     /** 'asc' or 'desc' when the table is ordered by this field, null otherwise. */

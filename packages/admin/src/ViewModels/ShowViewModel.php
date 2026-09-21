@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\ViewModels;
 
+use DateTimeImmutable;
 use DateTimeZone;
 use Hydra\Admin\Blueprint;
 use Hydra\Admin\Field;
@@ -26,6 +27,8 @@ final readonly class ShowViewModel
         private array $row = [],
         /** The reader's zone, in which stored instants become times of day. */
         private ?DateTimeZone $zone = null,
+        /** The reader's now, against which a relative() field is measured. */
+        private ?DateTimeImmutable $now = null,
         /**
          * The view of the list this row was opened from, as a query string.
          * Back leads there rather than to the module's defaults, and the ways
@@ -42,7 +45,7 @@ final readonly class ShowViewModel
 
     public function value(Field $field): string|HtmlView
     {
-        return $field->display(Surface::Show, $this->row, $this->zone);
+        return $field->display(Surface::Show, $this->row, $this->zone, $this->now);
     }
 
     /** Where Back leads: the list as the visitor had it when they opened this row. */

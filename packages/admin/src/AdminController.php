@@ -526,6 +526,7 @@ final class AdminController
                 $this->registry->prefix(),
                 $row,
                 $this->timezone->zone(),
+                $this->clock->now(),
                 $this->listState($request, $blueprint)->queryString($blueprint),
             )],
         );
@@ -635,6 +636,7 @@ final class AdminController
                 $this->registry->prefix(),
                 $countsToken,
                 $this->timezone->zone(),
+                $this->clock->now(),
             )],
             toolbar: 'admin/partials/filters',
             status: $status,
@@ -658,7 +660,7 @@ final class AdminController
 
         foreach ($screen->controls() as $control) {
             if (!$control->isReadonly()) {
-                $values[$control->name()] = trim($input->string($control->name()));
+                $values[$control->name()] = $control->submittedValue($input);
             }
         }
 
