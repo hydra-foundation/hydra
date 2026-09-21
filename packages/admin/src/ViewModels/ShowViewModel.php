@@ -27,14 +27,14 @@ final readonly class ShowViewModel
         private array $row = [],
         /** The reader's zone, in which stored instants become times of day. */
         private ?DateTimeZone $zone = null,
-        /** The reader's now, against which a relative() field is measured. */
-        private ?DateTimeImmutable $now = null,
         /**
          * The view of the list this row was opened from, as a query string.
          * Back leads there rather than to the module's defaults, and the ways
          * on from here carry it so the next screen can do the same.
          */
         private string $listQuery = '',
+        /** The reader's now, against which a relative() field is measured. */
+        private ?DateTimeImmutable $now = null,
     ) {}
 
     /** @return list<Field> */

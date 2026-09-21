@@ -101,11 +101,11 @@ final class Input
      * it arrives as "0", which is present, so {@see Required} would pass it and
      * {@see Accepted} is the rule that means what the asterisk promises.
      */
-    public function required(?string $message = null): self
+    public function required(string $message = 'This field is required.'): self
     {
         $clone = $this->rules($this->type === InputType::Checkbox
-            ? new Accepted($message ?? 'This must be ticked.')
-            : new Required($message ?? 'This field is required.'));
+            ? new Accepted($message === 'This field is required.' ? 'This must be ticked.' : $message)
+            : new Required($message));
         $clone->required = true;
 
         return $clone;

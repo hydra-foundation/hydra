@@ -526,8 +526,8 @@ final class AdminController
                 $this->registry->prefix(),
                 $row,
                 $this->timezone->zone(),
-                $this->clock->now(),
                 $this->listState($request, $blueprint)->queryString($blueprint),
+                $this->clock->now(),
             )],
         );
     }
