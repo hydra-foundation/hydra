@@ -43,6 +43,17 @@ final class AdminServiceProvider extends ServiceProvider
         return dirname(__DIR__) . '/views';
     }
 
+    /**
+     * The stylesheet and script the shipped templates depend on, served by
+     * {@see AssetController} at "{prefix}/assets/{name}". They live here for
+     * the same reason the templates do: a field type the package adds arrives
+     * styled, in every application, without anyone copying a file.
+     */
+    public static function assets(): string
+    {
+        return dirname(__DIR__) . '/assets';
+    }
+
     public function register(ContainerInterface $container): void
     {
         $container->singleton(ModuleRegistry::class, function () use ($container) {
@@ -104,6 +115,10 @@ final class AdminServiceProvider extends ServiceProvider
                     : new FixedTimezone,
             );
         });
+
+        $container->singleton(AssetController::class, function () use ($container) {
+            return new AssetController($container->get(Responder::class));
+        });
     }
 
     public function boot(ContainerInterface $container): void
@@ -114,10 +129,33 @@ final class AdminServiceProvider extends ServiceProvider
     /** @return list<array<string, mixed>> */
     public function routes(ContainerInterface $container): array
     {
-        return (new ModuleScanner)->scan(
-            $container->get(ModuleRegistry::class)->all(),
-            $this->prefix,
-            $this->middleware,
-        );
+        return [
+            ...$this->assetRoutes(),
+            ...(new ModuleScanner)->scan(
+                $container->get(ModuleRegistry::class)->all(),
+                $this->prefix,
+                $this->middleware,
+            ),
+        ];
+    }
+
+    /**
+     * Ahead of the module routes, because the router takes the first match and
+     * a module is free to call itself "assets". Deliberately without the
+     * admin's middleware: a stylesheet is not a screen, and a sign-in page
+     * that has to be styled before anyone has signed in cannot reach one that
+     * is behind the gate.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function assetRoutes(): array
+    {
+        return [[
+            'method' => 'GET',
+            'path' => rtrim($this->prefix, '/') . '/assets/{asset}',
+            'handler' => [AssetController::class, 'show'],
+            'middleware' => [],
+            'name' => 'admin.asset',
+        ]];
     }
 }

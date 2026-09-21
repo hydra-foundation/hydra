@@ -53,3 +53,82 @@ replaces). They are literal strings in the markup on purpose, because a
 stylesheet and a template are what a designer edits, not a PHP constant, and
 `ShippedViewsTest` fails if a target, a declaration, and `Renderer` ever stop
 agreeing.
+
+### The stylesheet and the script
+
+`assets/admin.css` and `assets/admin.js` are the package's, not yours. They are
+served at `{prefix}/assets/stylesheet` and `{prefix}/assets/script` rather than
+copied into your `public/` directory, because a copy has to be re-made on every
+upgrade and the one nobody re-made looks exactly like the one nobody needed:
+the admin renders, and only the field type the new version added is unstyled.
+Link them from your `layouts/admin`:
+
+```php
+<link rel="stylesheet" href="/admin/assets/stylesheet" />
+<script src="/admin/assets/script" defer></script>
+```
+
+The URLs carry no extension deliberately. A web server's static-file rules are
+written against extensions, and a `.css` under a path with no file behind it is
+a 404 from the server before PHP is reached — nginx's stock
+`location ~* \.(css|js)$` does precisely that. Extensionless, they fall through
+to the front controller everywhere, which is the point: no per-application
+server configuration.
+
+Both are served with an `ETag` and `must-revalidate`, so a browser spends one
+conditional request per page load and gets a 304. The route is registered ahead
+of the module routes, and without the admin's middleware — a sign-in screen has
+to be styled before anyone has signed in.
+
+To override a rule, link a sheet of your own *after* this one. To replace the
+sheet entirely, do not link this one at all.
+
+### The theme contract
+
+`admin.css` names no colour. Every one comes from a custom property your
+application defines, which is what lets the sheet ship here without bringing a
+palette with it, and what lets your themes reach into the admin. Define these
+on `:root`, or the admin renders with whatever the browser makes of an empty
+value:
+
+- `--accent`
+- `--accent-hover`
+- `--accent-wash`
+- `--danger`
+- `--ease`
+- `--font-display`
+- `--font-mono`
+- `--font-text`
+- `--hover-tint`
+- `--ink`
+- `--ink-strong`
+- `--line`
+- `--line-strong`
+- `--muted`
+- `--paper`
+- `--r-1`
+- `--r-2`
+- `--r-3`
+- `--s-1`
+- `--s-2`
+- `--s-3`
+- `--s-4`
+- `--s-5`
+- `--s-6`
+- `--s-7`
+- `--scrim`
+- `--sunk`
+- `--surface`
+- `--t-base`
+- `--t-data`
+- `--t-display`
+- `--t-h1`
+- `--t-h3`
+- `--t-lead`
+- `--t-micro`
+- `--t-small`
+- `--t-stat`
+- `--warn`
+
+`ShippedAssetsTest` holds both halves: the sheet may name no colour, and it may
+not ask for a token this list omits.
