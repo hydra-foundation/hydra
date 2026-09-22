@@ -51,6 +51,13 @@ final class CrudUserSourceContractTest extends WritableSourceContractTestCase
         return 'ad';
     }
 
+    protected function filterValues(): array
+    {
+        // Two of the five, so a source that dropped the filter and one that
+        // applied it are told apart by the count alone.
+        return ['role' => 'admin'];
+    }
+
     protected function newRow(): array
     {
         return ['username' => 'linus', 'note' => 'about linus', 'role' => 'user'];

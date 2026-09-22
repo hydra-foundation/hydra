@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Testing;
 
+use Hydra\Admin\Contracts\DescribesColumnsInterface;
 use Hydra\Admin\Contracts\SourceInterface;
 use Hydra\Admin\Criteria;
 use Hydra\Admin\Page;
@@ -28,6 +29,14 @@ use PHPUnit\Framework\TestCase;
  * string, and a source that interpolates it into a LIKE rather than binding
  * {@see Criteria::searchPattern()} turns the list's search box into a way to ask
  * for every row in the table.
+ *
+ * The last is that a filter the source advertises is a filter the source
+ * applies. `admin:check` reconciles a module's `->filterable()` field against
+ * the source's description, but a description is a declaration: a source whose
+ * own conditions never match the key it named passes that check, builds no
+ * clause, and answers a narrowed request with the whole table. Nothing errors,
+ * the toolbar renders, and the count beside a filter link reads like an answer.
+ * {@see filterValues()} is what turns that declaration into something run.
  */
 abstract class SourceContractTestCase extends TestCase
 {
@@ -71,6 +80,22 @@ abstract class SourceContractTestCase extends TestCase
     }
 
     /**
+     * A value that matches some but not all rows, for each column the source
+     * filters by, as `column => value`.
+     *
+     * Every column a describing source names filterable belongs here, and the
+     * case below says so: a filter left out of this list is one nothing runs,
+     * which is the state `admin:check` cannot see past. A source that filters
+     * by nothing answers with an empty array.
+     *
+     * @return array<string, string>
+     */
+    protected function filterValues(): array
+    {
+        return [];
+    }
+
+    /**
      * Whether the source counts what it matches. Counting is the expensive half
      * of a paginated query and {@see \Hydra\Admin\Extractor} deliberately does
      * not rely on it, but {@see Page::pages()} and every pagination control do,
@@ -91,13 +116,20 @@ abstract class SourceContractTestCase extends TestCase
         return (string) $row['id'];
     }
 
-    final protected function criteria(int $page = 1, int $perPage = 25, string $direction = 'asc', ?string $search = null): Criteria
-    {
+    /** @param array<string, string> $filters */
+    final protected function criteria(
+        int $page = 1,
+        int $perPage = 25,
+        string $direction = 'asc',
+        ?string $search = null,
+        array $filters = [],
+    ): Criteria {
         return new Criteria(
             page: $page,
             perPage: $perPage,
             sort: $this->sortColumn(),
             direction: $direction,
+            filters: $filters,
             search: $search,
         );
     }
@@ -110,17 +142,22 @@ abstract class SourceContractTestCase extends TestCase
      * correctly and still have paging wrong, and that is the failure an export
      * finds in production rather than here.
      *
+     * @param array<string, string> $filters
      * @return list<array<string, mixed>>
      */
-    final protected function walk(int $perPage = 2, string $direction = 'asc', ?string $search = null): array
-    {
+    final protected function walk(
+        int $perPage = 2,
+        string $direction = 'asc',
+        ?string $search = null,
+        array $filters = [],
+    ): array {
         $rows = [];
 
         // Bounded rather than a while(true): a source that ignores the page
         // number returns the same full page for ever, and the assertion below
         // says that plainly instead of the suite hanging.
         for ($page = 1; $page <= $this->rowCount() + 2; $page++) {
-            $slice = $this->source()->page($this->criteria($page, $perPage, $direction, $search))->rows;
+            $slice = $this->source()->page($this->criteria($page, $perPage, $direction, $search, $filters))->rows;
             $rows = [...$rows, ...$slice];
 
             if (count($slice) < $perPage) {
@@ -280,6 +317,70 @@ abstract class SourceContractTestCase extends TestCase
         }
 
         $this->assertSame([], $this->walk(search: 'zzz-no-row-holds-this-zzz'));
+    }
+
+    public function test_every_filter_the_source_advertises_has_a_value_to_check_it_with(): void
+    {
+        $source = $this->source();
+
+        if (!$source instanceof DescribesColumnsInterface) {
+            // Nothing declared, so nothing to reconcile: whatever
+            // filterValues() names is the whole of what this case can know.
+            $this->expectNotToPerformAssertions();
+
+            return;
+        }
+
+        $uncovered = array_values(array_diff(
+            $source->describe()->filterable,
+            array_keys($this->filterValues()),
+        ));
+
+        // Only this direction, the way admin:check reports only this one: a
+        // value for a column the description omits is a source filtering by
+        // more than it advertises, which narrows nothing that was asked for.
+        $this->assertSame(
+            [],
+            $uncovered,
+            sprintf(
+                'The source says it filters by %s, and filterValues() gives no value for it, so nothing here ever '
+                . 'runs that filter. admin:check reads the same declaration and would pass too.',
+                implode(', ', $uncovered),
+            ),
+        );
+    }
+
+    public function test_each_filter_narrows_what_comes_back(): void
+    {
+        $values = $this->filterValues();
+
+        if ($values === []) {
+            $this->expectNotToPerformAssertions();
+
+            return;
+        }
+
+        foreach ($values as $column => $value) {
+            $matched = $this->walk(filters: [$column => $value]);
+
+            $this->assertNotSame(
+                [],
+                $matched,
+                sprintf('Filtering %s by "%s" matched no row, so the value cannot say whether the filter works.', $column, $value),
+            );
+            // The failure the whole hook exists for. A source that never
+            // matches the key builds no clause, and every row comes back.
+            $this->assertLessThan(
+                $this->rowCount(),
+                count($matched),
+                sprintf(
+                    'Filtering %s by "%s" returned every row. Either the source does not apply that filter — the list '
+                    . 'answers a narrowed request with the whole table — or the value matches everything and proves nothing.',
+                    $column,
+                    $value,
+                ),
+            );
+        }
     }
 
     /** @return array<string, array{string}> */
