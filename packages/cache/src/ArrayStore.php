@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Hydra\Cache;
 
-use Closure;
 use Hydra\Cache\Contracts\StoreInterface;
 use Psr\Clock\ClockInterface;
 
@@ -22,18 +21,16 @@ final class ArrayStore implements StoreInterface
     private array $entries = [];
 
     /**
-     * Where now() comes from. Injectable because expiry is otherwise only
-     * observable by waiting for it, and a suite that sleeps through its own
-     * windows tests the clock rather than the store.
-     *
-     * @param (Closure(): float)|null $clock null for the real one.
+     * Where now() comes from, null for the real one. Injectable because expiry
+     * is otherwise only observable by waiting for it, and a suite that sleeps
+     * through its own windows tests the clock rather than the store.
      */
-    public function __construct(private readonly ?Closure $clock = null) {}
+    public function __construct(private readonly ?ClockInterface $clock = null) {}
 
     /** Expiring by $clock, so a store shares the moment every other frozen service in a test sees. */
     public static function withClock(ClockInterface $clock): self
     {
-        return new self(static fn (): float => (float) $clock->now()->format('U.u'));
+        return new self($clock);
     }
 
     public function get(string $key): mixed
@@ -109,6 +106,6 @@ final class ArrayStore implements StoreInterface
 
     private function now(): float
     {
-        return $this->clock === null ? microtime(true) : ($this->clock)();
+        return $this->clock === null ? microtime(true) : (float) $this->clock->now()->format('U.u');
     }
 }

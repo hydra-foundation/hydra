@@ -51,17 +51,4 @@ final class ArrayStoreTest extends StoreContractTestCase
         $this->assertSame('value', $store->get('brief'));
         $this->assertSame(60, $store->ttl('brief'));
     }
-
-    public function test_a_closure_serves_as_the_clock(): void
-    {
-        $now = 1_000.0;
-        $store = new ArrayStore(static function () use (&$now): float {
-            return $now;
-        });
-        $store->put('k', 'v', 10);
-
-        $now += 10;
-
-        $this->assertNull($store->get('k'));
-    }
 }
