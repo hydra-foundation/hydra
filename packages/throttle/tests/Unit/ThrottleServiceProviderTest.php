@@ -10,6 +10,7 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Testing\FakeContainer;
 use Hydra\Http\ClientIpResolver;
+use Hydra\Http\Testing\FakeHandler;
 use Hydra\Http\TrustedProxies;
 use Hydra\Throttle\Exceptions\TooManyRequestsException;
 use Hydra\Throttle\RateLimitMiddleware;
@@ -20,9 +21,7 @@ use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * The wiring, which is where a limiter most plausibly ends up doing nothing:
@@ -39,7 +38,7 @@ final class ThrottleServiceProviderTest extends TestCase
         $container->instance(ThrottleConfig::class, new ThrottleConfig(limit: 1, window: 60));
 
         $middleware = $container->get(RateLimitMiddleware::class);
-        $handler = new StubHandler;
+        $handler = FakeHandler::respondingWith(new Response(200));
 
         $middleware->process($this->request(), $handler);
 
@@ -79,14 +78,5 @@ final class ThrottleServiceProviderTest extends TestCase
             StoreInterface::class => new ArrayStore,
             ClientIpResolver::class => new ClientIpResolver(TrustedProxies::none()),
         ]);
-    }
-}
-
-/** A handler that answers 200 and nothing else. */
-final class StubHandler implements RequestHandlerInterface
-{
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        return new Response(200);
     }
 }

@@ -6,15 +6,17 @@ namespace Hydra\Auth\Tests\Unit;
 
 use Hydra\Auth\AuthConfig;
 use Hydra\Auth\AuthServiceProvider;
-use Hydra\Auth\Contracts\AuthenticatableInterface;
 use Hydra\Auth\Contracts\GuardInterface;
 use Hydra\Auth\Contracts\HasherInterface;
 use Hydra\Auth\Contracts\UserProviderInterface;
 use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\NativeHasher;
 use Hydra\Auth\SessionGuard;
+use Hydra\Auth\Testing\ArrayUserProvider;
+use Hydra\Auth\Testing\FakeUser;
 use Hydra\Core\Testing\FakeContainer;
 use Hydra\Core\Environment;
+use Hydra\Event\Testing\FakeDispatcher;
 use Hydra\Session\Contracts\SessionInterface;
 use Hydra\Session\Stores\ArraySessionStore;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -128,16 +130,12 @@ final class AuthServiceProviderTest extends TestCase
 
     public function test_the_guard_announces_through_a_dispatcher_when_one_is_bound(): void
     {
-        $events = new RecordingEvents;
+        $events = new FakeDispatcher;
         $container = $this->register(events: $events);
 
         $container->get(GuardInterface::class)->attempt('ada', 'secret');
 
-        $this->assertContainsOnlyInstancesOf(LoggedIn::class, array_filter(
-            $events->dispatched,
-            static fn (object $event) => $event instanceof LoggedIn,
-        ));
-        $this->assertNotSame([], $events->dispatched);
+        $events->assertDispatched(LoggedIn::class);
     }
 
     public function test_nothing_is_built_until_it_is_asked_for(): void
@@ -168,7 +166,9 @@ final class AuthServiceProviderTest extends TestCase
         $services = [
             Environment::class => $this->environment($env),
             SessionInterface::class => $this->session(),
-            UserProviderInterface::class => new OneUserProvider,
+            // At the cheapest cost bcrypt takes; the guard verifies against it for real.
+            UserProviderInterface::class => (new ArrayUserProvider)
+                ->add('ada', new FakeUser('ada', password_hash('secret', PASSWORD_DEFAULT, ['cost' => 4]))),
         ];
 
         if ($events !== null) {
@@ -202,57 +202,5 @@ final class AuthServiceProviderTest extends TestCase
         file_put_contents($this->dir . '/.env', $lines);
 
         return new Environment($this->dir);
-    }
-}
-
-/** One user, whose password hash is built at the cheapest cost bcrypt takes. */
-final class OneUserProvider implements UserProviderInterface
-{
-    private readonly SoleUser $user;
-
-    public function __construct()
-    {
-        $this->user = new SoleUser('ada', password_hash('secret', PASSWORD_DEFAULT, ['cost' => 4]));
-    }
-
-    public function byIdentifier(int|string $id): ?AuthenticatableInterface
-    {
-        return $id === 'ada' ? $this->user : null;
-    }
-
-    public function byUsername(string $username): ?AuthenticatableInterface
-    {
-        return $username === 'ada' ? $this->user : null;
-    }
-}
-
-final class SoleUser implements AuthenticatableInterface
-{
-    public function __construct(
-        private readonly int|string $id,
-        private readonly string $hash,
-    ) {}
-
-    public function getAuthIdentifier(): int|string
-    {
-        return $this->id;
-    }
-
-    public function getAuthPassword(): string
-    {
-        return $this->hash;
-    }
-}
-
-final class RecordingEvents implements EventDispatcherInterface
-{
-    /** @var list<object> */
-    public array $dispatched = [];
-
-    public function dispatch(object $event): object
-    {
-        $this->dispatched[] = $event;
-
-        return $event;
     }
 }

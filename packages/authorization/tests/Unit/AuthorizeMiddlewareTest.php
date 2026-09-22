@@ -9,15 +9,15 @@ use Hydra\Authorization\AuthorizeMiddleware;
 use Hydra\Authorization\Contracts\AbilityInterface;
 use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Authorization\Exceptions\AuthorizationException;
+use Hydra\Http\Testing\FakeHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * The middleware is driven against a spy gate (the one seam it sits on) and a
- * spy handler standing in for the rest of the pipeline. The concrete subclass
+ * fake handler standing in for the rest of the pipeline. The concrete subclass
  * fixes the ability, exactly as an app's would.
  */
 #[CoversClass(AuthorizeMiddleware::class)]
@@ -26,12 +26,12 @@ final class AuthorizeMiddlewareTest extends TestCase
     public function test_lets_the_request_through_when_the_gate_allows(): void
     {
         $response = $this->createStub(ResponseInterface::class);
-        $handler = new SpyHandler($response);
+        $handler = FakeHandler::respondingWith($response);
         $gate = new SpyGate;
 
         $result = (new RequireWidgetAccess($gate))->process($this->request(), $handler);
 
-        $this->assertTrue($handler->called);
+        $handler->assertHandled();
         $this->assertSame($response, $result);
     }
 
@@ -39,14 +39,14 @@ final class AuthorizeMiddlewareTest extends TestCase
     {
         $gate = new SpyGate;
 
-        (new RequireWidgetAccess($gate))->process($this->request(), new SpyHandler($this->createStub(ResponseInterface::class)));
+        (new RequireWidgetAccess($gate))->process($this->request(), FakeHandler::respondingWith($this->createStub(ResponseInterface::class)));
 
         $this->assertSame(AccessWidget::class, $gate->authorized);
     }
 
     public function test_propagates_the_403_and_stops_the_pipeline_when_denied(): void
     {
-        $handler = new SpyHandler($this->createStub(ResponseInterface::class));
+        $handler = FakeHandler::respondingWith($this->createStub(ResponseInterface::class));
         $gate = new SpyGate(deny: true);
 
         try {
@@ -57,7 +57,7 @@ final class AuthorizeMiddlewareTest extends TestCase
         }
 
         // The controller (and everything inward) never runs on a denied request.
-        $this->assertFalse($handler->called);
+        $handler->assertNotHandled();
     }
 
     private function request(): ServerRequestInterface
@@ -108,20 +108,5 @@ final class SpyGate implements GateInterface
         if ($this->deny) {
             throw new AuthorizationException;
         }
-    }
-}
-
-/** Marks whether the rest of the pipeline was reached. */
-final class SpyHandler implements RequestHandlerInterface
-{
-    public bool $called = false;
-
-    public function __construct(private readonly ResponseInterface $response) {}
-
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        $this->called = true;
-
-        return $this->response;
     }
 }

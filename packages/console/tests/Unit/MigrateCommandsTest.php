@@ -11,6 +11,7 @@ use Hydra\Console\Commands\MakeMigrationCommand;
 use Hydra\Console\Commands\MigrateFreshCommand;
 use Hydra\Console\Commands\MigrateRunCommand;
 use Hydra\Console\Commands\MigrateStatusCommand;
+use Hydra\Core\Testing\FrozenClock;
 use Hydra\Database\MigrationRunner;
 use PDO;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -141,6 +142,17 @@ final class MigrateCommandsTest extends TestCase
         $body = file_get_contents($this->dir . '/' . $files[0]);
         $this->assertStringContainsString('-- Migration: Create Posts Table', $body);
         $this->assertStringContainsString('Forward-only', $body);
+    }
+
+    public function test_make_migration_takes_its_stamp_from_the_clock(): void
+    {
+        $command = new MakeMigrationCommand($this->dir, new FrozenClock('2026-03-04T05:06:07+00:00'));
+
+        $command->execute(ArrayInput::withArguments(['name' => 'add slugs']), new FakeOutput);
+
+        $path = $this->dir . '/20260304_050607_add_slugs.sql';
+        $this->assertFileExists($path);
+        $this->assertStringContainsString('-- Created: 2026-03-04 05:06:07', (string) file_get_contents($path));
     }
 
     public function test_make_migration_rejects_an_empty_slug(): void

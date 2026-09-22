@@ -7,13 +7,12 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\ClientIpResolver;
 use Hydra\Http\ForceHttpsMiddleware;
 use Hydra\Http\Responder;
+use Hydra\Http\Testing\FakeHandler;
 use Hydra\Http\TrustedProxies;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * The redirect to https and the HSTS header, and the part that decides whether
@@ -30,7 +29,7 @@ final class ForceHttpsMiddlewareTest extends TestCase
         $response = $this->middleware(enabled: false)
             ->process($this->request('http://hydra.test/login'), $handler);
 
-        $this->assertSame(1, $handler->calls, 'handler should run');
+        $this->assertCount(1, $handler->requests(), 'handler should run');
         $this->assertSame(200, $response->getStatusCode());
         $this->assertFalse($response->hasHeader('Strict-Transport-Security'));
     }
@@ -42,7 +41,7 @@ final class ForceHttpsMiddlewareTest extends TestCase
         $response = $this->middleware(enabled: true)
             ->process($this->request('http://hydra.test/login?next=/x'), $handler);
 
-        $this->assertSame(0, $handler->calls, 'handler must not run for a redirect');
+        $this->assertCount(0, $handler->requests(), 'handler must not run for a redirect');
         $this->assertSame(301, $response->getStatusCode());
         $this->assertSame('https://hydra.test/login?next=/x', $response->getHeaderLine('Location'));
     }
@@ -62,7 +61,7 @@ final class ForceHttpsMiddlewareTest extends TestCase
         $response = $this->middleware(enabled: true)
             ->process($this->request('https://hydra.test/login'), $handler);
 
-        $this->assertSame(1, $handler->calls);
+        $handler->assertHandled();
         $this->assertSame(200, $response->getStatusCode());
         $this->assertStringContainsString('max-age=', $response->getHeaderLine('Strict-Transport-Security'));
     }
@@ -75,7 +74,7 @@ final class ForceHttpsMiddlewareTest extends TestCase
         $response = $this->middleware(enabled: true, trustForwardedProto: true)
             ->process($request, $handler);
 
-        $this->assertSame(1, $handler->calls, 'forwarded https should count as secure');
+        $this->assertCount(1, $handler->requests(), 'forwarded https should count as secure');
         $this->assertStringContainsString('max-age=', $response->getHeaderLine('Strict-Transport-Security'));
     }
 
@@ -88,7 +87,7 @@ final class ForceHttpsMiddlewareTest extends TestCase
 
         $response = $this->middleware(enabled: true)->process($request, $handler);
 
-        $this->assertSame(0, $handler->calls, 'spoofed header must not bypass the redirect');
+        $this->assertCount(0, $handler->requests(), 'spoofed header must not bypass the redirect');
         $this->assertSame(301, $response->getStatusCode());
         $this->assertSame('https://hydra.test/login', $response->getHeaderLine('Location'));
     }
@@ -105,7 +104,7 @@ final class ForceHttpsMiddlewareTest extends TestCase
             clients: new ClientIpResolver(new TrustedProxies(['10.0.0.0/8'])),
         )->process($request, $handler);
 
-        $this->assertSame(1, $handler->calls);
+        $handler->assertHandled();
         $this->assertStringContainsString('max-age=', $response->getHeaderLine('Strict-Transport-Security'));
     }
 
@@ -123,7 +122,7 @@ final class ForceHttpsMiddlewareTest extends TestCase
             clients: new ClientIpResolver(new TrustedProxies(['10.0.0.0/8'])),
         )->process($request, $handler);
 
-        $this->assertSame(0, $handler->calls, 'a direct client must not borrow the proxy\'s scheme');
+        $this->assertCount(0, $handler->requests(), 'a direct client must not borrow the proxy\'s scheme');
         $this->assertSame(301, $response->getStatusCode());
     }
 
@@ -149,21 +148,8 @@ final class ForceHttpsMiddlewareTest extends TestCase
         return (new Psr17Factory)->createServerRequest('GET', $uri, $server);
     }
 
-    private function handler(): CountingHandler
+    private function handler(): FakeHandler
     {
-        return new CountingHandler;
-    }
-}
-
-/** Answers 200 and counts how many times it was reached. */
-final class CountingHandler implements RequestHandlerInterface
-{
-    public int $calls = 0;
-
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        $this->calls++;
-
-        return (new Psr17Factory)->createResponse(200);
+        return FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
     }
 }

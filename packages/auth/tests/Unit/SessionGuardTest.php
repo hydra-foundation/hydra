@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Hydra\Auth\Tests\Unit;
 
-use Hydra\Auth\Contracts\AuthenticatableInterface;
 use Hydra\Auth\AuthConfig;
 use Hydra\Auth\NativeHasher;
 use Hydra\Auth\Events\Attempting;
@@ -12,11 +11,13 @@ use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\Events\LoggedOut;
 use Hydra\Auth\Events\LoginFailed;
 use Hydra\Auth\SessionGuard;
-use Hydra\Auth\Contracts\UserProviderInterface;
+use Hydra\Auth\Testing\ArrayUserProvider;
+use Hydra\Auth\Testing\FakeHasher;
+use Hydra\Auth\Testing\FakeUser;
+use Hydra\Event\Testing\FakeDispatcher;
 use Hydra\Session\Stores\ArraySessionStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The guard is driven against the REAL collaborators, the in-memory
@@ -48,7 +49,7 @@ final class SessionGuardTest extends TestCase
         return new SessionGuard($session ?? $this->session, $this->provider, $this->hasher);
     }
 
-    private function guardWithEvents(RecordingDispatcher $events): SessionGuard
+    private function guardWithEvents(FakeDispatcher $events): SessionGuard
     {
         return new SessionGuard($this->session, $this->provider, $this->hasher, $events);
     }
@@ -113,7 +114,7 @@ final class SessionGuardTest extends TestCase
         $this->assertFalse($guard->check());
         // The missing-user branch still burns one hash (timing defense) but no
         // login happened; the provider was consulted exactly once.
-        $this->assertSame(1, $this->provider->byUsernameCalls);
+        $this->assertSame(1, $this->provider->usernameLookups());
     }
 
     public function test_attempt_against_a_user_with_no_password_fails(): void
@@ -200,7 +201,7 @@ final class SessionGuardTest extends TestCase
         // The full flush must not disturb the rest of logout: the id still
         // rotates (fixation defense) and LoggedOut still carries the prior id,
         // which is captured before the session is emptied.
-        $events = new RecordingDispatcher;
+        $events = new FakeDispatcher;
         $guard = $this->guardWithEvents($events);
         $guard->login($this->provider->byUsername('ada'));
         $this->session->set('leftover', 'value');
@@ -225,14 +226,14 @@ final class SessionGuardTest extends TestCase
         $next = $this->guard();
         $this->assertTrue($next->check());
         $this->assertSame(1, $next->id());
-        $this->assertSame('ada', $this->userName($next->user()));
+        $this->assertSame($this->provider->byUsername('ada'), $next->user());
     }
 
     public function test_user_is_resolved_at_most_once_per_request(): void
     {
         // Fresh guard with an id already in the session (a returning request).
         $this->guard()->login($this->provider->byUsername('ada'));
-        $this->provider->byIdentifierCalls = 0;
+        $this->provider->resetLookups();
 
         $next = $this->guard();
         $next->user();
@@ -240,20 +241,20 @@ final class SessionGuardTest extends TestCase
         $next->check();
 
         // Three reads, one provider lookup, so the per-request cache holds.
-        $this->assertSame(1, $this->provider->byIdentifierCalls);
+        $this->assertSame(1, $this->provider->identifierLookups());
     }
 
     public function test_login_primes_the_cache_without_a_provider_lookup(): void
     {
         $guard = $this->guard();
-        $this->provider->byIdentifierCalls = 0;
+        $this->provider->resetLookups();
 
         $guard->login($this->provider->byUsername('ada'));
         $guard->user();
         $guard->check();
 
         // login() handed the guard the user directly; no byIdentifier needed.
-        $this->assertSame(0, $this->provider->byIdentifierCalls);
+        $this->assertSame(0, $this->provider->identifierLookups());
     }
 
     public function test_no_dispatcher_means_no_events_and_unchanged_behaviour(): void
@@ -269,7 +270,7 @@ final class SessionGuardTest extends TestCase
 
     public function test_attempt_dispatches_attempting_then_logged_in_on_success(): void
     {
-        $events = new RecordingDispatcher;
+        $events = new FakeDispatcher;
 
         $this->assertTrue($this->guardWithEvents($events)->attempt('ada', self::PASSWORD));
 
@@ -281,7 +282,7 @@ final class SessionGuardTest extends TestCase
 
     public function test_attempt_dispatches_attempting_then_login_failed_on_wrong_password(): void
     {
-        $events = new RecordingDispatcher;
+        $events = new FakeDispatcher;
 
         $this->assertFalse($this->guardWithEvents($events)->attempt('ada', 'wrong'));
 
@@ -291,7 +292,7 @@ final class SessionGuardTest extends TestCase
 
     public function test_attempt_dispatches_login_failed_for_unknown_user(): void
     {
-        $events = new RecordingDispatcher;
+        $events = new FakeDispatcher;
 
         $this->assertFalse($this->guardWithEvents($events)->attempt('nobody', self::PASSWORD));
 
@@ -303,7 +304,7 @@ final class SessionGuardTest extends TestCase
 
     public function test_direct_login_dispatches_logged_in(): void
     {
-        $events = new RecordingDispatcher;
+        $events = new FakeDispatcher;
 
         $this->guardWithEvents($events)->login($this->provider->byUsername('ada'));
 
@@ -313,7 +314,7 @@ final class SessionGuardTest extends TestCase
 
     public function test_logout_dispatches_logged_out_with_the_prior_id(): void
     {
-        $events = new RecordingDispatcher;
+        $events = new FakeDispatcher;
         $guard = $this->guardWithEvents($events);
         $guard->login($this->provider->byUsername('ada'));
         $events->reset();
@@ -340,11 +341,11 @@ final class SessionGuardTest extends TestCase
 
         // The NEXT request (a fresh guard over the same store) is a plain
         // guest: no marker, so not even a provider lookup happens.
-        $this->provider->byIdentifierCalls = 0;
+        $this->provider->resetLookups();
         $next = $this->guard();
         $this->assertNull($next->id());
         $this->assertNull($next->user());
-        $this->assertSame(0, $this->provider->byIdentifierCalls);
+        $this->assertSame(0, $this->provider->identifierLookups());
     }
 
     public function test_a_live_marker_is_left_untouched_by_resolution(): void
@@ -363,16 +364,16 @@ final class SessionGuardTest extends TestCase
         // The anti-enumeration defense: a miss (no such user) burns exactly one
         // hashing operation, the same count a wrong-password attempt spends on
         // its verify, so operation counts can't distinguish the two.
-        $hasher = new CountingHasher($this->hasher);
+        $hasher = new FakeHasher;
 
         $missGuard = new SessionGuard($this->session, $this->provider, $hasher);
         $this->assertFalse($missGuard->attempt('nobody', 'whatever'));
-        $this->assertSame(1, $hasher->operations(), 'a missing user must cost exactly one hashing operation');
+        $this->assertSame(1, $hasher->hashes() + $hasher->verifications(), 'a missing user must cost exactly one hashing operation');
 
         $hasher->reset();
         $wrongGuard = new SessionGuard($this->session, $this->provider, $hasher);
         $this->assertFalse($wrongGuard->attempt('ada', 'wrong'));
-        $this->assertSame(1, $hasher->operations(), 'a wrong password must cost exactly one hashing operation');
+        $this->assertSame(1, $hasher->hashes() + $hasher->verifications(), 'a wrong password must cost exactly one hashing operation');
     }
 
     public function test_repeated_missing_user_attempts_cost_identical_work(): void
@@ -380,161 +381,17 @@ final class SessionGuardTest extends TestCase
         // Regression: the dummy hash used to be computed lazily on first use,
         // so the FIRST miss paid hash+verify (two operations) while later
         // misses paid one, a measurable first-call timing skew.
-        $hasher = new CountingHasher($this->hasher);
+        $hasher = new FakeHasher;
         $guard = new SessionGuard($this->session, $this->provider, $hasher);
 
         $guard->attempt('nobody', 'first');
-        $first = $hasher->operations();
+        $first = $hasher->hashes() + $hasher->verifications();
 
         $hasher->reset();
         $guard->attempt('nobody', 'second');
-        $second = $hasher->operations();
+        $second = $hasher->hashes() + $hasher->verifications();
 
         $this->assertSame(1, $first, 'the first miss must not pay extra setup work');
         $this->assertSame($first, $second, 'every miss must cost the same number of hashing operations');
-    }
-
-    private function userName(?AuthenticatableInterface $user): ?string
-    {
-        return $user instanceof FakeUser ? $user->username : null;
-    }
-}
-
-/**
- * Wraps the real hasher and counts the expensive operations (hash + verify) so
- * the timing-defense tests can assert WORK EQUALITY by operation count instead
- * of flaky wall-clock measurement.
- */
-final class CountingHasher implements \Hydra\Auth\Contracts\HasherInterface
-{
-    public int $hashCalls = 0;
-    public int $verifyCalls = 0;
-
-    public function __construct(private readonly \Hydra\Auth\Contracts\HasherInterface $inner) {}
-
-    public function hash(string $plain): string
-    {
-        $this->hashCalls++;
-
-        return $this->inner->hash($plain);
-    }
-
-    public function verify(string $plain, string $hash): bool
-    {
-        $this->verifyCalls++;
-
-        return $this->inner->verify($plain, $hash);
-    }
-
-    public function needsRehash(string $hash): bool
-    {
-        return $this->inner->needsRehash($hash);
-    }
-
-    public function operations(): int
-    {
-        return $this->hashCalls + $this->verifyCalls;
-    }
-
-    public function reset(): void
-    {
-        $this->hashCalls = 0;
-        $this->verifyCalls = 0;
-    }
-}
-
-/**
- * A spy PSR-14 dispatcher: records every event it is handed, in order, and hands
- * it straight back per the interface contract. No listeners: the guard's job is
- * only to dispatch, and that is all this asserts.
- */
-final class RecordingDispatcher implements EventDispatcherInterface
-{
-    /** @var list<object> */
-    private array $events = [];
-
-    public function dispatch(object $event): object
-    {
-        $this->events[] = $event;
-
-        return $event;
-    }
-
-    public function reset(): void
-    {
-        $this->events = [];
-    }
-
-    /** @return list<class-string> */
-    public function types(): array
-    {
-        return array_map('get_class', $this->events);
-    }
-
-    /**
-     * @template T of object
-     * @param class-string<T> $type
-     * @return T
-     */
-    public function first(string $type): object
-    {
-        foreach ($this->events as $event) {
-            if ($event instanceof $type) {
-                return $event;
-            }
-        }
-
-        throw new \RuntimeException("No {$type} was dispatched.");
-    }
-}
-
-/** A minimal AuthenticatableInterface for the tests. */
-final class FakeUser implements AuthenticatableInterface
-{
-    public ?string $username = null;
-
-    public function __construct(private readonly int|string $id, private readonly string $hash) {}
-
-    public function getAuthIdentifier(): int|string
-    {
-        return $this->id;
-    }
-
-    public function getAuthPassword(): string
-    {
-        return $this->hash;
-    }
-}
-
-/** In-memory user provider that records how often it is asked. */
-final class ArrayUserProvider implements UserProviderInterface
-{
-    public int $byIdentifierCalls = 0;
-    public int $byUsernameCalls = 0;
-
-    /** @var array<string, FakeUser> */
-    private array $byUsername = [];
-    /** @var array<array-key, FakeUser> */
-    private array $byId = [];
-
-    public function add(string $username, FakeUser $user): void
-    {
-        $user->username = $username;
-        $this->byUsername[$username] = $user;
-        $this->byId[$user->getAuthIdentifier()] = $user;
-    }
-
-    public function byIdentifier(int|string $id): ?AuthenticatableInterface
-    {
-        $this->byIdentifierCalls++;
-
-        return $this->byId[$id] ?? null;
-    }
-
-    public function byUsername(string $username): ?AuthenticatableInterface
-    {
-        $this->byUsernameCalls++;
-
-        return $this->byUsername[$username] ?? null;
     }
 }

@@ -12,6 +12,11 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * JSON (any method) and urlencoded forms on PUT/PATCH/DELETE
+ *
+ * PHP fills $_POST for a POST only, so a form sent with any other method
+ * arrives with its fields still in the raw body. PHP 8.4's request_parse_body()
+ * does this natively, multipart included, which this does not attempt; the
+ * urlencoded branch comes out once the floor is 8.4.
  */
 final class ParseBodyMiddleware implements MiddlewareInterface
 {

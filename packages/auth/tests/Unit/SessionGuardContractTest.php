@@ -10,7 +10,7 @@ use Hydra\Auth\NativeHasher;
 use Hydra\Auth\SessionGuard;
 use Hydra\Auth\Testing\FakeUser;
 use Hydra\Auth\Testing\GuardContractTestCase;
-use Hydra\Auth\Tests\Support\ArrayUserProvider;
+use Hydra\Auth\Testing\ArrayUserProvider;
 use Hydra\Session\Stores\ArraySessionStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 

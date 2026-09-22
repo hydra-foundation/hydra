@@ -17,6 +17,7 @@ use Hydra\Admin\Renderer;
 use Hydra\Core\Security\Signer;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Csrf\CsrfGuard;
+use Hydra\Event\Testing\FakeDispatcher;
 use Hydra\Http\CspNonce;
 use Hydra\Http\Responder;
 use Hydra\Session\Stores\ArraySessionStore;
@@ -40,7 +41,7 @@ final class AdminHarness
     public readonly Renderer $renderer;
     public readonly Responder $responder;
     public readonly ViewInterface $view;
-    public readonly RecordingDispatcher $events;
+    public readonly FakeDispatcher $events;
     public readonly AdminController $controller;
     public readonly FrozenClock $clock;
 
@@ -77,7 +78,7 @@ final class AdminHarness
             fallbacks: [AdminServiceProvider::views()],
         );
         $this->renderer = new Renderer($this->responder, $this->view);
-        $this->events = new RecordingDispatcher;
+        $this->events = new FakeDispatcher;
         $this->clock = new FrozenClock;
         $this->controller = new AdminController(
             $this->registry,

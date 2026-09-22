@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\SecurityHeadersMiddleware;
+use Hydra\Http\Testing\FakeHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * The security headers are stamped on the response, and nothing the inner
@@ -81,17 +80,10 @@ final class SecurityHeadersMiddlewareTest extends TestCase
         return (new Psr17Factory)->createServerRequest('GET', '/');
     }
 
-    private function handler(int $status = 200, string $body = ''): RequestHandlerInterface
+    private function handler(int $status = 200, string $body = ''): FakeHandler
     {
-        return new class ($status, $body) implements RequestHandlerInterface {
-            public function __construct(private int $status, private string $body) {}
+        $factory = new Psr17Factory;
 
-            public function handle(ServerRequestInterface $request): ResponseInterface
-            {
-                $factory = new Psr17Factory;
-                return $factory->createResponse($this->status)
-                    ->withBody($factory->createStream($this->body));
-            }
-        };
+        return FakeHandler::respondingWith($factory->createResponse($status)->withBody($factory->createStream($body)));
     }
 }

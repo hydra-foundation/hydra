@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\Contracts\EmitterInterface;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
 use Hydra\Http\HttpKernel;
+use Hydra\Http\Testing\FakeHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -57,12 +58,7 @@ final class HttpKernelTest extends TestCase
         // Simulates a throwable escaping the whole pipeline: an outer middleware
         // or the lazy container resolution blowing up before the error handler
         // middleware could catch it.
-        $handler = new class implements RequestHandlerInterface {
-            public function handle(ServerRequestInterface $request): ResponseInterface
-            {
-                throw new \RuntimeException('boom outside the error boundary');
-            }
-        };
+        $handler = FakeHandler::throwing(new \RuntimeException('boom outside the error boundary'));
 
         $emitter = new CapturingEmitter;
 

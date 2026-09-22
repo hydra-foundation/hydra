@@ -17,7 +17,8 @@
     "repositories": [
         { "type": "path", "url": "../core", "options": { "symlink": true } },
         { "type": "path", "url": "../http", "options": { "symlink": true } },
-        { "type": "path", "url": "../session", "options": { "symlink": true } }
+        { "type": "path", "url": "../session", "options": { "symlink": true } },
+        { "type": "path", "url": "../event", "options": { "symlink": true } }
     ],
     "authors": [
         {
@@ -37,6 +38,7 @@
         "psr/http-server-middleware": "^1.0"
     },
     "require-dev": {
+        "hydrakit/event": "^0.7",
         "phpunit/phpunit": "^11.0",
         "nyholm/psr7": "^1.8"
     },

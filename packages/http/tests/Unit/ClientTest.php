@@ -7,10 +7,10 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\ParseBodyMiddleware;
 use Hydra\Http\Responder;
 use Hydra\Http\Testing\Client;
+use Hydra\Http\Testing\FakeHandler;
 use Hydra\Http\Testing\RequestPreparer;
 use Hydra\Http\Testing\TestResponse;
 use Hydra\Core\Testing\FakeContainer;
-use Hydra\Http\Tests\Support\RecordingHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use PHPUnit\Framework\AssertionFailedError;
@@ -25,11 +25,11 @@ use Psr\Http\Server\RequestHandlerInterface;
 #[CoversClass(Client::class)]
 final class ClientTest extends TestCase
 {
-    private RecordingHandler $handler;
+    private FakeHandler $handler;
 
     protected function setUp(): void
     {
-        $this->handler = new RecordingHandler;
+        $this->handler = FakeHandler::respondingWith(new Response(200));
     }
 
     public function test_a_get_reaches_the_handler_from_the_default_peer(): void
@@ -155,27 +155,27 @@ final class ClientTest extends TestCase
     public function test_send_dispatches_the_request_exactly_as_given(): void
     {
         $client = $this->client([$this->stamp('prepared')])->withHeader('Accept', 'text/html')->followingRedirects();
-        $this->handler->routes['/old'] = new Response(302, ['Location' => '/new']);
+        $this->handler->respondTo('/old', new Response(302, ['Location' => '/new']));
 
         $response = $client->send($client->request('GET', '/old'));
 
         $response->assertRedirect('/new');
-        $this->assertCount(1, $this->handler->seen);
+        $this->assertCount(1, $this->handler->requests());
         $this->assertFalse($this->last()->hasHeader('X-Stamp'));
         $this->assertFalse($this->last()->hasHeader('Accept'));
     }
 
     public function test_redirects_are_not_followed_unless_asked(): void
     {
-        $this->handler->routes['/old'] = new Response(302, ['Location' => '/new']);
+        $this->handler->respondTo('/old', new Response(302, ['Location' => '/new']));
 
         $this->client()->get('/old')->assertRedirect('/new');
-        $this->assertCount(1, $this->handler->seen);
+        $this->assertCount(1, $this->handler->requests());
     }
 
     public function test_a_redirect_after_a_post_is_followed_as_a_get_without_the_body(): void
     {
-        $this->handler->routes['/login'] = new Response(302, ['Location' => '/admin']);
+        $this->handler->respondTo('/login', new Response(302, ['Location' => '/admin']));
 
         $this->client()->followingRedirects()->post('/login', ['username' => 'will'])->assertOk();
 
@@ -186,7 +186,7 @@ final class ClientTest extends TestCase
 
     public function test_a_307_repeats_the_method_and_the_body(): void
     {
-        $this->handler->routes['/old'] = new Response(307, ['Location' => '/new']);
+        $this->handler->respondTo('/old', new Response(307, ['Location' => '/new']));
 
         $this->client()->followingRedirects()->post('/old', ['title' => 'kept']);
 
@@ -196,7 +196,7 @@ final class ClientTest extends TestCase
 
     public function test_the_followed_request_keeps_the_client_headers_and_preparers(): void
     {
-        $this->handler->routes['/old'] = new Response(302, ['Location' => '/new']);
+        $this->handler->respondTo('/old', new Response(302, ['Location' => '/new']));
 
         $this->client([$this->stamp('prepared')])->withHeader('Accept', 'text/html')->followingRedirects()->get('/old');
 
@@ -206,10 +206,10 @@ final class ClientTest extends TestCase
 
     public function test_an_htmx_redirect_is_followed_as_a_full_page(): void
     {
-        $this->handler->routes['/login'] = (new Responder(new Psr17Factory, new Psr17Factory))
+        $this->handler->respondTo('/login', (new Responder(new Psr17Factory, new Psr17Factory))
             ->htmx()
             ->redirect('/admin')
-            ->applyTo(new Response(200));
+            ->applyTo(new Response(200)));
 
         $this->client()->htmx('form#login')->followingRedirects()->post('/login', ['username' => 'will']);
 
@@ -220,14 +220,14 @@ final class ClientTest extends TestCase
 
     public function test_a_redirect_loop_fails_with_the_trail(): void
     {
-        $this->handler->routes['/a'] = new Response(302, ['Location' => '/b']);
-        $this->handler->routes['/b'] = new Response(302, ['Location' => '/a']);
+        $this->handler->respondTo('/a', new Response(302, ['Location' => '/b']));
+        $this->handler->respondTo('/b', new Response(302, ['Location' => '/a']));
 
         try {
             $this->client()->followingRedirects(3)->get('/a');
         } catch (AssertionFailedError $e) {
             $this->assertSame('More than 3 redirects: /a → /b → /a → /b → /a', $e->getMessage());
-            $this->assertCount(4, $this->handler->seen);
+            $this->assertCount(4, $this->handler->requests());
 
             return;
         }
@@ -237,8 +237,8 @@ final class ClientTest extends TestCase
 
     public function test_the_limit_is_the_number_of_redirects_followed(): void
     {
-        $this->handler->routes['/a'] = new Response(302, ['Location' => '/b']);
-        $this->handler->routes['/b'] = new Response(302, ['Location' => '/c']);
+        $this->handler->respondTo('/a', new Response(302, ['Location' => '/b']));
+        $this->handler->respondTo('/b', new Response(302, ['Location' => '/c']));
 
         $this->client()->followingRedirects(2)->get('/a')->assertOk();
 
@@ -262,7 +262,7 @@ final class ClientTest extends TestCase
     {
         $container = new FakeContainer;
         $factory = new Psr17Factory;
-        $container->instance(RequestHandlerInterface::class, new RecordingHandler);
+        $container->instance(RequestHandlerInterface::class, FakeHandler::respondingWith(new Response(200)));
         $container->instance(ServerRequestFactoryInterface::class, $factory);
         $container->instance(StreamFactoryInterface::class, $factory);
 
@@ -295,9 +295,7 @@ final class ClientTest extends TestCase
 
     private function last(): ServerRequestInterface
     {
-        $this->assertNotSame([], $this->handler->seen, 'Nothing reached the handler.');
-
-        return $this->handler->seen[array_key_last($this->handler->seen)];
+        return $this->handler->lastRequest();
     }
 
     /** @return list<string> */
@@ -305,7 +303,7 @@ final class ClientTest extends TestCase
     {
         return array_map(
             static fn (ServerRequestInterface $r): string => $r->getMethod() . ' ' . $r->getUri()->getPath(),
-            $this->handler->seen,
+            $this->handler->requests(),
         );
     }
 }

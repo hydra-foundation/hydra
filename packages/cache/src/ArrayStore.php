@@ -6,6 +6,7 @@ namespace Hydra\Cache;
 
 use Closure;
 use Hydra\Cache\Contracts\StoreInterface;
+use Psr\Clock\ClockInterface;
 
 /**
  * The store that lives and dies with the process. It exists for tests and for
@@ -28,6 +29,12 @@ final class ArrayStore implements StoreInterface
      * @param (Closure(): float)|null $clock null for the real one.
      */
     public function __construct(private readonly ?Closure $clock = null) {}
+
+    /** Expiring by $clock, so a store shares the moment every other frozen service in a test sees. */
+    public static function withClock(ClockInterface $clock): self
+    {
+        return new self(static fn (): float => (float) $clock->now()->format('U.u'));
+    }
 
     public function get(string $key): mixed
     {

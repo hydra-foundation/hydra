@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\RequestLoggingMiddleware;
+use Hydra\Http\Testing\FakeHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\AbstractLogger;
 
 /**
@@ -47,16 +45,9 @@ final class RequestLoggingMiddlewareTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
-    private function handler(int $status): RequestHandlerInterface
+    private function handler(int $status): FakeHandler
     {
-        return new class ($status) implements RequestHandlerInterface {
-            public function __construct(private int $status) {}
-
-            public function handle(ServerRequestInterface $request): ResponseInterface
-            {
-                return (new Psr17Factory)->createResponse($this->status);
-            }
-        };
+        return FakeHandler::respondingWith((new Psr17Factory)->createResponse($status));
     }
 }
 

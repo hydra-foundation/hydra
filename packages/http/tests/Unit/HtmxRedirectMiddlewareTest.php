@@ -6,12 +6,12 @@ namespace Hydra\Http\Tests\Unit;
 
 use Hydra\Http\HtmxRedirectMiddleware;
 use Hydra\Http\Responder;
+use Hydra\Http\Testing\FakeHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * The one place that knows a redirect has to reach htmx differently. Handlers
@@ -91,15 +91,8 @@ final class HtmxRedirectMiddlewareTest extends TestCase
         return $this->request()->withHeader('HX-Request', 'true');
     }
 
-    private function handler(ResponseInterface $response): RequestHandlerInterface
+    private function handler(ResponseInterface $response): FakeHandler
     {
-        return new class ($response) implements RequestHandlerInterface {
-            public function __construct(private readonly ResponseInterface $response) {}
-
-            public function handle(ServerRequestInterface $request): ResponseInterface
-            {
-                return $this->response;
-            }
-        };
+        return FakeHandler::respondingWith($response);
     }
 }

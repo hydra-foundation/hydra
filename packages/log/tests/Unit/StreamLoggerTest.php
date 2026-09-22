@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Log\Tests\Unit;
 
+use Hydra\Core\Testing\FrozenClock;
 use Hydra\Log\StreamLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -44,6 +45,15 @@ final class StreamLoggerTest extends TestCase
     public function test_is_psr3_logger(): void
     {
         $this->assertInstanceOf(LoggerInterface::class, $this->logger);
+    }
+
+    public function test_each_line_is_stamped_by_the_clock_it_was_given(): void
+    {
+        $logger = new StreamLogger($this->stream, new FrozenClock('2026-03-04T05:06:07+00:00'));
+
+        $logger->info('hello');
+
+        $this->assertSame("[2026-03-04T05:06:07+00:00] INFO: hello\n", $this->contents());
     }
 
     public function test_writes_level_and_message_on_one_line(): void

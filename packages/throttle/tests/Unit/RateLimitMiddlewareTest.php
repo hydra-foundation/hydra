@@ -6,6 +6,7 @@ namespace Hydra\Throttle\Tests\Unit;
 
 use Hydra\Cache\ArrayStore;
 use Hydra\Http\ClientIpResolver;
+use Hydra\Http\Testing\FakeHandler;
 use Hydra\Http\TrustedProxies;
 use Hydra\Throttle\Exceptions\TooManyRequestsException;
 use Hydra\Throttle\RateLimiter;
@@ -15,22 +16,7 @@ use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
-
-/** A handler that records whether it was ever reached. */
-final class CountingHandler implements RequestHandlerInterface
-{
-    public int $calls = 0;
-
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        $this->calls++;
-
-        return new Response(200);
-    }
-}
 
 /**
  * The middleware is thin on purpose, so what is worth testing is what it does
@@ -42,18 +28,18 @@ final class RateLimitMiddlewareTest extends TestCase
 {
     public function test_a_request_within_the_budget_reaches_the_handler(): void
     {
-        $handler = new CountingHandler;
+        $handler = FakeHandler::respondingWith(new Response(200));
         $response = $this->middleware(limit: 2)->process($this->request(), $handler);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(1, $handler->calls);
+        $handler->assertHandled();
     }
 
     public function test_the_handler_is_never_reached_once_the_budget_is_gone(): void
     {
         // The point of limiting at this depth: the work being protected must
         // not happen, so the refusal has to come before the handler runs.
-        $handler = new CountingHandler;
+        $handler = FakeHandler::respondingWith(new Response(200));
         $middleware = $this->middleware(limit: 1);
 
         $middleware->process($this->request(), $handler);
@@ -63,26 +49,26 @@ final class RateLimitMiddlewareTest extends TestCase
             $this->fail('The request past the limit reached the handler.');
         } catch (TooManyRequestsException $e) {
             $this->assertSame(429, $e->status());
-            $this->assertSame(1, $handler->calls);
+            $handler->assertHandled();
         }
     }
 
     public function test_a_disabled_limiter_counts_nothing(): void
     {
-        $handler = new CountingHandler;
+        $handler = FakeHandler::respondingWith(new Response(200));
         $middleware = $this->middleware(limit: 1, enabled: false);
 
         $middleware->process($this->request(), $handler);
         $middleware->process($this->request(), $handler);
 
-        $this->assertSame(2, $handler->calls);
+        $handler->assertHandled(2);
     }
 
     public function test_it_limits_unless_it_is_told_not_to(): void
     {
         // The default is on. A middleware that had to be switched on would be
         // off wherever somebody wired it up from memory.
-        $handler = new CountingHandler;
+        $handler = FakeHandler::respondingWith(new Response(200));
         $limiter = new RateLimiter(new ArrayStore, new ClientIpResolver(TrustedProxies::none()));
         $middleware = new RateLimitMiddleware($limiter, new RateLimitPolicy('global', 1, 60));
 

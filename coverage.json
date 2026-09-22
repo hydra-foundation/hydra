@@ -1,8 +1,8 @@
 {
     "admin": 78.8,
-    "auth": 95,
+    "auth": 95.9,
     "authorization": 100,
-    "cache": 88.2,
+    "cache": 89.8,
     "console": 95.3,
     "core": 95.6,
     "csrf": 97.3,

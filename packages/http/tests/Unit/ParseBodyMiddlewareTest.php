@@ -7,13 +7,12 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\Exceptions\BadRequestException;
 use Hydra\Http\ParsedBody;
 use Hydra\Http\ParseBodyMiddleware;
+use Hydra\Http\Testing\FakeHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use RuntimeException;
 
 /**
@@ -221,24 +220,11 @@ final class ParseBodyMiddlewareTest extends TestCase
         $handler = $this->handler();
         $this->middleware->process($request, $handler);
 
-        return $handler->seen;
+        return $handler->lastRequest();
     }
 
-    private function handler(): CapturingHandler
+    private function handler(): FakeHandler
     {
-        return new CapturingHandler;
-    }
-}
-
-/** Answers 200 and keeps the request it was handed. */
-final class CapturingHandler implements RequestHandlerInterface
-{
-    public ServerRequestInterface $seen;
-
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        $this->seen = $request;
-
-        return (new Psr17Factory)->createResponse(200);
+        return FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
     }
 }

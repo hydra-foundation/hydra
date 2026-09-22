@@ -10,6 +10,8 @@ use Hydra\Console\Contracts\InputInterface;
 use Hydra\Console\Contracts\OutputInterface;
 use Hydra\Console\ExitCode;
 use Hydra\Console\Argument;
+use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 
 /**
  * Scaffolds an empty migration file: {Ymd_His}_{slug}.sql with a header comment.
@@ -20,7 +22,10 @@ use Hydra\Console\Argument;
 )]
 final class MakeMigrationCommand extends Command
 {
-    public function __construct(private readonly string $migrationsPath) {}
+    public function __construct(
+        private readonly string $migrationsPath,
+        private readonly ?ClockInterface $clock = null,
+    ) {}
 
     public function arguments(): array
     {
@@ -42,10 +47,11 @@ final class MakeMigrationCommand extends Command
             return ExitCode::Failure;
         }
 
-        $filename = date('Ymd_His') . '_' . $slug . '.sql';
+        $now = $this->clock?->now() ?? new DateTimeImmutable;
+        $filename = $now->format('Ymd_His') . '_' . $slug . '.sql';
         $path = $this->migrationsPath . '/' . $filename;
 
-        file_put_contents($path, $this->template($name));
+        file_put_contents($path, $this->template($name, $now));
 
         $output->success("Created {$filename}");
 
@@ -61,10 +67,10 @@ final class MakeMigrationCommand extends Command
         return trim($slug, '_');
     }
 
-    private function template(string $name): string
+    private function template(string $name, DateTimeImmutable $now): string
     {
         return "-- Migration: {$name}\n"
-            . '-- Created: ' . date('Y-m-d H:i:s') . "\n"
+            . '-- Created: ' . $now->format('Y-m-d H:i:s') . "\n"
             . "-- Forward-only. One logical change per migration — MariaDB has no transactional DDL.\n\n";
     }
 }

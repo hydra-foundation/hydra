@@ -110,7 +110,7 @@ final class AdminEventsTest extends TestCase
     {
         $this->admin->controller->destroy($this->admin->request('POST', '/admin/users/1/delete'));
 
-        $this->assertSame([], $this->admin->events->dispatched);
+        $this->admin->events->assertNothingDispatched();
     }
 
     public function test_a_write_the_source_refused_announces_nothing(): void
@@ -120,7 +120,7 @@ final class AdminEventsTest extends TestCase
             $this->admin->request('POST', '/admin/users/new', [], ['username' => 'taken']),
         );
 
-        $this->assertSame([], $this->admin->events->dispatched);
+        $this->admin->events->assertNothingDispatched();
     }
 
     public function test_a_delete_the_source_refused_announces_nothing(): void
@@ -129,7 +129,7 @@ final class AdminEventsTest extends TestCase
         $this->admin->controller->destroy($this->admin->request('POST', '/admin/users/1/delete'));
 
         $this->assertNotNull($this->source->find('1'));
-        $this->assertSame([], $this->admin->events->dispatched);
+        $this->admin->events->assertNothingDispatched();
     }
 
     public function test_a_submission_that_fails_validation_announces_nothing(): void
@@ -138,7 +138,7 @@ final class AdminEventsTest extends TestCase
             $this->admin->request('POST', '/admin/users/new', [], ['username' => '']),
         );
 
-        $this->assertSame([], $this->admin->events->dispatched);
+        $this->admin->events->assertNothingDispatched();
     }
 
     public function test_reading_a_screen_announces_nothing(): void
@@ -147,7 +147,7 @@ final class AdminEventsTest extends TestCase
         $this->admin->controller->show($this->admin->request('GET', '/admin/users/2'));
         $this->admin->controller->edit($this->admin->request('GET', '/admin/users/2/edit'));
 
-        $this->assertSame([], $this->admin->events->dispatched);
+        $this->admin->events->assertNothingDispatched();
     }
 
     /**
@@ -209,7 +209,7 @@ final class AdminEventsTest extends TestCase
             static fn (object $event): string => $event instanceof AdminEvent
                 ? $event->action()
                 : get_debug_type($event),
-            $this->admin->events->dispatched,
+            $this->admin->events->dispatched(),
         );
 
         $this->assertSame(['admin.row_created', 'admin.row_updated', 'admin.row_deleted'], $actions);
@@ -245,7 +245,7 @@ final class AdminEventsTest extends TestCase
      */
     private function announced(string $type, ?AdminHarness $admin = null): AdminEvent
     {
-        $event = ($admin ?? $this->admin)->events->dispatched[0] ?? null;
+        $event = ($admin ?? $this->admin)->events->dispatched()[0] ?? null;
 
         if (!$event instanceof $type) {
             $this->fail(sprintf(

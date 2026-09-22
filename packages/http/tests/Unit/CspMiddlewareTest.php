@@ -7,12 +7,11 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Http\Csp;
 use Hydra\Http\CspMiddleware;
 use Hydra\Http\CspNonce;
+use Hydra\Http\Testing\FakeHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * Stamping the policy on the response: the request's own nonce named in it,
@@ -96,21 +95,11 @@ final class CspMiddlewareTest extends TestCase
         return (new Psr17Factory)->createServerRequest('GET', '/');
     }
 
-    private function handler(int $status = 200, string $body = '', ?string $policy = null): RequestHandlerInterface
+    private function handler(int $status = 200, string $body = '', ?string $policy = null): FakeHandler
     {
-        return new class ($status, $body, $policy) implements RequestHandlerInterface {
-            public function __construct(private int $status, private string $body, private ?string $policy) {}
+        $factory = new Psr17Factory;
+        $response = $factory->createResponse($status)->withBody($factory->createStream($body));
 
-            public function handle(ServerRequestInterface $request): ResponseInterface
-            {
-                $factory = new Psr17Factory;
-                $response = $factory->createResponse($this->status)
-                    ->withBody($factory->createStream($this->body));
-
-                return $this->policy === null
-                    ? $response
-                    : $response->withHeader('Content-Security-Policy', $this->policy);
-            }
-        };
+        return FakeHandler::respondingWith($policy === null ? $response : $response->withHeader('Content-Security-Policy', $policy));
     }
 }

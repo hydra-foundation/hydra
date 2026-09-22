@@ -7,6 +7,7 @@ namespace Hydra\Cache\Tests\Unit;
 use Hydra\Cache\ArrayStore;
 use Hydra\Cache\Contracts\StoreInterface;
 use Hydra\Cache\Testing\StoreContractTestCase;
+use Hydra\Core\Testing\FrozenClock;
 use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
@@ -19,12 +20,12 @@ final class ArrayStoreTest extends StoreContractTestCase
 {
     private ArrayStore $store;
 
-    private float $now;
+    private FrozenClock $clock;
 
     protected function setUp(): void
     {
-        $this->now = microtime(true);
-        $this->store = new ArrayStore(fn (): float => $this->now);
+        $this->clock = new FrozenClock;
+        $this->store = ArrayStore::withClock($this->clock);
     }
 
     protected function store(): StoreInterface
@@ -34,7 +35,7 @@ final class ArrayStoreTest extends StoreContractTestCase
 
     protected function advance(int $seconds): void
     {
-        $this->now += $seconds;
+        $this->clock->advance("+{$seconds} seconds");
     }
 
     public function test_it_reads_the_real_clock_when_given_none(): void
@@ -49,5 +50,18 @@ final class ArrayStoreTest extends StoreContractTestCase
 
         $this->assertSame('value', $store->get('brief'));
         $this->assertSame(60, $store->ttl('brief'));
+    }
+
+    public function test_a_closure_serves_as_the_clock(): void
+    {
+        $now = 1_000.0;
+        $store = new ArrayStore(static function () use (&$now): float {
+            return $now;
+        });
+        $store->put('k', 'v', 10);
+
+        $now += 10;
+
+        $this->assertNull($store->get('k'));
     }
 }

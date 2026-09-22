@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Hydra\Log;
 
+use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Psr\Log\AbstractLogger;
 use Stringable;
 use Throwable;
@@ -14,14 +16,20 @@ use Throwable;
  */
 final class StreamLogger extends AbstractLogger
 {
-    /** @param resource $stream */
-    public function __construct(private $stream) {}
+    /**
+     * @param resource $stream
+     * @param ClockInterface|null $clock stamps each line; null for the wall clock
+     */
+    public function __construct(
+        private $stream,
+        private readonly ?ClockInterface $clock = null,
+    ) {}
 
     public function log($level, string|Stringable $message, array $context = []): void
     {
         $line = sprintf(
             "[%s] %s: %s%s\n",
-            date(DATE_ATOM),
+            ($this->clock?->now() ?? new DateTimeImmutable)->format(DATE_ATOM),
             strtoupper((string) $level),
             $this->interpolate((string) $message, $context),
             $this->renderContext($context),

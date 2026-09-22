@@ -6,6 +6,8 @@ namespace Hydra\Throttle\Tests\Unit;
 
 use Hydra\Cache\ArrayStore;
 use Hydra\Cache\Contracts\StoreInterface;
+use Hydra\Cache\Testing\FakeStore;
+use Hydra\Core\Testing\FrozenClock;
 use Hydra\Http\ClientIpResolver;
 use Hydra\Http\TrustedProxies;
 use Hydra\Throttle\Exceptions\TooManyRequestsException;
@@ -18,44 +20,6 @@ use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 
 /**
- * A store that cannot be reached. RedisStore raises rather than returning a
- * count of zero, and the limiter has to carry that up rather than treat an
- * uncountable request as an allowed one.
- */
-final class UnreachableStore implements StoreInterface
-{
-    public function get(string $key): mixed
-    {
-        throw new RuntimeException('Cache store is unavailable.');
-    }
-
-    public function put(string $key, mixed $value, int $ttl = 0): void
-    {
-        throw new RuntimeException('Cache store is unavailable.');
-    }
-
-    public function forget(string $key): void
-    {
-        throw new RuntimeException('Cache store is unavailable.');
-    }
-
-    public function increment(string $key, int $by = 1, int $ttl = 0): int
-    {
-        throw new RuntimeException('Cache store is unavailable.');
-    }
-
-    public function ttl(string $key): int
-    {
-        throw new RuntimeException('Cache store is unavailable.');
-    }
-
-    public function flush(): void
-    {
-        throw new RuntimeException('Cache store is unavailable.');
-    }
-}
-
-/**
  * What the limiter counts and, more to the point, who it counts it against. A
  * budget is only worth the identity it is keyed on: if a caller can vary that,
  * the limit is a formality.
@@ -65,12 +29,12 @@ final class RateLimiterTest extends TestCase
 {
     private ArrayStore $store;
 
-    private float $now;
+    private FrozenClock $clock;
 
     protected function setUp(): void
     {
-        $this->now = microtime(true);
-        $this->store = new ArrayStore(fn (): float => $this->now);
+        $this->clock = new FrozenClock;
+        $this->store = ArrayStore::withClock($this->clock);
     }
 
     public function test_requests_inside_the_budget_are_allowed(): void
@@ -201,7 +165,7 @@ final class RateLimiterTest extends TestCase
         // The fail-open a limiter cannot have. The store raising is the correct
         // outcome: the error handler turns it into a 500, and the application
         // stops serving requests it has no way to count.
-        $limiter = new RateLimiter(new UnreachableStore, new ClientIpResolver(TrustedProxies::none()));
+        $limiter = new RateLimiter((new FakeStore)->failAll(), new ClientIpResolver(TrustedProxies::none()));
 
         $this->expectException(RuntimeException::class);
 
@@ -277,7 +241,7 @@ final class RateLimiterTest extends TestCase
      */
     private function advance(int $seconds): void
     {
-        $this->now += $seconds;
+        $this->clock->advance("+{$seconds} seconds");
     }
 
     private function limiter(?TrustedProxies $proxies = null): RateLimiter

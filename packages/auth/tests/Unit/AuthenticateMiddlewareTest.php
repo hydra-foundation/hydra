@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace Hydra\Auth\Tests\Unit;
 
 use Hydra\Auth\AuthenticateMiddleware;
-use Hydra\Auth\Contracts\AuthenticatableInterface;
-use Hydra\Auth\Contracts\GuardInterface;
 use Hydra\Auth\Exceptions\AuthenticationException;
 use Hydra\Auth\Testing\FakeGuard;
 use Hydra\Auth\Testing\FakeUser;
+use Hydra\Http\Testing\FakeHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * The middleware's only decision: an authenticated request reaches the handler,
@@ -27,24 +24,24 @@ final class AuthenticateMiddlewareTest extends TestCase
     public function test_authenticated_request_reaches_the_handler(): void
     {
         $middleware = new AuthenticateMiddleware(FakeGuard::signedInAs(new FakeUser));
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $middleware->process($this->request(), $handler);
 
-        $this->assertSame(1, $handler->calls);
+        $handler->assertHandled();
     }
 
     public function test_unauthenticated_request_is_rejected_before_the_handler(): void
     {
         $middleware = new AuthenticateMiddleware(FakeGuard::guest());
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $this->expectException(AuthenticationException::class);
 
         try {
             $middleware->process($this->request(), $handler);
         } finally {
-            $this->assertSame(0, $handler->calls);
+            $handler->assertNotHandled();
         }
     }
 
@@ -53,7 +50,7 @@ final class AuthenticateMiddlewareTest extends TestCase
         $middleware = new AuthenticateMiddleware(FakeGuard::guest());
 
         try {
-            $middleware->process($this->request(), new RecordingHandler);
+            $middleware->process($this->request(), FakeHandler::respondingWith((new Psr17Factory)->createResponse(200)));
             $this->fail('Expected an AuthenticationException.');
         } catch (AuthenticationException $e) {
             $this->assertSame(401, $e->status());
@@ -63,17 +60,5 @@ final class AuthenticateMiddlewareTest extends TestCase
     private function request(): ServerRequestInterface
     {
         return (new Psr17Factory)->createServerRequest('GET', '/dashboard');
-    }
-}
-
-/** Counts how many times it was reached. */
-final class RecordingHandler implements RequestHandlerInterface
-{
-    public int $calls = 0;
-
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        $this->calls++;
-        return (new Psr17Factory)->createResponse(200);
     }
 }

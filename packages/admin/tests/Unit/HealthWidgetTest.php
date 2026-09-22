@@ -11,10 +11,10 @@ use Hydra\Admin\Widgets\UptimeWidget;
 use Hydra\Cache\ArrayStore;
 use Hydra\Cache\CacheConfig;
 use Hydra\Cache\Contracts\StoreInterface;
+use Hydra\Cache\Testing\FakeStore;
 use Hydra\Core\Environment;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 /**
  * The health cards the package ships, and the one property they share: a probe
@@ -49,7 +49,7 @@ final class HealthWidgetTest extends TestCase
 
     public function test_a_store_that_accepts_a_value_and_loses_it_is_reported_down(): void
     {
-        $card = $this->cache($this->store(loses: true, opens: true), CacheConfig::ARRAY)->present();
+        $card = $this->cache($this->forgetful(), CacheConfig::ARRAY)->present();
 
         $this->assertSame(Status::Down, $card['status']);
         $this->assertSame('Not storing', $card['headline']);
@@ -57,7 +57,7 @@ final class HealthWidgetTest extends TestCase
 
     public function test_a_store_that_will_not_open_is_a_card_and_not_an_exception(): void
     {
-        $card = $this->cache($this->store(loses: false, opens: false), CacheConfig::REDIS)->present();
+        $card = $this->cache((new FakeStore)->failAll(), CacheConfig::REDIS)->present();
 
         $this->assertSame(Status::Down, $card['status']);
         $this->assertSame('No answer', $card['headline']);
@@ -152,22 +152,16 @@ final class HealthWidgetTest extends TestCase
         return new CacheWidget($store, new CacheConfig(driver: $driver, host: 'redis', port: 6379));
     }
 
-    private function store(bool $loses, bool $opens): StoreInterface
+    /** Takes every write and keeps none of it, which no store a test can configure does. */
+    private function forgetful(): StoreInterface
     {
-        return new class ($loses, $opens) implements StoreInterface {
-            public function __construct(private readonly bool $loses, private readonly bool $opens) {}
-
+        return new class implements StoreInterface {
             public function get(string $key): mixed
             {
-                return $this->loses ? null : 'whatever';
+                return null;
             }
 
-            public function put(string $key, mixed $value, int $ttl = 0): void
-            {
-                if (!$this->opens) {
-                    throw new RuntimeException('Connection refused');
-                }
-            }
+            public function put(string $key, mixed $value, int $ttl = 0): void {}
 
             public function forget(string $key): void {}
 

@@ -20,7 +20,7 @@ use Hydra\Admin\Tests\Support\CrudUsersModule;
 use Hydra\Admin\Tests\Support\UsersModule;
 use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Http\CspNonce;
-use Hydra\Admin\Tests\Support\RecordingDispatcher;
+use Hydra\Event\Testing\FakeDispatcher;
 use Hydra\Http\Responder;
 use Hydra\Validation\Validator;
 use Hydra\View\Contracts\ViewInterface;
@@ -140,7 +140,7 @@ final class AdminServiceProviderTest extends TestCase
      */
     public function test_the_controller_is_handed_the_dispatcher_the_application_bound(): void
     {
-        $events = new RecordingDispatcher;
+        $events = new FakeDispatcher;
         $container = $this->container([
             CrudUsersModule::class => new CrudUsersModule,
             CrudUserSource::class => new CrudUserSource,
@@ -150,7 +150,7 @@ final class AdminServiceProviderTest extends TestCase
         (new AdminServiceProvider([CrudUsersModule::class]))->register($container);
         $container->get(AdminController::class)->store($this->write('/admin/users/new', ['username' => 'linus']));
 
-        $this->assertInstanceOf(RowCreated::class, $events->dispatched[0] ?? null);
+        $this->assertInstanceOf(RowCreated::class, $events->dispatched()[0] ?? null);
     }
 
     public function test_an_application_with_no_dispatcher_still_gets_a_working_controller(): void

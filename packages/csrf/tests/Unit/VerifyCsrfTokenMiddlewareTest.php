@@ -8,13 +8,12 @@ use Hydra\Core\Security\Signer;
 use Hydra\Csrf\CsrfGuard;
 use Hydra\Csrf\Exceptions\TokenMismatchException;
 use Hydra\Csrf\VerifyCsrfTokenMiddleware;
+use Hydra\Http\Testing\FakeHandler;
 use Hydra\Session\Stores\ArraySessionStore;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * Which requests are guarded and which are not. Safe verbs pass untouched;
@@ -28,14 +27,14 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
     {
         $guard = $this->guard();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         foreach (['GET', 'HEAD', 'OPTIONS'] as $method) {
             $middleware->process($this->request($method, '/x'), $handler);
         }
 
         // No side effects, so no token required: the handler ran each time.
-        $this->assertSame(3, $handler->calls);
+        $handler->assertHandled(3);
     }
 
     public function test_unsafe_method_with_a_valid_token_in_the_header_passes(): void
@@ -43,12 +42,12 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $guard = $this->guard();
         $token = $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $request = $this->request('POST', '/x')->withHeader(CsrfGuard::HEADER, $token);
         $middleware->process($request, $handler);
 
-        $this->assertSame(1, $handler->calls);
+        $handler->assertHandled();
     }
 
     public function test_unsafe_method_with_a_valid_token_in_the_form_field_passes(): void
@@ -56,12 +55,12 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $guard = $this->guard();
         $token = $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $request = $this->request('POST', '/x')->withParsedBody([CsrfGuard::FIELD => $token]);
         $middleware->process($request, $handler);
 
-        $this->assertSame(1, $handler->calls);
+        $handler->assertHandled();
     }
 
     public function test_unsafe_method_without_a_token_is_rejected(): void
@@ -69,7 +68,7 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $guard = $this->guard();
         $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $this->expectException(TokenMismatchException::class);
 
@@ -77,7 +76,7 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
             $middleware->process($this->request('POST', '/x'), $handler);
         } finally {
             // The request was stopped before the controller ran.
-            $this->assertSame(0, $handler->calls);
+            $handler->assertNotHandled();
         }
     }
 
@@ -86,7 +85,7 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $guard = $this->guard();
         $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $request = $this->request('POST', '/x')->withHeader(CsrfGuard::HEADER, 'wrong');
 
@@ -101,7 +100,7 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $middleware = new VerifyCsrfTokenMiddleware($guard);
 
         try {
-            $middleware->process($this->request('POST', '/x'), new RecordingHandler);
+            $middleware->process($this->request('POST', '/x'), FakeHandler::respondingWith((new Psr17Factory)->createResponse(200)));
             $this->fail('Expected a TokenMismatchException.');
         } catch (TokenMismatchException $e) {
             $this->assertSame(403, $e->status());
@@ -117,13 +116,13 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
             $guard = $this->guard();
             $guard->token();
             $middleware = new VerifyCsrfTokenMiddleware($guard);
-            $handler = new RecordingHandler;
+            $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
             try {
                 $middleware->process($this->request($method, '/x'), $handler);
                 $this->fail("Expected {$method} without a token to be rejected.");
             } catch (TokenMismatchException) {
-                $this->assertSame(0, $handler->calls, "{$method} reached the handler without a token");
+                $this->assertCount(0, $handler->requests(), "{$method} reached the handler without a token");
             }
         }
     }
@@ -136,14 +135,14 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $guard = $this->guard();
         $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $this->expectException(TokenMismatchException::class);
 
         try {
             $middleware->process($this->request('post', '/x'), $handler);
         } finally {
-            $this->assertSame(0, $handler->calls);
+            $handler->assertNotHandled();
         }
     }
 
@@ -151,11 +150,11 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
     {
         $guard = $this->guard();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $middleware->process($this->request('get', '/x'), $handler);
 
-        $this->assertSame(1, $handler->calls);
+        $handler->assertHandled();
     }
 
     public function test_every_unsafe_method_is_guarded(): void
@@ -168,19 +167,19 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
             $middleware = new VerifyCsrfTokenMiddleware($guard);
 
             // Without a token: rejected, handler never reached.
-            $handler = new RecordingHandler;
+            $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
             try {
                 $middleware->process($this->request($method, '/x'), $handler);
                 $this->fail("Expected {$method} without a token to be rejected.");
             } catch (TokenMismatchException) {
-                $this->assertSame(0, $handler->calls, "{$method} reached the handler without a token");
+                $this->assertCount(0, $handler->requests(), "{$method} reached the handler without a token");
             }
 
             // With a valid token: passes through.
-            $passed = new RecordingHandler;
+            $passed = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
             $request = $this->request($method, '/x')->withHeader(CsrfGuard::HEADER, $token);
             $middleware->process($request, $passed);
-            $this->assertSame(1, $passed->calls, "{$method} with a valid token was blocked");
+            $this->assertCount(1, $passed->requests(), "{$method} with a valid token was blocked");
         }
     }
 
@@ -192,14 +191,14 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $guard = $this->guard();
         $token = $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $request = $this->request('POST', '/x')
             ->withHeader(CsrfGuard::HEADER, '')
             ->withParsedBody([CsrfGuard::FIELD => $token]);
         $middleware->process($request, $handler);
 
-        $this->assertSame(1, $handler->calls);
+        $handler->assertHandled();
     }
 
     public function test_non_array_parsed_body_is_treated_as_no_token(): void
@@ -209,7 +208,7 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $guard = $this->guard();
         $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $request = $this->request('POST', '/x')->withParsedBody((object) [CsrfGuard::FIELD => 'x']);
 
@@ -218,7 +217,7 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         try {
             $middleware->process($request, $handler);
         } finally {
-            $this->assertSame(0, $handler->calls);
+            $handler->assertNotHandled();
         }
     }
 
@@ -230,14 +229,14 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $guard = $this->guard();
         $token = $guard->token();
         $middleware = new VerifyCsrfTokenMiddleware($guard);
-        $handler = new RecordingHandler;
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
 
         $request = $this->request('POST', '/x')
             ->withHeader(CsrfGuard::HEADER, $token)
             ->withParsedBody([CsrfGuard::FIELD => 'garbage']);
         $middleware->process($request, $handler);
 
-        $this->assertSame(1, $handler->calls);
+        $handler->assertHandled();
     }
 
     private function request(string $method, string $path): ServerRequestInterface
@@ -261,17 +260,5 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $store->start();
 
         return $store;
-    }
-}
-
-/** Counts how many times the inner handler was reached. */
-final class RecordingHandler implements RequestHandlerInterface
-{
-    public int $calls = 0;
-
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        $this->calls++;
-        return (new Psr17Factory)->createResponse(200);
     }
 }
