@@ -14,8 +14,11 @@
             "packages/throttle/src",
             "packages/http/src"
         ],
+        // Relative to each directory above, not to the root: written as
+        // packages/*/src/Testing it matched nothing, and went unnoticed only
+        // while phpunit.xml kept src/Testing out of coverage.
         excludes: [
-            "packages/*/src/Testing"
+            "Testing"
         ]
     },
     timeout: 10,
