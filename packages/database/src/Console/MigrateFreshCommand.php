@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Hydra\Console\Commands;
+namespace Hydra\Database\Console;
 
 use Hydra\Console\Attributes\AsCommand;
 use Hydra\Console\Command;

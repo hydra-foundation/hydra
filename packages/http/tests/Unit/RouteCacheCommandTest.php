@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Hydra\Console\Tests\Unit;
+namespace Hydra\Http\Tests\Unit;
 
-use Hydra\Console\Commands\RouteCacheClearCommand;
-use Hydra\Console\Commands\RouteCacheCommand;
+use Hydra\Http\Console\RouteCacheClearCommand;
+use Hydra\Http\Console\RouteCacheCommand;
 use Hydra\Console\ExitCode;
 use Hydra\Console\ArrayInput;
 use Hydra\Console\Testing\FakeOutput;
