@@ -7,12 +7,13 @@ namespace Hydra\Authorization\Tests\Unit;
 use Hydra\Auth\Contracts\AuthenticatableInterface;
 use Hydra\Auth\Contracts\GuardInterface;
 use Hydra\Authorization\Contracts\AbilityInterface;
+use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Authorization\Exceptions\AuthorizationException;
 use Hydra\Authorization\Gate;
 use Hydra\Core\Contracts\ContainerInterface;
 use InvalidArgumentException;
+use Hydra\Authorization\Testing\GateContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 
 /**
  * The gate is driven against a real ability resolved through a fake container
@@ -21,7 +22,7 @@ use PHPUnit\Framework\TestCase;
  * compose-user-with-ability path, not a mock of the verdict.
  */
 #[CoversClass(Gate::class)]
-final class GateTest extends TestCase
+final class GateTest extends GateContractTestCase
 {
     private FakeGuard $guard;
     private FakeContainer $container;
@@ -35,6 +36,23 @@ final class GateTest extends TestCase
     private function gate(): Gate
     {
         return new Gate($this->container, $this->guard);
+    }
+
+    /**
+     * The published contract, answered by the shipped gate: an ability bound
+     * under the name the contract case asks about, granting or refusing.
+     */
+    protected function gateDeciding(bool $allows): GateInterface
+    {
+        $container = new FakeContainer;
+        $container->register($this->ability(), $allows ? new AlwaysAllow : new AlwaysDeny);
+
+        return new Gate($container, new FakeGuard);
+    }
+
+    protected function ability(): string
+    {
+        return AlwaysAllow::class;
     }
 
     public function test_allows_when_the_ability_grants(): void
