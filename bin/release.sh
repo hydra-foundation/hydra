@@ -7,7 +7,7 @@
 #   bin/release.sh 0.4.0 --minor --push  # also rewrite the ^0.3 constraints first
 #
 # Two repositories are tagged: the hydra monorepo and the app skeleton. The
-# eighteen hydrakit/* package repositories are not touched here — the split
+# hydrakit/* package repositories are not touched here — the split
 # workflow regenerates them from the monorepo tag, and pushing to them by
 # hand would be overwritten.
 #
@@ -38,7 +38,8 @@ REPOS=(hydra app)
 # that has to be kept in step by hand is one that drifts the next time a
 # package is added.
 PACKAGES=(admin auth authorization cache console core csrf database event http
-          kernel log mail nyholm php-di session throttle validation view)
+          kernel log mail nyholm php-di session symfony-console throttle
+          validation view)
 
 VERSION=""
 DO_PUSH=0
