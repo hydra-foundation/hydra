@@ -52,6 +52,13 @@ jobs:
           done
           exit $status
 
+      # Before composer, because it needs nothing installed and the answer is
+      # about the interpreter. PHPUnit only compiles the files a test reaches,
+      # so source no suite loads can hold syntax from a newer PHP and pass the
+      # whole gate; on the 8.2 leg this step is the only thing that says so.
+      - name: Parse every file
+        run: bin/syntax.sh
+
       - uses: ramsey/composer-install@v3
 
       # Randomised order so cross-package pollution through putenv()/$_ENV

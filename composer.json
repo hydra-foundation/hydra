@@ -117,10 +117,12 @@
     },
     "scripts": {
         "stan": "phpstan analyse",
+        "syntax": "bin/syntax.sh",
         "lint": "php-cs-fixer check --diff",
         "lint:fix": "php-cs-fixer fix",
         "test": "phpunit --order-by=random",
         "qa": [
+            "@syntax",
             "@stan",
             "@lint",
             "@test"
