@@ -12,7 +12,7 @@ use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\ModuleScanner;
 use Hydra\Admin\Screens\DeleteScreen;
 use Hydra\Admin\Screens\RowPath;
-use Hydra\Admin\Tests\Support\ArrayContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -70,7 +70,7 @@ final class DeleteScreenTest extends TestCase
 
     public function test_the_path_resolves_back_to_the_screen(): void
     {
-        $registry = new ModuleRegistry(new ArrayContainer([]), []);
+        $registry = new ModuleRegistry(new FakeContainer([]), []);
 
         $this->assertSame(
             'delete',

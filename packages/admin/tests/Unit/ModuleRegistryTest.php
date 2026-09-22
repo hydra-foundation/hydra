@@ -12,7 +12,7 @@ use Hydra\Admin\Field;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Screens\DeleteScreen;
 use Hydra\Admin\Screens\ShowScreen;
-use Hydra\Admin\Tests\Support\ArrayContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\Tests\Support\ArrayWritableSource;
 use Hydra\Admin\Tests\Support\ArrayRowSource;
 use Hydra\Admin\Tests\Support\ArraySource;
@@ -84,7 +84,7 @@ final class ModuleRegistryTest extends TestCase
             ->screens(ShowScreen::make(), DeleteScreen::make('{id}'))
             ->compile();
 
-        $registry = new ModuleRegistry(new ArrayContainer([]), []);
+        $registry = new ModuleRegistry(new FakeContainer([]), []);
 
         $this->assertSame('show', $registry->screenAt($blueprint, '/admin/users/42', 'GET')?->name());
         $this->assertSame('delete', $registry->screenAt($blueprint, '/admin/users/42', 'POST')?->name());
@@ -191,7 +191,7 @@ final class ModuleRegistryTest extends TestCase
     private function viewableRegistry(): ModuleRegistry
     {
         return new ModuleRegistry(
-            new ArrayContainer([
+            new FakeContainer([
                 ViewableUsersModule::class => new ViewableUsersModule,
                 ArrayRowSource::class => new ArrayRowSource,
             ]),
@@ -202,7 +202,7 @@ final class ModuleRegistryTest extends TestCase
     private function editableRegistry(): ModuleRegistry
     {
         return new ModuleRegistry(
-            new ArrayContainer([
+            new FakeContainer([
                 EditableUsersModule::class => new EditableUsersModule,
                 ArrayWritableSource::class => new ArrayWritableSource,
             ]),
@@ -213,7 +213,7 @@ final class ModuleRegistryTest extends TestCase
     private function registry(): ModuleRegistry
     {
         return new ModuleRegistry(
-            new ArrayContainer([
+            new FakeContainer([
                 UsersModule::class => new UsersModule,
                 ArraySource::class => new ArraySource([['id' => 1], ['id' => 2]]),
             ]),

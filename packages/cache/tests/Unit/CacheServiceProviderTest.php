@@ -9,7 +9,7 @@ use Hydra\Cache\CacheConfig;
 use Hydra\Cache\CacheServiceProvider;
 use Hydra\Cache\Contracts\StoreInterface;
 use Hydra\Cache\RedisStore;
-use Hydra\Cache\Tests\Support\TestContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Core\Environment;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -157,9 +157,9 @@ final class CacheServiceProviderTest extends TestCase
     }
 
     /** @param array<string, string> $env */
-    private function register(array $env): TestContainer
+    private function register(array $env): FakeContainer
     {
-        $container = new TestContainer([Environment::class => $this->environment($env)]);
+        $container = new FakeContainer([Environment::class => $this->environment($env)]);
         (new CacheServiceProvider)->register($container);
 
         return $container;

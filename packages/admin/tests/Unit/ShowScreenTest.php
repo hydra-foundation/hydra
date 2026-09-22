@@ -15,7 +15,7 @@ use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\PageScreen;
 use Hydra\Admin\Screens\RowPath;
 use Hydra\Admin\Screens\ShowScreen;
-use Hydra\Admin\Tests\Support\ArrayContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -66,7 +66,7 @@ final class ShowScreenTest extends TestCase
             ->screens(ShowScreen::make(), PageScreen::make('new', 'admin/new')->at('new'))
             ->compile();
 
-        $registry = new ModuleRegistry(new ArrayContainer([]), []);
+        $registry = new ModuleRegistry(new FakeContainer([]), []);
 
         $this->assertSame('new', $registry->screenAt($blueprint, '/admin/users/new', 'GET')?->name());
         $this->assertSame('show', $registry->screenAt($blueprint, '/admin/users/42', 'GET')?->name());

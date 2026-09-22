@@ -10,6 +10,7 @@ use DateTimeZone;
 use Hydra\Core\Clock\ClockServiceProvider;
 use Hydra\Core\Clock\SystemClock;
 use Hydra\Core\Contracts\ContainerInterface;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Core\Testing\FrozenClock;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -113,36 +114,6 @@ final class ClockTest extends TestCase
 
     private function container(): ContainerInterface
     {
-        return new class implements ContainerInterface {
-            /** @var array<string, callable> */
-            private array $factories = [];
-            /** @var array<string, mixed> */
-            private array $resolved = [];
-
-            public function get(string $id): mixed
-            {
-                return $this->resolved[$id] ??= ($this->factories[$id])();
-            }
-
-            public function has(string $id): bool
-            {
-                return isset($this->factories[$id]) || isset($this->resolved[$id]);
-            }
-
-            public function singleton(string $abstract, callable|string $concrete): void
-            {
-                $this->factories[$abstract] = is_callable($concrete) ? $concrete : fn () => new $concrete();
-            }
-
-            public function instance(string $abstract, object $instance): void
-            {
-                $this->resolved[$abstract] = $instance;
-            }
-
-            public function bound(string $abstract): bool
-            {
-                return $this->has($abstract);
-            }
-        };
+        return new FakeContainer;
     }
 }

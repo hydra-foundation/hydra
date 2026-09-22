@@ -16,7 +16,7 @@ use Hydra\Mail\Message;
 use Hydra\Mail\MimeRenderer;
 use Hydra\Mail\Testing\FakeMailServiceProvider;
 use Hydra\Mail\Testing\FakeMailer;
-use Hydra\Mail\Tests\Support\TestContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Mail\Transports\ArrayTransport;
 use Hydra\Mail\Transports\LogTransport;
 use Hydra\Mail\Transports\SmtpTransport;
@@ -29,9 +29,9 @@ use Psr\Log\LoggerInterface;
 #[CoversClass(FakeMailServiceProvider::class)]
 final class MailServiceProviderTest extends TestCase
 {
-    private function container(MailConfig $config): TestContainer
+    private function container(MailConfig $config): FakeContainer
     {
-        $container = new TestContainer([LoggerInterface::class => new CapturingLogger]);
+        $container = new FakeContainer([LoggerInterface::class => new CapturingLogger]);
         (new MailServiceProvider)->register($container);
         $container->instance(MailConfig::class, $config);
 
@@ -77,7 +77,7 @@ final class MailServiceProviderTest extends TestCase
 
     public function test_nothing_is_configured_until_the_mailer_is_asked_for(): void
     {
-        $container = new TestContainer([Environment::class => new Environment(sys_get_temp_dir())]);
+        $container = new FakeContainer([Environment::class => new Environment(sys_get_temp_dir())]);
         (new MailServiceProvider)->register($container);
 
         $this->assertFalse($container->isResolved(MailConfig::class));

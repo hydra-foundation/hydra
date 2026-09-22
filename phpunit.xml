@@ -123,13 +123,15 @@
             <directory>packages/view/src</directory>
         </include>
         <!--
-            src/Testing holds the published contract cases: abstract TestCase
-            subclasses a consumer extends to check their own implementation.
-            They are shipped code, not tested code, and counting them would
-            credit each package with lines its subclasses execute for free.
+            The contract cases in src/Testing are abstract TestCase subclasses a
+            consumer extends to check their own implementation. Counting them
+            would credit each package with lines its subclasses execute for
+            free. The fakes beside them are counted: they are shipped code, and
+            excluding the whole directory hid 60 lines of FakeOutput that no
+            test declared.
         -->
         <exclude>
-            <directory>packages/*/src/Testing</directory>
+            <directory suffix="ContractTestCase.php">packages/*/src/Testing</directory>
         </exclude>
     </source>
 </phpunit>

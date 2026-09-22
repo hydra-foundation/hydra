@@ -7,7 +7,7 @@ namespace Hydra\Nyholm\Tests\Unit;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
 use Hydra\Nyholm\NyholmRequestProvider;
 use Hydra\Nyholm\NyholmServiceProvider;
-use Hydra\Nyholm\Tests\Support\FakeContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;

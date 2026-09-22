@@ -9,7 +9,7 @@ use Hydra\Console\ArrayInput;
 use Hydra\Console\Testing\FakeOutput;
 use Hydra\Admin\Console\AdminRoutesCommand;
 use Hydra\Admin\ModuleRegistry;
-use Hydra\Admin\Tests\Support\ArrayContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\Tests\Support\ArrayWritableSource;
 use Hydra\Admin\Tests\Support\CrudUserSource;
 use Hydra\Admin\Tests\Support\CrudUsersModule;
@@ -168,13 +168,13 @@ final class AdminRoutesCommandTest extends TestCase
 
     private function registry(object $module): ModuleRegistry
     {
-        return new ModuleRegistry(new ArrayContainer([$module::class => $module]), [$module::class]);
+        return new ModuleRegistry(new FakeContainer([$module::class => $module]), [$module::class]);
     }
 
     private function display(object $module, string $sourceId, object $source): string
     {
         $registry = new ModuleRegistry(
-            new ArrayContainer([$module::class => $module, $sourceId => $source]),
+            new FakeContainer([$module::class => $module, $sourceId => $source]),
             [$module::class],
         );
 

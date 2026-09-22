@@ -10,7 +10,7 @@ use Hydra\Core\Application;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Kernel\Kernel;
-use Hydra\Kernel\Tests\Support\TestContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Session\Contracts\SessionInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +28,7 @@ final class KernelTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->container = new TestContainer;
+        $this->container = new FakeContainer;
         $app = Kernel::application($this->container, new Environment(__DIR__));
 
         $this->assertInstanceOf(Application::class, $app);

@@ -9,7 +9,7 @@ use Hydra\Admin\Chrome;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Navigation;
 use Hydra\Admin\Tests\Support\AdminsOnlyGate;
-use Hydra\Admin\Tests\Support\ArrayContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\DashboardModule;
 use Hydra\Admin\Tests\Support\UsersModule;
@@ -80,7 +80,7 @@ final class ChromeTest extends TestCase
     /** @param list<class-string<\Hydra\Admin\Contracts\ModuleInterface>>|null $order */
     private function registry(?array $order = null): ModuleRegistry
     {
-        $container = new ArrayContainer([
+        $container = new FakeContainer([
             DashboardModule::class => new DashboardModule,
             UsersModule::class => new UsersModule,
             ArraySource::class => new ArraySource,

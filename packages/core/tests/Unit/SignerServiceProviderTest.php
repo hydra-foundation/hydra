@@ -8,6 +8,7 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Security\Signer;
 use Hydra\Core\Security\SignerServiceProvider;
+use Hydra\Core\Testing\FakeContainer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -100,41 +101,6 @@ final class SignerServiceProviderTest extends TestCase
     /** A minimal container: resolves Environment, records/invokes singleton factories. */
     private function container(Environment $environment): ContainerInterface
     {
-        return new class ($environment) implements ContainerInterface {
-            /** @var array<string, callable> */
-            private array $factories = [];
-            /** @var array<string, mixed> */
-            private array $resolved = [];
-
-            public function __construct(private readonly Environment $environment) {}
-
-            public function get(string $id): mixed
-            {
-                if ($id === Environment::class) {
-                    return $this->environment;
-                }
-                return $this->resolved[$id] ??= ($this->factories[$id])();
-            }
-
-            public function has(string $id): bool
-            {
-                return $id === Environment::class || isset($this->factories[$id]);
-            }
-
-            public function singleton(string $abstract, callable|string $concrete): void
-            {
-                $this->factories[$abstract] = is_callable($concrete) ? $concrete : fn () => new $concrete();
-            }
-
-            public function instance(string $abstract, object $instance): void
-            {
-                $this->resolved[$abstract] = $instance;
-            }
-
-            public function bound(string $abstract): bool
-            {
-                return $this->has($abstract);
-            }
-        };
+        return new FakeContainer([Environment::class => $environment]);
     }
 }

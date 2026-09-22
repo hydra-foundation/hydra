@@ -2,19 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Hydra\Event\Tests\Support;
+namespace Hydra\Core\Testing;
 
 use Hydra\Core\Contracts\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
 
 /**
- * A container that resolves on get() rather than on singleton(), because that
- * is the difference a provider test is looking for: a binding built eagerly
- * would open the connections the provider deliberately defers, and would hide
- * a factory that closes over the wrong container.
+ * A container over two arrays, for a test that wires a provider by hand.
+ *
+ * Nothing is autowired. A class name given to singleton() is built with no
+ * arguments, and anything with dependencies wants a factory, which keeps what
+ * a provider test depends on written down in the test.
  */
-final class TestContainer implements ContainerInterface
+final class FakeContainer implements ContainerInterface
 {
     /** @var array<string, callable(): mixed> */
     private array $factories = [];
@@ -22,10 +23,10 @@ final class TestContainer implements ContainerInterface
     /** @var array<string, mixed> */
     private array $resolved = [];
 
-    /** @param array<string, object> $services */
-    public function __construct(array $services = [])
+    /** @param array<string, object> $instances bound as though by instance() */
+    public function __construct(array $instances = [])
     {
-        $this->resolved = $services;
+        $this->resolved = $instances;
     }
 
     public function get(string $id): mixed
@@ -34,11 +35,10 @@ final class TestContainer implements ContainerInterface
             return $this->resolved[$id];
         }
 
-        if (!isset($this->factories[$id])) {
-            throw new class ("Not bound: {$id}") extends RuntimeException implements NotFoundExceptionInterface {};
-        }
+        $factory = $this->factories[$id]
+            ?? throw new class ("Nothing is bound to {$id}.") extends RuntimeException implements NotFoundExceptionInterface {};
 
-        return $this->resolved[$id] = ($this->factories[$id])();
+        return $this->resolved[$id] = $factory();
     }
 
     public function has(string $id): bool
@@ -48,13 +48,17 @@ final class TestContainer implements ContainerInterface
 
     public function singleton(string $abstract, callable|string $concrete): void
     {
+        unset($this->resolved[$abstract]);
+
         $this->factories[$abstract] = is_string($concrete)
-            ? static fn () => new $concrete
+            ? static fn (): object => new $concrete
             : $concrete(...);
     }
 
     public function instance(string $abstract, object $instance): void
     {
+        unset($this->factories[$abstract]);
+
         $this->resolved[$abstract] = $instance;
     }
 
@@ -63,7 +67,7 @@ final class TestContainer implements ContainerInterface
         return $this->has($abstract);
     }
 
-    /** Whether get() has actually built the binding, as opposed to recorded it. */
+    /** Whether get() has built the binding, as opposed to it only being registered. */
     public function isResolved(string $abstract): bool
     {
         return array_key_exists($abstract, $this->resolved);

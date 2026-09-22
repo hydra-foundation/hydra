@@ -9,7 +9,7 @@ use Hydra\Http\Responder;
 use Hydra\Http\Testing\Client;
 use Hydra\Http\Testing\RequestPreparer;
 use Hydra\Http\Testing\TestResponse;
-use Hydra\Http\Tests\Support\FakeContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Http\Tests\Support\RecordingHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;

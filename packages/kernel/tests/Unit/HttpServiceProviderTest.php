@@ -14,7 +14,7 @@ use Hydra\Http\RouteCache;
 use Hydra\Http\Router;
 use Hydra\Kernel\HttpServiceProvider;
 use Hydra\Kernel\Tests\Support\StubController;
-use Hydra\Kernel\Tests\Support\TestContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -36,11 +36,11 @@ use Psr\Http\Server\RequestHandlerInterface;
 #[CoversClass(HttpServiceProvider::class)]
 final class HttpServiceProviderTest extends TestCase
 {
-    private TestContainer $container;
+    private FakeContainer $container;
 
     protected function setUp(): void
     {
-        $this->container = new TestContainer;
+        $this->container = new FakeContainer;
         // The strict container has no autowiring, so pre-bind the one class the
         // router resolves; the provider registers everything else.
         $this->container->instance(StubController::class, new StubController);
@@ -92,7 +92,7 @@ final class HttpServiceProviderTest extends TestCase
     {
         // Without a composition root filling the request-provider seam, the
         // kernel fails loud rather than silently defaulting to a vendor.
-        $bare = new TestContainer;
+        $bare = new FakeContainer;
         (new HttpServiceProvider(
             controllers: [],
             middleware: [],

@@ -8,22 +8,21 @@ use Hydra\Cache\ArrayStore;
 use Hydra\Cache\Contracts\StoreInterface;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Http\ClientIpResolver;
 use Hydra\Http\TrustedProxies;
 use Hydra\Throttle\Exceptions\TooManyRequestsException;
-use Hydra\Throttle\RateLimiter;
 use Hydra\Throttle\RateLimitMiddleware;
+use Hydra\Throttle\RateLimiter;
 use Hydra\Throttle\ThrottleConfig;
 use Hydra\Throttle\ThrottleServiceProvider;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use RuntimeException;
 
 /**
  * The wiring, which is where a limiter most plausibly ends up doing nothing:
@@ -36,8 +35,8 @@ final class ThrottleServiceProviderTest extends TestCase
     public function test_the_middleware_runs_the_configured_budget(): void
     {
         $container = $this->container();
-        $container->instance(ThrottleConfig::class, new ThrottleConfig(limit: 1, window: 60));
         (new ThrottleServiceProvider)->register($container);
+        $container->instance(ThrottleConfig::class, new ThrottleConfig(limit: 1, window: 60));
 
         $middleware = $container->get(RateLimitMiddleware::class);
         $handler = new StubHandler;
@@ -75,59 +74,11 @@ final class ThrottleServiceProviderTest extends TestCase
     /** A minimal strict container, preloaded with what the package expects bound. */
     private function container(): ContainerInterface
     {
-        return new class implements ContainerInterface {
-            /** @var array<string, callable> */
-            private array $factories = [];
-            /** @var array<string, mixed> */
-            private array $resolved = [];
-
-            public function get(string $id): mixed
-            {
-                if (array_key_exists($id, $this->resolved)) {
-                    return $this->resolved[$id];
-                }
-
-                if ($id === Environment::class) {
-                    return $this->resolved[$id] = new Environment(__DIR__); // no .env: defaults apply
-                }
-
-                if ($id === StoreInterface::class) {
-                    return $this->resolved[$id] = new ArrayStore;
-                }
-
-                if ($id === ClientIpResolver::class) {
-                    return $this->resolved[$id] = new ClientIpResolver(TrustedProxies::none());
-                }
-
-                if (isset($this->factories[$id])) {
-                    return $this->resolved[$id] = ($this->factories[$id])();
-                }
-
-                throw new class ("No binding for {$id}.") extends RuntimeException implements NotFoundExceptionInterface {};
-            }
-
-            public function has(string $id): bool
-            {
-                return isset($this->factories[$id]) || array_key_exists($id, $this->resolved);
-            }
-
-            public function singleton(string $abstract, callable|string $concrete): void
-            {
-                $this->factories[$abstract] = is_string($concrete)
-                    ? static fn () => new $concrete()
-                    : $concrete;
-            }
-
-            public function instance(string $abstract, object $instance): void
-            {
-                $this->resolved[$abstract] = $instance;
-            }
-
-            public function bound(string $abstract): bool
-            {
-                return $this->has($abstract);
-            }
-        };
+        return new FakeContainer([
+            Environment::class => new Environment(__DIR__), // no .env: defaults apply
+            StoreInterface::class => new ArrayStore,
+            ClientIpResolver::class => new ClientIpResolver(TrustedProxies::none()),
+        ]);
     }
 }
 

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Hydra\Csrf\Tests\Unit;
 
 use Hydra\Core\Security\Signer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Csrf\CsrfGuard;
 use Hydra\Csrf\Testing\CarriesCsrfToken;
+use Hydra\Session\Contracts\SessionLifecycleInterface;
 use Hydra\Session\Stores\ArraySessionStore;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -67,6 +69,18 @@ final class CarriesCsrfTokenTest extends TestCase
         $request = (new ServerRequest('POST', '/posts'))->withHeader(CsrfGuard::HEADER, 'from-an-expired-session');
 
         $this->assertSame('from-an-expired-session', $this->preparer()->prepare($request)->getHeaderLine(CsrfGuard::HEADER));
+    }
+
+    public function test_for_takes_the_guard_and_the_session_from_the_container(): void
+    {
+        $preparer = CarriesCsrfToken::for(new FakeContainer([
+            CsrfGuard::class => $this->guard,
+            SessionLifecycleInterface::class => $this->session,
+        ]));
+
+        $request = $preparer->prepare(new ServerRequest('POST', '/posts'));
+
+        $this->assertTrue($this->guard->validate($request->getHeaderLine(CsrfGuard::HEADER)));
     }
 
     private function preparer(): CarriesCsrfToken

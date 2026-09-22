@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Support;
 
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\AdminController;
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Admin\Chrome;
@@ -59,7 +60,7 @@ final class AdminHarness
         $session = new ArraySessionStore;
         $session->start();
 
-        $this->registry = new ModuleRegistry(new ArrayContainer($services), $modules, $prefix);
+        $this->registry = new ModuleRegistry(new FakeContainer($services), $modules, $prefix);
         $this->navigation = new Navigation($this->registry, new AdminsOnlyGate($allowed));
         $this->chrome = new Chrome($this->registry, $this->navigation);
         // One nonce for both, as the container binds it: the page stamps it on

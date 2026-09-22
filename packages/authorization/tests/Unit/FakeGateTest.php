@@ -89,6 +89,14 @@ final class FakeGateTest extends GateContractTestCase
         $gate->assertChecked('posts.update');
     }
 
+    public function test_assert_checked_passes_once_the_ability_was_checked(): void
+    {
+        $gate = FakeGate::allowingEverything();
+        $gate->allows('posts.update');
+
+        $gate->assertChecked('posts.update');
+    }
+
     public function test_assert_not_checked_fails_when_it_was(): void
     {
         $gate = FakeGate::allowingEverything();

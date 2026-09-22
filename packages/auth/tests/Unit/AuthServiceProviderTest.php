@@ -13,7 +13,7 @@ use Hydra\Auth\Contracts\UserProviderInterface;
 use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\NativeHasher;
 use Hydra\Auth\SessionGuard;
-use Hydra\Auth\Tests\Support\TestContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Core\Environment;
 use Hydra\Session\Contracts\SessionInterface;
 use Hydra\Session\Stores\ArraySessionStore;
@@ -111,7 +111,7 @@ final class AuthServiceProviderTest extends TestCase
     {
         // Auth owns no user storage. Binding a default here would be the
         // framework guessing at the application's schema.
-        $container = new TestContainer([Environment::class => $this->environment([])]);
+        $container = new FakeContainer([Environment::class => $this->environment([])]);
         (new AuthServiceProvider)->register($container);
 
         $this->assertFalse($container->bound(UserProviderInterface::class));
@@ -151,7 +151,7 @@ final class AuthServiceProviderTest extends TestCase
 
     public function test_a_guard_built_without_a_user_provider_says_which_binding_is_missing(): void
     {
-        $container = new TestContainer([
+        $container = new FakeContainer([
             Environment::class => $this->environment([]),
             SessionInterface::class => $this->session(),
         ]);
@@ -163,7 +163,7 @@ final class AuthServiceProviderTest extends TestCase
     }
 
     /** @param array<string, string> $env */
-    private function register(array $env = [], ?EventDispatcherInterface $events = null): TestContainer
+    private function register(array $env = [], ?EventDispatcherInterface $events = null): FakeContainer
     {
         $services = [
             Environment::class => $this->environment($env),
@@ -175,7 +175,7 @@ final class AuthServiceProviderTest extends TestCase
             $services[EventDispatcherInterface::class] = $events;
         }
 
-        $container = new TestContainer($services);
+        $container = new FakeContainer($services);
         (new AuthServiceProvider)->register($container);
 
         return $container;

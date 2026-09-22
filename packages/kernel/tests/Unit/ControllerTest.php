@@ -8,7 +8,7 @@ use Hydra\Http\Exceptions\HttpException;
 use Hydra\Http\Responder;
 use Hydra\Http\Status;
 use Hydra\Kernel\Controller;
-use Hydra\View\Contracts\ViewInterface;
+use Hydra\View\Testing\FakeView;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -21,11 +21,20 @@ use Psr\Http\Message\ResponseInterface;
 #[CoversClass(Controller::class)]
 final class ControllerTest extends TestCase
 {
+    private FakeView $view;
+
+    protected function setUp(): void
+    {
+        $this->view = (new FakeView)
+            ->define('blog/show', 'SHOW', static fn (string $body): string => "[{$body}]")
+            ->define('form');
+    }
+
     private function controller(): TestController
     {
         $psr17 = new Psr17Factory;
 
-        return new TestController(new Responder($psr17, $psr17), new FakeView);
+        return new TestController(new Responder($psr17, $psr17), $this->view);
     }
 
     public function test_render_returns_an_html_response_from_the_view(): void
@@ -34,8 +43,9 @@ final class ControllerTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertStringContainsString('text/html', $response->getHeaderLine('Content-Type'));
-        // The fake view proves the template, data and layout flag all flowed through.
-        $this->assertSame('view:blog/show data:x layout:0', (string) $response->getBody());
+        $this->assertSame('SHOW', (string) $response->getBody());
+        $this->view->assertRendered('blog/show', ['x' => 1]);
+        $this->view->assertRenderedFragment('blog/show');
     }
 
     public function test_render_honours_a_non_ok_status(): void
@@ -68,20 +78,5 @@ final class TestController extends Controller
     public function doAbort(int|Status $status, string $message = ''): never
     {
         $this->abort($status, $message);
-    }
-}
-
-/** A view that echoes its arguments so render() is observable. */
-final class FakeView implements ViewInterface
-{
-    /** @param array<string, mixed> $data */
-    public function render(string $template, array $data = [], bool $layout = true): string
-    {
-        return sprintf('view:%s data:%s layout:%d', $template, implode(',', array_keys($data)), (int) $layout);
-    }
-
-    public function has(string $template): bool
-    {
-        return true;
     }
 }

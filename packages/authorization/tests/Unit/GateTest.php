@@ -6,13 +6,15 @@ namespace Hydra\Authorization\Tests\Unit;
 
 use Hydra\Auth\Contracts\AuthenticatableInterface;
 use Hydra\Auth\Contracts\GuardInterface;
+use Hydra\Auth\Testing\FakeGuard;
+use Hydra\Auth\Testing\FakeUser;
 use Hydra\Authorization\Contracts\AbilityInterface;
 use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Authorization\Exceptions\AuthorizationException;
 use Hydra\Authorization\Gate;
-use Hydra\Core\Contracts\ContainerInterface;
-use InvalidArgumentException;
 use Hydra\Authorization\Testing\GateContractTestCase;
+use Hydra\Core\Testing\FakeContainer;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
@@ -29,8 +31,11 @@ final class GateTest extends GateContractTestCase
 
     protected function setUp(): void
     {
-        $this->guard = new FakeGuard;
-        $this->container = new FakeContainer;
+        $this->guard = FakeGuard::guest();
+        $this->container = new FakeContainer([
+            AlwaysAllow::class => new AlwaysAllow,
+            AlwaysDeny::class => new AlwaysDeny,
+        ]);
     }
 
     private function gate(): Gate
@@ -45,9 +50,9 @@ final class GateTest extends GateContractTestCase
     protected function gateDeciding(bool $allows): GateInterface
     {
         $container = new FakeContainer;
-        $container->register($this->ability(), $allows ? new AlwaysAllow : new AlwaysDeny);
+        $container->instance($this->ability(), $allows ? new AlwaysAllow : new AlwaysDeny);
 
-        return new Gate($container, new FakeGuard);
+        return new Gate($container, FakeGuard::guest());
     }
 
     protected function ability(): string
@@ -100,9 +105,9 @@ final class GateTest extends GateContractTestCase
     public function test_the_current_user_is_passed_to_the_ability(): void
     {
         $user = new FakeUser(7);
-        $this->guard->user = $user;
+        $this->guard->login($user);
         $ability = new RecordingAbility;
-        $this->container->register(RecordingAbility::class, $ability);
+        $this->container->instance(RecordingAbility::class, $ability);
 
         $this->gate()->allows(RecordingAbility::class);
 
@@ -113,7 +118,7 @@ final class GateTest extends GateContractTestCase
     {
         // No one is logged in; the ability still runs and decides what null means.
         $ability = new RecordingAbility;
-        $this->container->register(RecordingAbility::class, $ability);
+        $this->container->instance(RecordingAbility::class, $ability);
 
         $this->gate()->allows(RecordingAbility::class);
 
@@ -125,7 +130,7 @@ final class GateTest extends GateContractTestCase
     {
         $subject = new \stdClass;
         $ability = new RecordingAbility;
-        $this->container->register(RecordingAbility::class, $ability);
+        $this->container->instance(RecordingAbility::class, $ability);
 
         $this->gate()->allows(RecordingAbility::class, $subject);
 
@@ -136,6 +141,8 @@ final class GateTest extends GateContractTestCase
     {
         // A programming error (wrong class-string), not an authorization outcome:
         // it must throw, never silently deny.
+        $this->container->instance(\stdClass::class, new \stdClass);
+
         $this->expectException(InvalidArgumentException::class);
 
         $this->gate()->allows(\stdClass::class);
@@ -174,95 +181,5 @@ final class RecordingAbility implements AbilityInterface
         $this->seenSubject = $subject;
 
         return true;
-    }
-}
-
-/** Minimal authenticatable for the tests. */
-final class FakeUser implements AuthenticatableInterface
-{
-    public function __construct(private readonly int|string $id) {}
-
-    public function getAuthIdentifier(): int|string
-    {
-        return $this->id;
-    }
-
-    public function getAuthPassword(): string
-    {
-        return '';
-    }
-}
-
-/** A guard whose current user is set directly by the test. */
-final class FakeGuard implements GuardInterface
-{
-    public ?AuthenticatableInterface $user = null;
-
-    public function check(): bool
-    {
-        return $this->user !== null;
-    }
-
-    public function user(): ?AuthenticatableInterface
-    {
-        return $this->user;
-    }
-
-    public function id(): int|string|null
-    {
-        return $this->user?->getAuthIdentifier();
-    }
-
-    public function attempt(string $username, string $password): bool
-    {
-        return false;
-    }
-
-    public function login(AuthenticatableInterface $user): void
-    {
-        $this->user = $user;
-    }
-
-    public function logout(): void
-    {
-        $this->user = null;
-    }
-}
-
-/**
- * A container that returns registered instances and otherwise autowires a
- * no-arg class, enough to stand in for the app container's resolution of
- * ability class-strings.
- */
-final class FakeContainer implements ContainerInterface
-{
-    /** @var array<string, object> */
-    private array $instances = [];
-
-    public function register(string $id, object $instance): void
-    {
-        $this->instances[$id] = $instance;
-    }
-
-    public function get(string $id): mixed
-    {
-        return $this->instances[$id] ??= new $id();
-    }
-
-    public function has(string $id): bool
-    {
-        return isset($this->instances[$id]) || class_exists($id);
-    }
-
-    public function singleton(string $abstract, callable|string $concrete): void {}
-
-    public function instance(string $abstract, object $instance): void
-    {
-        $this->instances[$abstract] = $instance;
-    }
-
-    public function bound(string $abstract): bool
-    {
-        return isset($this->instances[$abstract]);
     }
 }

@@ -13,7 +13,7 @@ use Hydra\Admin\Navigation;
 use Hydra\Admin\Renderer;
 use Hydra\Admin\Tests\Support\AdminsOnlyGate;
 use Hydra\Admin\Events\RowCreated;
-use Hydra\Admin\Tests\Support\ArrayContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\CrudUserSource;
 use Hydra\Admin\Tests\Support\CrudUsersModule;
@@ -176,11 +176,11 @@ final class AdminServiceProviderTest extends TestCase
     }
 
     /** @param array<string, object> $services */
-    private function container(array $services = []): ArrayContainer
+    private function container(array $services = []): FakeContainer
     {
         $psr17 = new Psr17Factory;
 
-        return new ArrayContainer([
+        return new FakeContainer([
             UsersModule::class => new UsersModule,
             ArraySource::class => new ArraySource,
             GateInterface::class => new AdminsOnlyGate(true),

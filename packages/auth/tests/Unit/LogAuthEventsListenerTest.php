@@ -10,6 +10,7 @@ use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\Events\LoggedOut;
 use Hydra\Auth\Events\LoginFailed;
 use Hydra\Auth\LogAuthEventsListener;
+use Hydra\Auth\Testing\FakeUser;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
@@ -48,7 +49,7 @@ final class LogAuthEventsListenerTest extends TestCase
 
     public function test_logged_in_logs_at_info_with_the_identifier(): void
     {
-        $this->listener->onLoggedIn(new LoggedIn(new StubUser(42)));
+        $this->listener->onLoggedIn(new LoggedIn(new FakeUser(42)));
 
         $this->assertSame(['info', 'auth.login', ['user' => 42]], $this->logger->records[0]);
     }
@@ -70,20 +71,5 @@ final class RecordingLogger extends AbstractLogger
     public function log($level, string|Stringable $message, array $context = []): void
     {
         $this->records[] = [$level, (string) $message, $context];
-    }
-}
-
-final class StubUser implements AuthenticatableInterface
-{
-    public function __construct(private readonly int|string $id) {}
-
-    public function getAuthIdentifier(): int|string
-    {
-        return $this->id;
-    }
-
-    public function getAuthPassword(): string
-    {
-        return '';
     }
 }

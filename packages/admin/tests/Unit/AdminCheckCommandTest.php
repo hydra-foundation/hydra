@@ -9,7 +9,7 @@ use Hydra\Console\ArrayInput;
 use Hydra\Console\Testing\FakeOutput;
 use Hydra\Admin\Console\AdminCheckCommand;
 use Hydra\Admin\ModuleRegistry;
-use Hydra\Admin\Tests\Support\ArrayContainer;
+use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\DescribedSource;
 use Hydra\Admin\Tests\Support\DescribedUsersModule;
@@ -122,7 +122,7 @@ final class AdminCheckCommandTest extends TestCase
         // A check that quietly finds nothing is the same as no check at all, so
         // the one thing it must not do is print a tick.
         $registry = new ModuleRegistry(
-            new ArrayContainer([UsersModule::class => new UsersModule, ArraySource::class => new ArraySource]),
+            new FakeContainer([UsersModule::class => new UsersModule, ArraySource::class => new ArraySource]),
             [UsersModule::class],
         );
 
@@ -137,7 +137,7 @@ final class AdminCheckCommandTest extends TestCase
     public function test_a_module_with_no_source_has_nothing_to_check(): void
     {
         $registry = new ModuleRegistry(
-            new ArrayContainer([LandingModule::class => new LandingModule]),
+            new FakeContainer([LandingModule::class => new LandingModule]),
             [LandingModule::class],
         );
 
@@ -152,7 +152,7 @@ final class AdminCheckCommandTest extends TestCase
     private function check(DescribedSource $source): FakeOutput
     {
         $registry = new ModuleRegistry(
-            new ArrayContainer([
+            new FakeContainer([
                 DescribedUsersModule::class => new DescribedUsersModule,
                 DescribedSource::class => $source,
             ]),

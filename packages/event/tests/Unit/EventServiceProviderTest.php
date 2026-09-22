@@ -7,7 +7,7 @@ namespace Hydra\Event\Tests\Unit;
 use Hydra\Event\Dispatcher;
 use Hydra\Event\EventServiceProvider;
 use Hydra\Event\ListenerProvider;
-use Hydra\Event\Tests\Support\TestContainer;
+use Hydra\Core\Testing\FakeContainer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -74,9 +74,9 @@ final class EventServiceProviderTest extends TestCase
         $this->assertFalse($container->isResolved(EventDispatcherInterface::class));
     }
 
-    private function register(): TestContainer
+    private function register(): FakeContainer
     {
-        $container = new TestContainer;
+        $container = new FakeContainer;
         (new EventServiceProvider)->register($container);
 
         return $container;

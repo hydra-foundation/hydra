@@ -6,8 +6,10 @@ namespace Hydra\Auth\Tests\Unit;
 
 use Hydra\Auth\AuthenticateMiddleware;
 use Hydra\Auth\Contracts\AuthenticatableInterface;
-use Hydra\Auth\Exceptions\AuthenticationException;
 use Hydra\Auth\Contracts\GuardInterface;
+use Hydra\Auth\Exceptions\AuthenticationException;
+use Hydra\Auth\Testing\FakeGuard;
+use Hydra\Auth\Testing\FakeUser;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +26,7 @@ final class AuthenticateMiddlewareTest extends TestCase
 {
     public function test_authenticated_request_reaches_the_handler(): void
     {
-        $middleware = new AuthenticateMiddleware(new FakeGuard(authenticated: true));
+        $middleware = new AuthenticateMiddleware(FakeGuard::signedInAs(new FakeUser));
         $handler = new RecordingHandler;
 
         $middleware->process($this->request(), $handler);
@@ -34,7 +36,7 @@ final class AuthenticateMiddlewareTest extends TestCase
 
     public function test_unauthenticated_request_is_rejected_before_the_handler(): void
     {
-        $middleware = new AuthenticateMiddleware(new FakeGuard(authenticated: false));
+        $middleware = new AuthenticateMiddleware(FakeGuard::guest());
         $handler = new RecordingHandler;
 
         $this->expectException(AuthenticationException::class);
@@ -48,7 +50,7 @@ final class AuthenticateMiddlewareTest extends TestCase
 
     public function test_rejection_carries_a_401_status(): void
     {
-        $middleware = new AuthenticateMiddleware(new FakeGuard(authenticated: false));
+        $middleware = new AuthenticateMiddleware(FakeGuard::guest());
 
         try {
             $middleware->process($this->request(), new RecordingHandler);
@@ -62,36 +64,6 @@ final class AuthenticateMiddlewareTest extends TestCase
     {
         return (new Psr17Factory)->createServerRequest('GET', '/dashboard');
     }
-}
-
-/** A guard whose authentication state is fixed for the test. */
-final class FakeGuard implements GuardInterface
-{
-    public function __construct(private readonly bool $authenticated) {}
-
-    public function check(): bool
-    {
-        return $this->authenticated;
-    }
-
-    public function user(): ?AuthenticatableInterface
-    {
-        return null;
-    }
-
-    public function id(): int|string|null
-    {
-        return null;
-    }
-
-    public function attempt(string $username, string $password): bool
-    {
-        return false;
-    }
-
-    public function login(AuthenticatableInterface $user): void {}
-
-    public function logout(): void {}
 }
 
 /** Counts how many times it was reached. */
