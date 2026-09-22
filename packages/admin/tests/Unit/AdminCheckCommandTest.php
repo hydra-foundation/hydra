@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Unit;
 
+use Hydra\Console\ExitCode;
+use Hydra\Console\ArrayInput;
+use Hydra\Console\Testing\FakeOutput;
 use Hydra\Admin\Console\AdminCheckCommand;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Tests\Support\ArrayContainer;
@@ -14,8 +17,6 @@ use Hydra\Admin\Tests\Support\LandingModule;
 use Hydra\Admin\Tests\Support\UsersModule;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * The one pairing nothing else in the toolchain can see: a module's field names
@@ -26,22 +27,24 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[CoversClass(AdminCheckCommand::class)]
 final class AdminCheckCommandTest extends TestCase
 {
+    private ExitCode $code;
+
     public function test_a_module_naming_only_columns_its_source_offers_passes(): void
     {
-        $tester = $this->tester(new DescribedSource);
+        $output = $this->check(new DescribedSource);
 
-        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
-        $this->assertStringContainsString('users', $tester->getDisplay());
-        $this->assertStringContainsString('ok', $tester->getDisplay());
+        $this->assertSame(ExitCode::Success, $this->code);
+        $this->assertStringContainsString('users', implode("\n", $output->lines()));
+        $this->assertStringContainsString('ok', implode("\n", $output->lines()));
     }
 
     public function test_a_field_over_a_column_the_source_does_not_read_is_reported(): void
     {
-        $tester = $this->tester(new DescribedSource(columns: ['id', 'username', 'role']));
+        $output = $this->check(new DescribedSource(columns: ['id', 'username', 'role']));
 
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-        $this->assertStringContainsString('note', $tester->getDisplay());
-        $this->assertStringContainsString('is not a column the source reads', $tester->getDisplay());
+        $this->assertSame(ExitCode::Failure, $this->code);
+        $this->assertStringContainsString('note', implode("\n", $output->lines()));
+        $this->assertStringContainsString('is not a column the source reads', implode("\n", $output->lines()));
     }
 
     public function test_a_column_the_source_does_not_read_is_reported_once_and_not_four_times(): void
@@ -49,69 +52,69 @@ final class AdminCheckCommandTest extends TestCase
         // Sorting, searching and filtering by a column the source never selects
         // are all consequences of the same mistake, and saying so four times
         // buries the line that names it.
-        $tester = $this->tester(new DescribedSource(columns: ['id', 'role', 'note']));
+        $output = $this->check(new DescribedSource(columns: ['id', 'role', 'note']));
 
-        $this->assertSame(1, substr_count($tester->getDisplay(), 'username'));
+        $this->assertSame(1, substr_count(implode("\n", $output->lines()), 'username'));
     }
 
     public function test_a_sortable_field_the_source_will_not_order_by_is_reported(): void
     {
-        $tester = $this->tester(new DescribedSource(sortable: ['id']));
+        $output = $this->check(new DescribedSource(sortable: ['id']));
 
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-        $this->assertStringContainsString('is sortable, but the source does not sort by it', $tester->getDisplay());
+        $this->assertSame(ExitCode::Failure, $this->code);
+        $this->assertStringContainsString('is sortable, but the source does not sort by it', implode("\n", $output->lines()));
     }
 
     public function test_a_searchable_field_the_source_never_looks_in_is_reported(): void
     {
-        $tester = $this->tester(new DescribedSource(searchable: []));
+        $output = $this->check(new DescribedSource(searchable: []));
 
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-        $this->assertStringContainsString('is searchable, but the source does not search it', $tester->getDisplay());
+        $this->assertSame(ExitCode::Failure, $this->code);
+        $this->assertStringContainsString('is searchable, but the source does not search it', implode("\n", $output->lines()));
     }
 
     public function test_a_filterable_field_the_source_never_narrows_on_is_reported(): void
     {
         // The reason the command exists: the filter renders, submits, narrows
         // nothing, and the screen answers with the whole table.
-        $tester = $this->tester(new DescribedSource(filterable: []));
+        $output = $this->check(new DescribedSource(filterable: []));
 
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-        $this->assertStringContainsString('is filterable, but the source does not filter by it', $tester->getDisplay());
+        $this->assertSame(ExitCode::Failure, $this->code);
+        $this->assertStringContainsString('is filterable, but the source does not filter by it', implode("\n", $output->lines()));
     }
 
     public function test_a_filter_link_the_source_will_not_narrow_on_is_reported(): void
     {
         // Worse than the toolbar case above: a link reading "Admins 4,113" looks
         // like an answer, and what it leads to is the whole table.
-        $tester = $this->tester(new DescribedSource(filterable: ['note']));
+        $output = $this->check(new DescribedSource(filterable: ['note']));
 
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-        $this->assertStringContainsString('filter link "Admins" pins "role"', $tester->getDisplay());
+        $this->assertSame(ExitCode::Failure, $this->code);
+        $this->assertStringContainsString('filter link "Admins" pins "role"', implode("\n", $output->lines()));
     }
 
     public function test_a_default_sort_the_source_will_not_honour_is_reported(): void
     {
         // Wrong on the very first request, before a visitor has touched a header.
-        $tester = $this->tester(new DescribedSource(sortable: ['username'], defaultSort: 'username'));
+        $output = $this->check(new DescribedSource(sortable: ['username'], defaultSort: 'username'));
 
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-        $this->assertStringContainsString('defaultSort is "id"', $tester->getDisplay());
-        $this->assertStringContainsString('every list starts on "username" instead', $tester->getDisplay());
+        $this->assertSame(ExitCode::Failure, $this->code);
+        $this->assertStringContainsString('defaultSort is "id"', implode("\n", $output->lines()));
+        $this->assertStringContainsString('every list starts on "username" instead', implode("\n", $output->lines()));
     }
 
     public function test_a_source_offering_more_than_the_module_names_is_not_a_problem(): void
     {
         // How one source stays shared between two modules showing different
         // halves of a table.
-        $tester = $this->tester(new DescribedSource(
+        $output = $this->check(new DescribedSource(
             columns: ['id', 'username', 'role', 'note', 'email'],
             sortable: ['id', 'username', 'email'],
             searchable: ['username', 'email'],
             filterable: ['role', 'email'],
         ));
 
-        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $this->assertSame(ExitCode::Success, $this->code);
     }
 
     public function test_a_source_that_cannot_describe_itself_is_unchecked_rather_than_passing(): void
@@ -123,12 +126,12 @@ final class AdminCheckCommandTest extends TestCase
             [UsersModule::class],
         );
 
-        $tester = new CommandTester(new AdminCheckCommand($registry));
-        $tester->execute([]);
+        $output = new FakeOutput;
+        $this->code = (new AdminCheckCommand($registry))->execute(new ArrayInput, $output);
 
-        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
-        $this->assertStringContainsString('not describable', $tester->getDisplay());
-        $this->assertStringContainsString('DescribesColumnsInterface', $tester->getDisplay());
+        $this->assertSame(ExitCode::Success, $this->code);
+        $this->assertStringContainsString('not describable', implode("\n", $output->lines()));
+        $this->assertStringContainsString('DescribesColumnsInterface', implode("\n", $output->lines()));
     }
 
     public function test_a_module_with_no_source_has_nothing_to_check(): void
@@ -138,14 +141,15 @@ final class AdminCheckCommandTest extends TestCase
             [LandingModule::class],
         );
 
-        $tester = new CommandTester(new AdminCheckCommand($registry));
-        $tester->execute([]);
+        $output = new FakeOutput;
+        $this->code = (new AdminCheckCommand($registry))->execute(new ArrayInput, $output);
 
-        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
-        $this->assertStringContainsString('home', $tester->getDisplay());
+        $this->assertSame(ExitCode::Success, $this->code);
+        $this->assertStringContainsString('home', implode("\n", $output->lines()));
     }
 
-    private function tester(DescribedSource $source): CommandTester
+    /** Runs the check over one source and keeps what it said. */
+    private function check(DescribedSource $source): FakeOutput
     {
         $registry = new ModuleRegistry(
             new ArrayContainer([
@@ -155,9 +159,9 @@ final class AdminCheckCommandTest extends TestCase
             [DescribedUsersModule::class],
         );
 
-        $tester = new CommandTester(new AdminCheckCommand($registry));
-        $tester->execute([]);
+        $output = new FakeOutput;
+        $this->code = (new AdminCheckCommand($registry))->execute(new ArrayInput, $output);
 
-        return $tester;
+        return $output;
     }
 }

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Commands;
 
+use Hydra\Console\Attributes\AsCommand;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
 use Hydra\Http\RouteCache;
 use Hydra\Http\RouteScanner;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Compiles the controller #[Route] attributes to the route cache file. This is
@@ -30,19 +30,15 @@ final class RouteCacheCommand extends Command
     public function __construct(
         private readonly RouteCache $cache,
         private readonly array $controllers,
-    ) {
-        parent::__construct();
-    }
+    ) {}
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        $io = new SymfonyStyle($input, $output);
-
         $routes = (new RouteScanner)->scan($this->controllers);
         $this->cache->store($routes);
 
-        $io->success(sprintf('Cached %d route(s).', count($routes)));
+        $output->success(sprintf('Cached %d route(s).', count($routes)));
 
-        return Command::SUCCESS;
+        return ExitCode::Success;
     }
 }

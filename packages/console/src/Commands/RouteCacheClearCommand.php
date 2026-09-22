@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Commands;
 
+use Hydra\Console\Attributes\AsCommand;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
 use Hydra\Http\RouteCache;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Deletes the route cache file. After this the web path falls back to scanning
@@ -22,19 +22,14 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class RouteCacheClearCommand extends Command
 {
-    public function __construct(private readonly RouteCache $cache)
-    {
-        parent::__construct();
-    }
+    public function __construct(private readonly RouteCache $cache) {}
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        $io = new SymfonyStyle($input, $output);
-
-        $io->success($this->cache->clear()
+        $output->success($this->cache->clear()
             ? 'Route cache cleared.'
             : 'Route cache was already clear.');
 
-        return Command::SUCCESS;
+        return ExitCode::Success;
     }
 }

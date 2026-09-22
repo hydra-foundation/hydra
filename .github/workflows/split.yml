@@ -51,6 +51,7 @@ jobs:
           - nyholm
           - php-di
           - session
+          - symfony-console
           - throttle
           - validation
           - view

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Tests\Unit;
 
+use Hydra\Console\ExitCode;
+use Hydra\Console\ArrayInput;
+use Hydra\Console\Testing\FakeOutput;
 use Hydra\Console\Commands\MakeMigrationCommand;
 use Hydra\Console\Commands\MigrateFreshCommand;
 use Hydra\Console\Commands\MigrateRunCommand;
@@ -12,8 +15,6 @@ use Hydra\Database\MigrationRunner;
 use PDO;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * The migrate:* and make:migration commands wired to a real MigrationRunner over
@@ -61,13 +62,15 @@ final class MigrateCommandsTest extends TestCase
     {
         $this->write('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
 
-        $tester = new CommandTester(new MigrateRunCommand($this->runner()));
-        $this->assertSame(Command::SUCCESS, $tester->execute([]));
-        $this->assertStringContainsString('Applied 1 migration', $tester->getDisplay());
+        $command = new MigrateRunCommand($this->runner());
+        $output = new FakeOutput;
+        $this->assertSame(ExitCode::Success, $command->execute(new ArrayInput, $output));
+        $output->assertSaid('Applied 1 migration');
 
-        $tester = new CommandTester(new MigrateRunCommand($this->runner()));
-        $this->assertSame(Command::SUCCESS, $tester->execute([]));
-        $this->assertStringContainsString('up to date', $tester->getDisplay());
+        $command = new MigrateRunCommand($this->runner());
+        $output = new FakeOutput;
+        $this->assertSame(ExitCode::Success, $command->execute(new ArrayInput, $output));
+        $output->assertSaid('up to date');
     }
 
     public function test_migrate_status_shows_applied_and_pending(): void
@@ -76,10 +79,11 @@ final class MigrateCommandsTest extends TestCase
         $this->runner()->run();
         $this->write('20260102_000000_create_b.sql', 'CREATE TABLE b (id INTEGER PRIMARY KEY)');
 
-        $tester = new CommandTester(new MigrateStatusCommand($this->runner()));
-        $tester->execute([]);
+        $command = new MigrateStatusCommand($this->runner());
+        $output = new FakeOutput;
+        $command->execute(new ArrayInput, $output);
 
-        $display = $tester->getDisplay();
+        $display = implode("\n", $output->lines());
         $this->assertStringContainsString('applied', $display);
         $this->assertStringContainsString('pending', $display);
     }
@@ -88,42 +92,47 @@ final class MigrateCommandsTest extends TestCase
     {
         $this->write('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
 
-        $tester = new CommandTester(new MigrateFreshCommand($this->runner(), debug: false));
-        $this->assertSame(Command::FAILURE, $tester->execute([]));
-        $this->assertStringContainsString('APP_DEBUG is off', $tester->getDisplay());
+        $command = new MigrateFreshCommand($this->runner(), debug: false);
+        $output = new FakeOutput;
+        $this->assertSame(ExitCode::Failure, $command->execute(new ArrayInput, $output));
+        $output->assertSaid('APP_DEBUG is off');
     }
 
     public function test_migrate_fresh_runs_outside_debug_with_force(): void
     {
         $this->write('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
 
-        $tester = new CommandTester(new MigrateFreshCommand($this->runner(), debug: false));
-        $this->assertSame(Command::SUCCESS, $tester->execute(['--force' => true]));
-        $this->assertStringContainsString('Database reset', $tester->getDisplay());
+        $command = new MigrateFreshCommand($this->runner(), debug: false);
+        $output = new FakeOutput;
+        $this->assertSame(ExitCode::Success, $command->execute(ArrayInput::withFlags(['force']), $output));
+        $output->assertSaid('Database reset');
     }
 
     public function test_migrate_fresh_confirms_in_debug_mode(): void
     {
         $this->write('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
 
-        $tester = new CommandTester(new MigrateFreshCommand($this->runner(), debug: true));
-        $tester->setInputs(['yes']);
-        $this->assertSame(Command::SUCCESS, $tester->execute([]));
-        $this->assertStringContainsString('Database reset', $tester->getDisplay());
+        $command = new MigrateFreshCommand($this->runner(), debug: true);
+        $output = new FakeOutput;
+        $output->willConfirm([true]);
+        $this->assertSame(ExitCode::Success, $command->execute(new ArrayInput, $output));
+        $output->assertSaid('Database reset');
     }
 
     public function test_migrate_fresh_aborts_when_declined(): void
     {
-        $tester = new CommandTester(new MigrateFreshCommand($this->runner(), debug: true));
-        $tester->setInputs(['no']);
-        $this->assertSame(Command::FAILURE, $tester->execute([]));
-        $this->assertStringContainsString('Aborted', $tester->getDisplay());
+        $command = new MigrateFreshCommand($this->runner(), debug: true);
+        $output = new FakeOutput;
+        $output->willConfirm([false]);
+        $this->assertSame(ExitCode::Failure, $command->execute(new ArrayInput, $output));
+        $output->assertSaid('Aborted');
     }
 
     public function test_make_migration_creates_timestamped_file(): void
     {
-        $tester = new CommandTester(new MakeMigrationCommand($this->dir));
-        $this->assertSame(Command::SUCCESS, $tester->execute(['name' => 'Create Posts Table']));
+        $command = new MakeMigrationCommand($this->dir);
+        $output = new FakeOutput;
+        $this->assertSame(ExitCode::Success, $command->execute(ArrayInput::withArguments(['name' => 'Create Posts Table']), $output));
 
         $files = array_map('basename', glob($this->dir . '/*.sql') ?: []);
         $this->assertCount(1, $files);
@@ -136,8 +145,9 @@ final class MigrateCommandsTest extends TestCase
 
     public function test_make_migration_rejects_an_empty_slug(): void
     {
-        $tester = new CommandTester(new MakeMigrationCommand($this->dir));
-        $this->assertSame(Command::FAILURE, $tester->execute(['name' => '!!!']));
+        $command = new MakeMigrationCommand($this->dir);
+        $output = new FakeOutput;
+        $this->assertSame(ExitCode::Failure, $command->execute(ArrayInput::withArguments(['name' => '!!!']), $output));
         $this->assertSame([], glob($this->dir . '/*.sql') ?: []);
     }
 }

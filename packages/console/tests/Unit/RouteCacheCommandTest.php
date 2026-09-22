@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Tests\Unit;
 
-use Hydra\Console\Commands\RouteCacheCommand;
 use Hydra\Console\Commands\RouteCacheClearCommand;
+use Hydra\Console\Commands\RouteCacheCommand;
+use Hydra\Console\ExitCode;
+use Hydra\Console\ArrayInput;
+use Hydra\Console\Testing\FakeOutput;
 use Hydra\Http\Attributes\Route;
 use Hydra\Http\RouteCache;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Tester\CommandTester;
 
 /** A controller the scanner can reflect: never instantiated, only its attributes read. */
 final class CacheableRoutesController
@@ -23,6 +24,7 @@ final class CacheableRoutesController
     public function store(): void {}
 }
 
+#[CoversClass(RouteCacheClearCommand::class)]
 #[CoversClass(RouteCacheCommand::class)]
 final class RouteCacheCommandTest extends TestCase
 {
@@ -47,12 +49,11 @@ final class RouteCacheCommandTest extends TestCase
     public function test_compiles_the_controller_routes_to_the_cache(): void
     {
         $cache = new RouteCache($this->path, [CacheableRoutesController::class]);
-        $tester = new CommandTester(
-            new RouteCacheCommand($cache, [CacheableRoutesController::class]),
-        );
+        $command = new RouteCacheCommand($cache, [CacheableRoutesController::class]);
+        $output = new FakeOutput;
 
-        $this->assertSame(Command::SUCCESS, $tester->execute([]));
-        $this->assertStringContainsString('Cached 2 route(s)', $tester->getDisplay());
+        $this->assertSame(ExitCode::Success, $command->execute(new ArrayInput, $output));
+        $output->assertSaid('Cached 2 route(s)');
 
         // The artifact is loadable and holds exactly the scanned routes.
         $routes = $cache->load();
@@ -65,18 +66,20 @@ final class RouteCacheCommandTest extends TestCase
         $cache = new RouteCache($this->path, [CacheableRoutesController::class]);
         $cache->store([['method' => 'GET', 'path' => '/x', 'handler' => ['X', 'y'], 'middleware' => []]]);
 
-        $tester = new CommandTester(new RouteCacheClearCommand($cache));
+        $command = new RouteCacheClearCommand($cache);
+        $output = new FakeOutput;
 
-        $this->assertSame(Command::SUCCESS, $tester->execute([]));
-        $this->assertStringContainsString('cleared', $tester->getDisplay());
+        $this->assertSame(ExitCode::Success, $command->execute(new ArrayInput, $output));
+        $output->assertSaid('cleared');
         $this->assertNull($cache->load());
     }
 
     public function test_clear_is_a_successful_no_op_when_cache_is_cold(): void
     {
-        $tester = new CommandTester(new RouteCacheClearCommand(new RouteCache($this->path, [])));
+        $command = new RouteCacheClearCommand(new RouteCache($this->path, []));
+        $output = new FakeOutput;
 
-        $this->assertSame(Command::SUCCESS, $tester->execute([]));
-        $this->assertStringContainsString('already clear', $tester->getDisplay());
+        $this->assertSame(ExitCode::Success, $command->execute(new ArrayInput, $output));
+        $output->assertSaid('already clear');
     }
 }

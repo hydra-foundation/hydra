@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Tests\Unit;
 
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
+use Hydra\Console\ArrayInput;
+use Hydra\Console\Testing\FakeOutput;
 use Hydra\Console\Commands\MakeClassCommand;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * The generator base, driven through a fixture subclass because the concrete
@@ -23,6 +24,8 @@ final class MakeClassCommandTest extends TestCase
 {
     private string $base;
     private string $dir;
+
+    private FakeOutput $output;
 
     protected function setUp(): void
     {
@@ -81,10 +84,12 @@ final class MakeClassCommandTest extends TestCase
 
     public function test_a_name_with_nothing_to_capitalise_is_refused(): void
     {
-        $tester = $this->make('---');
+        $code = $this->make('---');
 
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-        $this->assertStringContainsString('at least one letter or digit', $tester->getDisplay());
+        // Invalid rather than Failure: the command could not run at all, as
+        // against running and answering no. The shell can tell them apart.
+        $this->assertSame(ExitCode::Invalid, $code);
+        $this->output->assertError('at least one letter or digit');
     }
 
     public function test_it_writes_the_stub_the_subclass_supplied(): void
@@ -103,9 +108,9 @@ final class MakeClassCommandTest extends TestCase
         // a checkout where nobody has generated one yet.
         $this->dir .= '/src/Http/Controllers';
 
-        $tester = $this->make('post');
+        $code = $this->make('post');
 
-        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $this->assertSame(ExitCode::Success, $code);
         $this->assertFileExists($this->dir . '/PostController.php');
     }
 
@@ -114,10 +119,10 @@ final class MakeClassCommandTest extends TestCase
         $this->make('post');
         file_put_contents($this->dir . '/PostController.php', 'hand written');
 
-        $tester = $this->make('post');
+        $code = $this->make('post');
 
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-        $this->assertStringContainsString('already exists', $tester->getDisplay());
+        $this->assertSame(ExitCode::Failure, $code);
+        $this->output->assertError('already exists');
         $this->assertSame('hand written', file_get_contents($this->dir . '/PostController.php'));
     }
 
@@ -126,9 +131,9 @@ final class MakeClassCommandTest extends TestCase
         $this->make('post');
         file_put_contents($this->dir . '/PostController.php', 'hand written');
 
-        $tester = $this->make('post', ['--force' => true]);
+        $code = $this->make('post', ['force']);
 
-        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $this->assertSame(ExitCode::Success, $code);
         $this->assertStringContainsString(
             'final class PostController',
             (string) file_get_contents($this->dir . '/PostController.php'),
@@ -141,7 +146,7 @@ final class MakeClassCommandTest extends TestCase
         // so it has to see the normalised name rather than the typed one.
         $command = new StubMakeCommand($this->dir);
 
-        (new CommandTester($command))->execute(['name' => 'blog post']);
+        $command->execute(ArrayInput::withArguments(['name' => 'blog post']), new FakeOutput);
 
         $this->assertSame(['BlogPostController'], $command->created);
     }
@@ -150,18 +155,25 @@ final class MakeClassCommandTest extends TestCase
     {
         $command = new StubMakeCommand($this->dir);
 
-        (new CommandTester($command))->execute(['name' => '---']);
+        $command->execute(ArrayInput::withArguments(['name' => '---']), new FakeOutput);
 
         $this->assertSame([], $command->created);
     }
 
-    /** @param array<string, mixed> $options */
-    private function make(string $name, array $options = []): CommandTester
+    /**
+     * Run the generator and keep what it said, so a caller can assert on the
+     * exit code and the message without rebuilding either.
+     *
+     * @param list<string> $flags
+     */
+    private function make(string $name, array $flags = []): ExitCode
     {
-        $tester = new CommandTester(new StubMakeCommand($this->dir));
-        $tester->execute(['name' => $name] + $options);
+        $this->output = new FakeOutput;
 
-        return $tester;
+        return (new StubMakeCommand($this->dir))->execute(
+            new ArrayInput(arguments: ['name' => $name], flags: $flags),
+            $this->output,
+        );
     }
 }
 
@@ -170,13 +182,6 @@ final class StubMakeCommand extends MakeClassCommand
 {
     /** @var list<string> */
     public array $created = [];
-
-    protected function configure(): void
-    {
-        $this->setName('make:stub');
-
-        parent::configure();
-    }
 
     protected function nameHint(): string
     {
@@ -193,7 +198,7 @@ final class StubMakeCommand extends MakeClassCommand
         return "<?php\n\nfinal class {$class} {}\n";
     }
 
-    protected function afterCreate(SymfonyStyle $io, string $class): void
+    protected function afterCreate(OutputInterface $output, string $class): void
     {
         $this->created[] = $class;
     }

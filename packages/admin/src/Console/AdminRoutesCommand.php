@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Console;
 
+use Hydra\Console\Attributes\AsCommand;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
 use Hydra\Admin\Blueprint;
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\ModuleRegistry;
@@ -12,11 +17,6 @@ use Hydra\Admin\Screens\DashboardScreen;
 use Hydra\Admin\Screens\PageScreen;
 use Hydra\Admin\Screens\WidgetScreen;
 use Hydra\View\Contracts\ViewInterface;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Prints what the modules compiled to: the receipt for everything the admin
@@ -39,18 +39,15 @@ final class AdminRoutesCommand extends Command
     public function __construct(
         private readonly ModuleRegistry $registry,
         private readonly ?ViewInterface $view = null,
-    ) {
-        parent::__construct();
-    }
+    ) {}
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        $io = new SymfonyStyle($input, $output);
         $blueprints = $this->registry->all();
         $routes = (new ModuleScanner)->scan($blueprints, $this->registry->prefix());
         $missing = [];
 
-        $io->table(
+        $output->table(
             ['Method', 'Path', 'Name', 'Ability', 'Template'],
             array_map(
                 function (array $route) use ($blueprints, &$missing): array {
@@ -64,7 +61,7 @@ final class AdminRoutesCommand extends Command
                             : self::NONE;
                     } elseif ($this->view !== null && !$this->view->has($template)) {
                         $missing[] = $template;
-                        $cell = "<error>{$template}</error>";
+                        $cell = "{$template}  (missing)";
                     } else {
                         $cell = $template;
                     }
@@ -88,15 +85,15 @@ final class AdminRoutesCommand extends Command
         $missing = [...$missing, ...$this->missingWidgetTemplates($blueprints)];
 
         if ($missing === []) {
-            return Command::SUCCESS;
+            return ExitCode::Success;
         }
 
-        $io->error(sprintf(
+        $output->error(sprintf(
             'No template found for: %s. The screen will route and then fail to render.',
             implode(', ', array_unique($missing)),
         ));
 
-        return Command::FAILURE;
+        return ExitCode::Failure;
     }
 
     /**

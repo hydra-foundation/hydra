@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Commands;
 
+use Hydra\Console\Attributes\AsCommand;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
 use Hydra\Database\MigrationRunner;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Lists every migration on disk and whether it has been applied, a read-only
@@ -21,33 +21,28 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class MigrateStatusCommand extends Command
 {
-    public function __construct(private readonly MigrationRunner $runner)
-    {
-        parent::__construct();
-    }
+    public function __construct(private readonly MigrationRunner $runner) {}
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        $io = new SymfonyStyle($input, $output);
-
         $status = $this->runner->status();
 
         if ($status === []) {
-            $io->warning('No migrations found.');
-            return Command::SUCCESS;
+            $output->warning('No migrations found.');
+            return ExitCode::Success;
         }
 
-        $io->table(
+        $output->table(
             ['Migration', 'Status'],
             array_map(
                 static fn (array $row): array => [
                     $row['filename'],
-                    $row['applied'] ? '<info>applied</info>' : '<comment>pending</comment>',
+                    $row['applied'] ? 'applied' : 'pending',
                 ],
                 $status,
             ),
         );
 
-        return Command::SUCCESS;
+        return ExitCode::Success;
     }
 }

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Commands;
 
+use Hydra\Console\Attributes\AsCommand;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
 use Hydra\Database\MigrationRunner;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Applies every pending .sql migration in order. Forward-only: migrations
@@ -21,27 +21,22 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class MigrateRunCommand extends Command
 {
-    public function __construct(private readonly MigrationRunner $runner)
-    {
-        parent::__construct();
-    }
+    public function __construct(private readonly MigrationRunner $runner) {}
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        $io = new SymfonyStyle($input, $output);
-
         $applied = $this->runner->run();
 
         if ($applied === []) {
-            $io->success('Nothing to migrate — already up to date.');
-            return Command::SUCCESS;
+            $output->success('Nothing to migrate — already up to date.');
+            return ExitCode::Success;
         }
 
         foreach ($applied as $filename) {
-            $io->writeln("  <info>✓</info> {$filename}");
+            $output->write("  ✓ {$filename}");
         }
-        $io->success(sprintf('Applied %d migration(s).', count($applied)));
+        $output->success(sprintf('Applied %d migration(s).', count($applied)));
 
-        return Command::SUCCESS;
+        return ExitCode::Success;
     }
 }

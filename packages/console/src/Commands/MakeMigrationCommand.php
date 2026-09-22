@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Commands;
 
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
+use Hydra\Console\Attributes\AsCommand;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
+use Hydra\Console\Argument;
 
 /**
  * Scaffolds an empty migration file: {Ymd_His}_{slug}.sql with a header comment.
@@ -20,36 +20,26 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class MakeMigrationCommand extends Command
 {
-    public function __construct(private readonly string $migrationsPath)
+    public function __construct(private readonly string $migrationsPath) {}
+
+    public function arguments(): array
     {
-        parent::__construct();
+        return [Argument::required('name', 'A short description, e.g. "create posts table"')];
     }
 
-    protected function configure(): void
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        $this->addArgument(
-            'name',
-            InputArgument::REQUIRED,
-            'A short description, e.g. "create posts table"',
-        );
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-
-        /** @var string $name */
-        $name = $input->getArgument('name');
+        $name = $input->argument('name');
         $slug = $this->slug($name);
 
         if ($slug === '') {
-            $io->error('Migration name must contain at least one letter or digit.');
-            return Command::FAILURE;
+            $output->error('Migration name must contain at least one letter or digit.');
+            return ExitCode::Failure;
         }
 
         if (!is_dir($this->migrationsPath) && !mkdir($this->migrationsPath, 0o775, true) && !is_dir($this->migrationsPath)) {
-            $io->error("Could not create migrations directory at {$this->migrationsPath}.");
-            return Command::FAILURE;
+            $output->error("Could not create migrations directory at {$this->migrationsPath}.");
+            return ExitCode::Failure;
         }
 
         $filename = date('Ymd_His') . '_' . $slug . '.sql';
@@ -57,9 +47,9 @@ final class MakeMigrationCommand extends Command
 
         file_put_contents($path, $this->template($name));
 
-        $io->success("Created {$filename}");
+        $output->success("Created {$filename}");
 
-        return Command::SUCCESS;
+        return ExitCode::Success;
     }
 
     /** Lowercase, non-alphanumerics collapsed to single underscores. */

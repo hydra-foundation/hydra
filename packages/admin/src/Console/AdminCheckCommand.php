@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Console;
 
+use Hydra\Console\Attributes\AsCommand;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
 use Hydra\Admin\Blueprint;
 use Hydra\Admin\Contracts\DescribesColumnsInterface;
 use Hydra\Admin\Field;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\SourceDescription;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 /**
@@ -37,17 +37,12 @@ use Throwable;
 )]
 final class AdminCheckCommand extends Command
 {
-    private const OK = '<info>ok</info>';
+    private const OK = 'ok';
 
-    public function __construct(private readonly ModuleRegistry $registry)
+    public function __construct(private readonly ModuleRegistry $registry) {}
+
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        parent::__construct();
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-
         $rows = [];
         $problems = [];
         $unchecked = [];
@@ -57,7 +52,7 @@ final class AdminCheckCommand extends Command
 
             if ($description === null) {
                 $unchecked[] = $blueprint->slug;
-                $rows[] = [$blueprint->slug, '—', '<comment>not describable</comment>'];
+                $rows[] = [$blueprint->slug, '—', 'not describable'];
 
                 continue;
             }
@@ -68,14 +63,14 @@ final class AdminCheckCommand extends Command
             $rows[] = [
                 $blueprint->slug,
                 $description->table,
-                $found === [] ? self::OK : sprintf('<error>%d</error>', count($found)),
+                $found === [] ? self::OK : sprintf('%d', count($found)),
             ];
         }
 
-        $io->table(['Module', 'Table', 'Fields vs source'], $rows);
+        $output->table(['Module', 'Table', 'Fields vs source'], $rows);
 
         if ($unchecked !== []) {
-            $io->note(sprintf(
+            $output->note(sprintf(
                 'Not checked, because the source does not implement %s: %s. '
                 . 'A source over a join or a remote service has no column list to give; '
                 . 'one over a plain table gets this by extending TableSource.',
@@ -85,20 +80,20 @@ final class AdminCheckCommand extends Command
         }
 
         if ($problems === []) {
-            $io->success('Every module names columns its source reads.');
+            $output->success('Every module names columns its source reads.');
 
-            return Command::SUCCESS;
+            return ExitCode::Success;
         }
 
-        $io->error('A module names a column its source does not.');
-        $io->listing($problems);
-        $io->writeln(
+        $output->error('A module names a column its source does not.');
+        $output->listing($problems);
+        $output->write(
             ' A filter the source does not list renders, submits and narrows nothing, so the screen'
             . ' answers with the whole table. A search column it does not list is one the box never'
             . ' looks in. Neither says anything at runtime.',
         );
 
-        return Command::FAILURE;
+        return ExitCode::Failure;
     }
 
     /**

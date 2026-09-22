@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Commands;
 
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
+use Hydra\Console\Attributes\AsCommand;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
+use Hydra\Console\Option;
 
 /**
  * Generates a 256-bit application key (64 hex chars) and writes it to APP_KEY
@@ -21,43 +21,41 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class KeyGenerateCommand extends Command
 {
-    public function __construct(private readonly string $envPath)
+    public function __construct(private readonly string $envPath) {}
+
+    public function options(): array
     {
-        parent::__construct();
+        return [
+            Option::flag(
+                'force',
+                'f',
+                'Overwrite an existing APP_KEY (invalidates anything sealed with the old key)',
+            ),
+        ];
     }
 
-    protected function configure(): void
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        $this->addOption(
-            'force',
-            'f',
-            InputOption::VALUE_NONE,
-            'Overwrite an existing APP_KEY (invalidates anything sealed with the old key)',
-        );
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-
         if (!is_file($this->envPath)) {
-            $io->error("No .env file at {$this->envPath}. Copy .env.example to .env first.");
-            return Command::FAILURE;
+            $output->error("No .env file at {$this->envPath}. Copy .env.example to .env first.");
+
+            return ExitCode::Failure;
         }
 
         $contents = file_get_contents($this->envPath);
 
-        if ($this->currentKey($contents) !== '' && !$input->getOption('force')) {
-            $io->error('APP_KEY is already set. Re-run with --force to overwrite it.');
-            return Command::FAILURE;
+        if ($this->currentKey($contents) !== '' && !$input->flag('force')) {
+            $output->error('APP_KEY is already set. Re-run with --force to overwrite it.');
+
+            return ExitCode::Failure;
         }
 
         $key = bin2hex(random_bytes(32));
         file_put_contents($this->envPath, $this->withKey($contents, $key));
 
-        $io->success("Application key set: {$key}");
+        $output->success("Application key set: {$key}");
 
-        return Command::SUCCESS;
+        return ExitCode::Success;
     }
 
     /** The current APP_KEY value, or '' when unset/empty. */

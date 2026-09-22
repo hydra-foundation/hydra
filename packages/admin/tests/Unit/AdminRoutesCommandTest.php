@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Unit;
 
+use Hydra\Console\ExitCode;
+use Hydra\Console\ArrayInput;
+use Hydra\Console\Testing\FakeOutput;
 use Hydra\Admin\Console\AdminRoutesCommand;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Tests\Support\ArrayContainer;
@@ -19,9 +22,7 @@ use Hydra\Admin\AdminServiceProvider;
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
 use PHPUnit\Framework\Attributes\CoversClass;
-use Symfony\Component\Console\Command\Command;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * The receipt for everything the admin generated on the application's behalf.
@@ -31,6 +32,8 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[CoversClass(AdminRoutesCommand::class)]
 final class AdminRoutesCommandTest extends TestCase
 {
+    private ExitCode $code;
+
     public function test_it_lists_every_route_the_modules_compiled_to(): void
     {
         $output = $this->display(new CrudUsersModule, CrudUserSource::class, new CrudUserSource);
@@ -73,35 +76,33 @@ final class AdminRoutesCommandTest extends TestCase
 
     public function test_a_page_screen_is_listed_with_the_template_it_renders(): void
     {
-        $tester = $this->tester(new LandingModule);
-        $tester->execute([]);
+        $output = $this->routes(new LandingModule);
 
-        $this->assertStringContainsString('admin/dashboard', $tester->getDisplay());
-        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $this->assertStringContainsString('admin/dashboard', implode("\n", $output->lines()));
+        $this->assertSame(ExitCode::Success, $this->code);
     }
 
     public function test_a_template_nobody_ships_is_reported_rather_than_waiting_for_a_visitor(): void
     {
         // It routes, it gates, it breadcrumbs, and it 500s when followed. The
         // receipt is where that has to surface, because nothing else looks.
-        $tester = $this->tester(new TypoModule);
-        $tester->execute([]);
+        $output = $this->routes(new TypoModule);
 
-        $this->assertStringContainsString('admin/reprots', $tester->getDisplay());
-        $this->assertStringContainsString('No template found', $tester->getDisplay());
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
+        $this->assertStringContainsString('admin/reprots', implode("\n", $output->lines()));
+        $this->assertStringContainsString('No template found', implode("\n", $output->lines()));
+        $this->assertSame(ExitCode::Failure, $this->code);
     }
 
     public function test_without_a_view_it_still_lists_the_routes_it_cannot_check(): void
     {
         // The check needs a view; the receipt does not, and is worth printing
         // either way.
-        $tester = new CommandTester(new AdminRoutesCommand($this->registry(new TypoModule)));
-        $tester->execute([]);
+        $output = new FakeOutput;
+        $this->code = (new AdminRoutesCommand($this->registry(new TypoModule)))->execute(new ArrayInput, $output);
 
-        $this->assertStringContainsString('admin/reprots', $tester->getDisplay());
-        $this->assertStringNotContainsString('No template found', $tester->getDisplay());
-        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $this->assertStringContainsString('admin/reprots', implode("\n", $output->lines()));
+        $this->assertStringNotContainsString('No template found', implode("\n", $output->lines()));
+        $this->assertSame(ExitCode::Success, $this->code);
     }
 
     public function test_a_screen_the_admin_renders_itself_claims_no_template(): void
@@ -122,20 +123,18 @@ final class AdminRoutesCommandTest extends TestCase
         // Nothing else looks: compile() has no view to ask, and the widget
         // route renders whichever card the URL names, so the first sign of it
         // otherwise is one dead card on an otherwise working dashboard.
-        $tester = $this->tester(new TypoWidgetModule);
-        $tester->execute([]);
+        $output = $this->routes(new TypoWidgetModule);
 
-        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-        $this->assertStringContainsString('admin/widgets/cuonts', $tester->getDisplay());
+        $this->assertSame(ExitCode::Failure, $this->code);
+        $this->assertStringContainsString('admin/widgets/cuonts', implode("\n", $output->lines()));
     }
 
     public function test_the_widget_route_is_shown_with_the_cards_it_serves(): void
     {
-        $tester = $this->tester(new TypoWidgetModule);
-        $tester->execute([]);
+        $output = $this->routes(new TypoWidgetModule);
 
-        $this->assertStringContainsString('/w/{widget}', $tester->getDisplay());
-        $this->assertStringContainsString('1 widget', $tester->getDisplay());
+        $this->assertStringContainsString('/w/{widget}', implode("\n", $output->lines()));
+        $this->assertStringContainsString('1 widget', implode("\n", $output->lines()));
     }
 
     public function test_a_dashboard_whose_cards_all_exist_passes(): void
@@ -143,24 +142,28 @@ final class AdminRoutesCommandTest extends TestCase
         // The count in the widget row is a tally, not a template. Asking the
         // view for "5 widgets" is a question it can only answer no to, which
         // failed every dashboard that was in fact complete.
-        $tester = $this->tester(new WidgetDashboardModule);
-        $tester->execute([]);
+        $output = $this->routes(new WidgetDashboardModule);
 
-        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
-        $this->assertStringContainsString('5 widgets', $tester->getDisplay());
-        $this->assertStringNotContainsString('No template found', $tester->getDisplay());
+        $this->assertSame(ExitCode::Success, $this->code);
+        $this->assertStringContainsString('5 widgets', implode("\n", $output->lines()));
+        $this->assertStringNotContainsString('No template found', implode("\n", $output->lines()));
     }
 
-    private function tester(object $module): CommandTester
+    /** Runs the route listing for one module and keeps what it said. */
+    private function routes(object $module): FakeOutput
     {
-        return new CommandTester(new AdminRoutesCommand(
+        $output = new FakeOutput;
+
+        $this->code = (new AdminRoutesCommand(
             $this->registry($module),
             new PhpView(
                 dirname(__DIR__) . '/views',
                 new CspNonce,
                 fallbacks: [AdminServiceProvider::views()],
             ),
-        ));
+        ))->execute(new ArrayInput, $output);
+
+        return $output;
     }
 
     private function registry(object $module): ModuleRegistry
@@ -175,9 +178,9 @@ final class AdminRoutesCommandTest extends TestCase
             [$module::class],
         );
 
-        $tester = new CommandTester(new AdminRoutesCommand($registry));
-        $tester->execute([]);
+        $output = new FakeOutput;
+        $this->code = (new AdminRoutesCommand($registry))->execute(new ArrayInput, $output);
 
-        return $tester->getDisplay();
+        return implode("\n", $output->lines());
     }
 }

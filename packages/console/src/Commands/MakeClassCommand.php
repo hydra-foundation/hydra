@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Commands;
 
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
+use Hydra\Console\Argument;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
+use Hydra\Console\Option;
 
 /**
  * Shared base for the class-emitting stub generators (make:controller,
@@ -17,45 +17,47 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 abstract class MakeClassCommand extends Command
 {
-    public function __construct(private readonly string $targetDir)
+    public function __construct(private readonly string $targetDir) {}
+
+    public function arguments(): array
     {
-        parent::__construct();
+        return [Argument::required('name', $this->nameHint())];
     }
 
-    protected function configure(): void
+    public function options(): array
     {
-        $this->addArgument('name', InputArgument::REQUIRED, $this->nameHint());
-        $this->addOption('force', 'f', InputOption::VALUE_NONE, 'Overwrite an existing file');
+        return [Option::flag('force', 'f', 'Overwrite an existing file')];
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        $io = new SymfonyStyle($input, $output);
-
-        $class = $this->className((string) $input->getArgument('name'));
+        $class = $this->className($input->argument('name'));
         if ($class === '') {
-            $io->error('Name must contain at least one letter or digit.');
-            return Command::FAILURE;
+            $output->error('Name must contain at least one letter or digit.');
+
+            return ExitCode::Invalid;
         }
 
         $path = $this->targetDir . '/' . $class . '.php';
 
-        if (is_file($path) && !$input->getOption('force')) {
-            $io->error("{$class} already exists. Re-run with --force to overwrite it.");
-            return Command::FAILURE;
+        if (is_file($path) && !$input->flag('force')) {
+            $output->error("{$class} already exists. Re-run with --force to overwrite it.");
+
+            return ExitCode::Failure;
         }
 
         if (!is_dir($this->targetDir) && !mkdir($this->targetDir, 0o775, true) && !is_dir($this->targetDir)) {
-            $io->error("Could not create directory {$this->targetDir}.");
-            return Command::FAILURE;
+            $output->error("Could not create directory {$this->targetDir}.");
+
+            return ExitCode::Failure;
         }
 
         file_put_contents($path, $this->stub($class));
 
-        $io->success("Created {$class}");
-        $this->afterCreate($io, $class);
+        $output->success("Created {$class}");
+        $this->afterCreate($output, $class);
 
-        return Command::SUCCESS;
+        return ExitCode::Success;
     }
 
     /** The argument description shown in help, e.g. 'The controller name, e.g. "post"'. */
@@ -68,7 +70,7 @@ abstract class MakeClassCommand extends Command
     abstract protected function stub(string $class): string;
 
     /** Hook for a post-create reminder (e.g. "register this in CONTROLLERS"). */
-    protected function afterCreate(SymfonyStyle $io, string $class): void {}
+    protected function afterCreate(OutputInterface $output, string $class): void {}
 
     /**
      * Normalise a loose name into a PascalCase class with the guaranteed suffix:

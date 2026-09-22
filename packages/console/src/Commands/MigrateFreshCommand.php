@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Hydra\Console\Commands;
 
+use Hydra\Console\Attributes\AsCommand;
+use Hydra\Console\Command;
+use Hydra\Console\Contracts\InputInterface;
+use Hydra\Console\Contracts\OutputInterface;
+use Hydra\Console\ExitCode;
+use Hydra\Console\Option;
 use Hydra\Database\MigrationRunner;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Drops every table and re-applies all migrations from scratch, a clean slate
@@ -25,38 +25,36 @@ final class MigrateFreshCommand extends Command
     public function __construct(
         private readonly MigrationRunner $runner,
         private readonly bool $debug,
-    ) {
-        parent::__construct();
+    ) {}
+
+    public function options(): array
+    {
+        return [
+            Option::flag('force', 'f', 'Run even when APP_DEBUG is off, and skip the confirmation prompt'),
+        ];
     }
 
-    protected function configure(): void
+    public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        $this->addOption(
-            'force',
-            'f',
-            InputOption::VALUE_NONE,
-            'Run even when APP_DEBUG is off, and skip the confirmation prompt',
-        );
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-        $force = (bool) $input->getOption('force');
+        $force = $input->flag('force');
 
         if (!$this->debug && !$force) {
-            $io->error('APP_DEBUG is off — refusing to drop all tables. Re-run with --force if you really mean it.');
-            return Command::FAILURE;
+            $output->error('APP_DEBUG is off — refusing to drop all tables. Re-run with --force if you really mean it.');
+
+            return ExitCode::Failure;
         }
 
-        if (!$force && !$io->confirm('This will DROP every table and re-run all migrations. Continue?', false)) {
-            $io->warning('Aborted.');
-            return Command::FAILURE;
+        // Default false: an output with nobody to ask answers the default, and
+        // the safe answer to "drop every table" is no.
+        if (!$force && !$output->confirm('This will DROP every table and re-run all migrations. Continue?', false)) {
+            $output->warning('Aborted.');
+
+            return ExitCode::Failure;
         }
 
         $applied = $this->runner->fresh();
-        $io->success(sprintf('Database reset — applied %d migration(s).', count($applied)));
+        $output->success(sprintf('Database reset — applied %d migration(s).', count($applied)));
 
-        return Command::SUCCESS;
+        return ExitCode::Success;
     }
 }

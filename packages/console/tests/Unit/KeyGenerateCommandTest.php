@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Hydra\Console\Tests\Unit;
 
 use Hydra\Console\Commands\KeyGenerateCommand;
+use Hydra\Console\ExitCode;
+use Hydra\Console\ArrayInput;
+use Hydra\Console\Testing\FakeOutput;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * key:generate against a real temporary .env, weighted towards the cases where
@@ -20,9 +21,12 @@ final class KeyGenerateCommandTest extends TestCase
 {
     private string $envPath;
 
+    private FakeOutput $output;
+
     protected function setUp(): void
     {
         $this->envPath = sys_get_temp_dir() . '/hydra-keygen-' . uniqid('', true) . '.env';
+        $this->output = new FakeOutput;
     }
 
     protected function tearDown(): void
@@ -32,14 +36,17 @@ final class KeyGenerateCommandTest extends TestCase
         }
     }
 
-    private function tester(): CommandTester
+    /** @param list<string> $flags */
+    private function generate(array $flags = []): ExitCode
     {
-        return new CommandTester(new KeyGenerateCommand($this->envPath));
+        return (new KeyGenerateCommand($this->envPath))
+            ->execute(ArrayInput::withFlags($flags), $this->output);
     }
 
     private function key(): string
     {
         preg_match('/^APP_KEY=(.*)$/m', file_get_contents($this->envPath), $m);
+
         return $m[1] ?? '';
     }
 
@@ -47,8 +54,7 @@ final class KeyGenerateCommandTest extends TestCase
     {
         file_put_contents($this->envPath, "APP_NAME=Hydra\nAPP_KEY=\n");
 
-        $tester = $this->tester();
-        $this->assertSame(Command::SUCCESS, $tester->execute([]));
+        $this->assertSame(ExitCode::Success, $this->generate());
 
         // A 256-bit key is 64 hex chars; the rest of the file is preserved.
         $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $this->key());
@@ -59,9 +65,8 @@ final class KeyGenerateCommandTest extends TestCase
     {
         file_put_contents($this->envPath, "APP_KEY=existing\n");
 
-        $tester = $this->tester();
-        $this->assertSame(Command::FAILURE, $tester->execute([]));
-        $this->assertStringContainsString('already set', $tester->getDisplay());
+        $this->assertSame(ExitCode::Failure, $this->generate());
+        $this->output->assertError('already set');
 
         // The existing key is left untouched.
         $this->assertSame('existing', $this->key());
@@ -71,7 +76,7 @@ final class KeyGenerateCommandTest extends TestCase
     {
         file_put_contents($this->envPath, "APP_KEY=existing\n");
 
-        $this->assertSame(Command::SUCCESS, $this->tester()->execute(['--force' => true]));
+        $this->assertSame(ExitCode::Success, $this->generate(['force']));
         $this->assertNotSame('existing', $this->key());
         $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $this->key());
     }
@@ -80,16 +85,15 @@ final class KeyGenerateCommandTest extends TestCase
     {
         file_put_contents($this->envPath, "APP_NAME=Hydra\n");
 
-        $this->assertSame(Command::SUCCESS, $this->tester()->execute([]));
+        $this->assertSame(ExitCode::Success, $this->generate());
         $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $this->key());
         $this->assertStringContainsString('APP_NAME=Hydra', file_get_contents($this->envPath));
     }
 
     public function test_fails_when_env_file_is_missing(): void
     {
-        $tester = $this->tester(); // setUp() never created the file
-
-        $this->assertSame(Command::FAILURE, $tester->execute([]));
-        $this->assertStringContainsString('No .env', $tester->getDisplay());
+        // setUp() never created the file.
+        $this->assertSame(ExitCode::Failure, $this->generate());
+        $this->output->assertError('No .env');
     }
 }
