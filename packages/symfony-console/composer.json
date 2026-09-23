@@ -31,7 +31,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "hydrakit/console": "^0.8",
+        "hydrakit/console": "^0.9",
         "symfony/console": "^7.0"
     },
     "require-dev": {
@@ -41,7 +41,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.8.x-dev"
+            "dev-main": "0.9.x-dev"
         }
     }
 }
