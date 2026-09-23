@@ -14,6 +14,7 @@
     "mail": 99.3,
     "nyholm": 100,
     "php-di": 100,
+    "scheduler": 100,
     "session": 99,
     "symfony-console": 96.3,
     "throttle": 96,

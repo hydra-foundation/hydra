@@ -1,0 +1,46 @@
+{
+    "name": "hydrakit/scheduler",
+    "description": "Scheduled work from one cron entry: due checks, overlap locks and bounded batches.",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
+    "autoload": {
+        "psr-4": {
+            "Hydra\\Scheduler\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hydra\\Scheduler\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../core",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "authors": [
+        {
+            "name": "William Hleucka",
+            "email": "william.hleucka@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "hydrakit/core": "^0.9"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.9.x-dev"
+        }
+    }
+}
