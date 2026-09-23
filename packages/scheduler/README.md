@@ -16,4 +16,14 @@ spent. Frequencies are `everyMinute()`, `hourly()`, `dailyAt('04:00')`,
 `weekly()` or a five-field `cron()` expression, read in the schedule's own zone
 rather than the clock's.
 
-Work in progress: the runner and the `schedule:run` command are not here yet.
+One cron entry runs it: `* * * * * php bin/console schedule:run`. Each task
+holds a `flock()` lock while it runs, so the kernel releases it however the run
+ends and a crash cannot lock a task out. A run still holding its lock is never
+started again beside it; once it has held the lock past `warnAfter()` minutes
+(an hour by default) every tick logs a warning instead. Due tasks run one after
+another in the order declared, so a long `drain()` belongs at the end.
+
+`SchedulerServiceProvider` binds an empty `Schedule` for the application to
+fill from its own provider's `boot()`. Times are read in `SCHEDULE_TIMEZONE`,
+else `APP_TIMEZONE`, else UTC; locks live wherever the provider is told unless
+`SCHEDULE_LOCK_DIR` moves them.

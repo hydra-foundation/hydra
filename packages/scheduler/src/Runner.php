@@ -1,0 +1,105 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Hydra\Scheduler;
+
+use DateInterval;
+use Hydra\Scheduler\Contracts\BatchInterface;
+use Hydra\Scheduler\Contracts\TaskInterface;
+use LogicException;
+use Psr\Clock\ClockInterface;
+use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
+use Throwable;
+
+/**
+ * One tick: every task due this minute, in the order it was declared, one after
+ * another. A long batch holds up what is declared after it for as long as it
+ * runs, which is what declaring it last is for.
+ */
+final class Runner
+{
+    public function __construct(
+        private readonly Schedule $schedule,
+        private readonly ContainerInterface $container,
+        private readonly ClockInterface $clock,
+        private readonly LockDirectory $locks,
+        private readonly LoggerInterface $logger,
+    ) {}
+
+    /** @return list<TaskRun> */
+    public function run(): array
+    {
+        return array_map($this->runOne(...), $this->schedule->due($this->clock->now()));
+    }
+
+    private function runOne(ScheduledTask $task): TaskRun
+    {
+        $lock = $this->locks->acquire($task->class, $this->clock->now());
+
+        if ($lock === null) {
+            return $this->held($task);
+        }
+
+        try {
+            if ($task->batched) {
+                return new TaskRun($task->class, Outcome::Ran, items: $this->drain($task));
+            }
+
+            $this->resolve($task, TaskInterface::class)->run();
+
+            return new TaskRun($task->class, Outcome::Ran);
+        } catch (Throwable $e) {
+            $this->logger->error("Scheduled task {$task->class} failed: {$e->getMessage()}", ['exception' => $e]);
+
+            return new TaskRun($task->class, Outcome::Failed);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function drain(ScheduledTask $task): int
+    {
+        $batch = $this->resolve($task, BatchInterface::class);
+        $budget = $task->budgetMinutes();
+        $deadline = $budget === null ? null : $this->clock->now()->add(new DateInterval("PT{$budget}M"));
+        $total = 0;
+
+        do {
+            $handled = $batch->batch();
+            $total += max(0, $handled);
+        } while ($handled > 0 && ($deadline === null || $this->clock->now() < $deadline));
+
+        return $total;
+    }
+
+    private function held(ScheduledTask $task): TaskRun
+    {
+        $started = $this->locks->startedAt($task->class);
+        $minutes = $started === null ? null : intdiv($this->clock->now()->getTimestamp() - $started, 60);
+
+        if ($minutes !== null && $minutes >= $task->warnMinutes()) {
+            $this->logger->warning(
+                "Scheduled task {$task->class} has held its lock for {$minutes} minutes and may be hung; it is not being run again beside it.",
+                ['task' => $task->class, 'minutes' => $minutes],
+            );
+        }
+
+        return new TaskRun($task->class, Outcome::Held, heldMinutes: $minutes);
+    }
+
+    /**
+     * @template T of object
+     * @param class-string<T> $contract
+     * @return T
+     */
+    private function resolve(ScheduledTask $task, string $contract): object
+    {
+        $instance = $this->container->get($task->class);
+
+        return $instance instanceof $contract
+            ? $instance
+            : throw new LogicException("The container built {$task->class} as something that is not a {$contract}.");
+    }
+}
