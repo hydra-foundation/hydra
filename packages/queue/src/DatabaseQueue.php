@@ -121,6 +121,44 @@ final class DatabaseQueue implements QueueInterface
         });
     }
 
+    /** @return list<FailedJob> newest first */
+    public function failed(): array
+    {
+        return array_map(
+            static fn (array $row): FailedJob => new FailedJob(
+                (int) $row['id'],
+                (string) $row['job'],
+                (string) $row['payload'],
+                (string) $row['exception'],
+                (int) $row['failed_at'],
+            ),
+            $this->db->select('SELECT id, job, payload, exception, failed_at FROM failed_jobs ORDER BY id DESC'),
+        );
+    }
+
+    /**
+     * Put a failed job back on the queue with its tries restored, as a new
+     * job due now. False when no failed job has that id.
+     */
+    public function retry(int $id): bool
+    {
+        return $this->db->transaction(function () use ($id): bool {
+            $row = $this->db->selectOne('SELECT job, payload FROM failed_jobs WHERE id = ?', [$id]);
+
+            if ($row === null || $this->db->execute('DELETE FROM failed_jobs WHERE id = ?', [$id]) === 0) {
+                return false;
+            }
+
+            $now = $this->now();
+            $this->db->execute(
+                'INSERT INTO jobs (job, payload, attempts, available_at, created_at) VALUES (?, ?, 0, ?, ?)',
+                [(string) $row['job'], (string) $row['payload'], $now, $now],
+            );
+
+            return true;
+        });
+    }
+
     private function now(): int
     {
         return $this->clock->now()->getTimestamp();

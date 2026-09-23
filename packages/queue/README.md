@@ -22,5 +22,9 @@ with the exception. A claim whose worker died is taken again after fifteen
 minutes, and the attempt is counted when the job is claimed, so a job that
 kills its worker still runs out of tries.
 
+`queue:failed` lists what ran out of tries, newest first, with the
+exception's message. `queue:retry <id>` puts one back on the queue, due now
+and with its tries restored; `queue:retry --all` puts back every one.
+
 `Testing\FakeQueue` records pushes for `assertQueued()`, and refuses whatever
 the database queue would.

@@ -7,6 +7,7 @@ namespace Hydra\Queue\Tests\Unit;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Database\Testing\FakeConnection;
 use Hydra\Queue\DatabaseQueue;
+use Hydra\Queue\FailedJob;
 use Hydra\Queue\Payload;
 use Hydra\Queue\ReservedJob;
 use Hydra\Queue\Tests\Support\QueueTables;
@@ -20,6 +21,7 @@ use RuntimeException;
 #[CoversClass(DatabaseQueue::class)]
 #[CoversClass(ReservedJob::class)]
 #[CoversClass(Payload::class)]
+#[CoversClass(FailedJob::class)]
 final class DatabaseQueueTest extends TestCase
 {
     private FakeConnection $db;
@@ -188,6 +190,44 @@ final class DatabaseQueueTest extends TestCase
                 $this->addToAssertionCount(1);
             }
         }
+    }
+
+    public function test_failed_jobs_list_newest_first_with_the_exception_kept(): void
+    {
+        $this->queue()->push(RecordingJob::class, ['n' => 1]);
+        $this->queue()->push(RecordingJob::class, ['n' => 2]);
+        [$first, $second] = $this->queue()->reserve(2);
+        $this->queue()->fail($first, new RuntimeException('first down'));
+        $this->queue()->fail($second, new RuntimeException('second down'));
+
+        $failed = $this->queue()->failed();
+
+        $this->assertSame(['{"n":2}', '{"n":1}'], array_map(static fn (FailedJob $j): string => $j->payload, $failed));
+        $this->assertSame(RecordingJob::class, $failed[0]->job);
+        $this->assertSame($this->clock->now()->getTimestamp(), $failed[0]->failedAt);
+        $this->assertSame(RuntimeException::class . ': second down', $failed[0]->reason());
+        $this->assertStringContainsString('#0 ', $failed[0]->exception);
+    }
+
+    public function test_a_retried_job_is_due_now_with_its_tries_restored(): void
+    {
+        $this->queue()->push(RecordingJob::class, ['n' => 1]);
+        [$job] = $this->queue()->reserve(1);
+        $this->queue()->fail($job, new RuntimeException('down'));
+        $this->clock->advance('+1 hour');
+
+        $this->assertTrue($this->queue()->retry($this->queue()->failed()[0]->id));
+
+        $this->assertSame([], $this->queue()->failed());
+        [$again] = $this->queue()->reserve(1);
+        $this->assertSame(['n' => 1], $again->payload());
+        $this->assertSame(1, $again->attempts);
+    }
+
+    public function test_retrying_an_unknown_id_changes_nothing(): void
+    {
+        $this->assertFalse($this->queue()->retry(99));
+        $this->assertSame([], $this->db->select('SELECT id FROM jobs'));
     }
 
     private function queue(): DatabaseQueue

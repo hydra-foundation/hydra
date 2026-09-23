@@ -66,6 +66,7 @@
     ],
     "require": {
         "php": ">=8.2",
+        "hydrakit/console": "^0.9",
         "hydrakit/database": "^0.9",
         "hydrakit/scheduler": "^0.9",
         "psr/clock": "^1.0",
