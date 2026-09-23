@@ -67,7 +67,16 @@ final class MigrationRunner
             return;
         }
 
-        $statement = $this->pdo->query($sql);
+        // A native prepare takes one statement, so a PDO built with emulation
+        // off refused every file with two in it as a syntax error.
+        $emulating = $this->pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES);
+        $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
+
+        try {
+            $statement = $this->pdo->query($sql);
+        } finally {
+            $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, $emulating);
+        }
 
         try {
             // Drain: each iteration surfaces the next statement's outcome.
