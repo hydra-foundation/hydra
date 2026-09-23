@@ -50,6 +50,7 @@ jobs:
           - mail
           - nyholm
           - php-di
+          - queue
           - scheduler
           - session
           - symfony-console

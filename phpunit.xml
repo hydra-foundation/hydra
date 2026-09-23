@@ -75,6 +75,9 @@
         <testsuite name="php-di">
             <directory>packages/php-di/tests</directory>
         </testsuite>
+        <testsuite name="queue">
+            <directory>packages/queue/tests</directory>
+        </testsuite>
         <testsuite name="scheduler">
             <directory>packages/scheduler/tests</directory>
         </testsuite>
@@ -119,6 +122,7 @@
             <directory>packages/mail/src</directory>
             <directory>packages/nyholm/src</directory>
             <directory>packages/php-di/src</directory>
+            <directory>packages/queue/src</directory>
             <directory>packages/scheduler/src</directory>
             <directory>packages/session/src</directory>
             <directory>packages/symfony-console/src</directory>
