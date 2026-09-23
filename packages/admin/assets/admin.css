@@ -67,6 +67,15 @@
     border-color: var(--line);
 }
 
+/* Application banner, above the frame so a frame swap leaves it standing. */
+.admin-banner {
+    padding: var(--s-3) var(--s-4) 0;
+}
+
+.admin-banner > :last-child {
+    margin-bottom: 0;
+}
+
 /* Sidebar ------------------------------------------------------------------ */
 
 .admin-sidebar {
