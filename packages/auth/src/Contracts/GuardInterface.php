@@ -36,6 +36,13 @@ interface GuardInterface
      */
     public function login(AuthenticatableInterface $user): void;
 
+    /**
+     * Keep the signed-in user signed in across a change to their password,
+     * which otherwise ends every session they have, this one included.
+     * Regenerates the session id; announces nothing, since nobody signed in.
+     */
+    public function refresh(AuthenticatableInterface $user): void;
+
     /** Forget the authenticated user and regenerate the session id. */
     public function logout(): void;
 }

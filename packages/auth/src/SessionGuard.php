@@ -13,6 +13,7 @@ use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\Events\LoggedOut;
 use Hydra\Auth\Events\LoginFailed;
 use Hydra\Session\Contracts\SessionInterface;
+use LogicException;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -24,6 +25,13 @@ final class SessionGuard implements GuardInterface
 {
     /** Where the authenticated user's id lives in the session (framework-reserved). */
     private const SESSION_KEY = '_auth_id';
+
+    /**
+     * The digest of the password hash the session was signed in against. A
+     * password changed anywhere else no longer matches it, which is what ends
+     * every other session the account had.
+     */
+    private const DIGEST_KEY = '_auth_digest';
 
     /** Per-request cache of the resolved user; $resolved distinguishes "null" from "not looked up yet". */
     private ?AuthenticatableInterface $cachedUser = null;
@@ -66,6 +74,18 @@ final class SessionGuard implements GuardInterface
             // a read path, the session only DROPS its claim, and the next real
             // login() rotates the id as it always does.
             $this->session->remove(self::SESSION_KEY);
+
+            return $this->cachedUser = null;
+        }
+
+        if (!$this->stampedFor($user)) {
+            // Flushed rather than just unmarked, as logout() does: whoever holds
+            // this session is, by assumption, not the account's owner, and what
+            // it stored belongs to the account. A session from before the stamp
+            // existed carries none and ends here too.
+            $this->session->clear();
+
+            return $this->cachedUser = null;
         }
 
         return $this->cachedUser = $user;
@@ -119,6 +139,7 @@ final class SessionGuard implements GuardInterface
         // pre-login token referred to; regenerate() carries the data over.
         $this->session->regenerate();
         $this->session->set(self::SESSION_KEY, $user->getAuthIdentifier());
+        $this->stamp($user);
 
         // Prime the cache: user()/check() later this request need no provider hit.
         $this->cachedUser = $user;
@@ -127,6 +148,19 @@ final class SessionGuard implements GuardInterface
         // Announced after the session and cache are set, so a listener that reads
         // the guard already sees the logged-in state.
         $this->events?->dispatch(new LoggedIn($user));
+    }
+
+    public function refresh(AuthenticatableInterface $user): void
+    {
+        if ($this->id() !== $user->getAuthIdentifier()) {
+            throw new LogicException('refresh() re-stamps the signed-in user; sign anyone else in with login().');
+        }
+
+        $this->session->regenerate();
+        $this->stamp($user);
+
+        $this->cachedUser = $user;
+        $this->resolved = true;
     }
 
     public function logout(): void
@@ -148,5 +182,17 @@ final class SessionGuard implements GuardInterface
         $this->resolved = true;
 
         $this->events?->dispatch(new LoggedOut($id));
+    }
+
+    private function stamp(AuthenticatableInterface $user): void
+    {
+        $this->session->set(self::DIGEST_KEY, SignedToken::digest($user->getAuthPassword()));
+    }
+
+    private function stampedFor(AuthenticatableInterface $user): bool
+    {
+        $stamp = $this->session->get(self::DIGEST_KEY);
+
+        return is_string($stamp) && hash_equals(SignedToken::digest($user->getAuthPassword()), $stamp);
     }
 }

@@ -113,6 +113,18 @@ abstract class GuardContractTestCase extends TestCase
         $this->assertSame($user->getAuthIdentifier(), $guard->user()?->getAuthIdentifier());
     }
 
+    public function test_refresh_keeps_the_signed_in_user_signed_in(): void
+    {
+        $guard = $this->signedIn();
+        $user = $guard->user();
+        $this->assertNotNull($user);
+
+        $guard->refresh($user);
+
+        $this->assertSame($user->getAuthIdentifier(), $guard->id());
+        $this->assertSame($user->getAuthIdentifier(), $guard->user()?->getAuthIdentifier());
+    }
+
     public function test_logout_leaves_nobody_signed_in(): void
     {
         $guard = $this->signedIn();

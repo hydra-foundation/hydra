@@ -84,6 +84,11 @@ final class FakeGuard implements GuardInterface
         $this->user = $user;
     }
 
+    public function refresh(AuthenticatableInterface $user): void
+    {
+        $this->user = $user;
+    }
+
     public function logout(): void
     {
         $this->user = null;

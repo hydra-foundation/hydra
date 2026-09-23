@@ -17,6 +17,7 @@ use Hydra\Auth\Testing\FakeUser;
 use Hydra\Event\Testing\FakeDispatcher;
 use Hydra\Session\Stores\ArraySessionStore;
 use PHPUnit\Framework\Attributes\CoversClass;
+use LogicException;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -357,6 +358,67 @@ final class SessionGuardTest extends TestCase
         $next = $this->guard();
         $this->assertTrue($next->check());
         $this->assertSame(1, $this->session->get('_auth_id'));
+    }
+
+    public function test_a_password_changed_elsewhere_ends_the_session(): void
+    {
+        $this->guard()->login($this->provider->byUsername('ada'));
+        $this->session->set('cart', ['a book']);
+
+        $this->changePassword('something new');
+
+        $next = $this->guard();
+        $this->assertNull($next->user());
+        $this->assertFalse($this->session->has('_auth_id'));
+        $this->assertFalse($this->session->has('cart'), 'the account\'s data goes with it');
+    }
+
+    public function test_a_session_from_before_the_stamp_is_signed_out(): void
+    {
+        $this->session->set('_auth_id', 1);
+
+        $this->assertNull($this->guard()->user());
+    }
+
+    public function test_refresh_keeps_the_signed_in_user_through_their_own_change(): void
+    {
+        $guard = $this->guard();
+        $guard->login($this->provider->byUsername('ada'));
+        $before = $this->session->id();
+
+        $changed = $this->changePassword('something new');
+        $guard->refresh($changed);
+
+        $this->assertNotSame($before, $this->session->id());
+        $this->assertSame($changed, $this->guard()->user());
+    }
+
+    public function test_refresh_announces_nothing(): void
+    {
+        $events = new FakeDispatcher;
+        $guard = $this->guardWithEvents($events);
+        $guard->login($this->provider->byUsername('ada'));
+
+        $guard->refresh($this->changePassword('something new'));
+
+        $this->assertSame([LoggedIn::class], $events->types());
+    }
+
+    public function test_refresh_will_not_sign_in_somebody_else(): void
+    {
+        $this->guard()->login($this->provider->byUsername('ada'));
+
+        $this->expectException(LogicException::class);
+
+        $this->guard()->refresh(new FakeUser(2, 'hash'));
+    }
+
+    private function changePassword(string $password): FakeUser
+    {
+        $user = new FakeUser(1, $this->hasher->hash($password));
+        $this->provider->add('ada', $user);
+
+        return $user;
     }
 
     public function test_missing_user_and_wrong_password_attempts_cost_the_same_hash_work(): void
