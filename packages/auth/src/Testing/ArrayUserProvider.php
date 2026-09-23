@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Hydra\Auth\Testing;
 
 use Hydra\Auth\Contracts\AuthenticatableInterface;
+use Hydra\Auth\Contracts\EmailUserProviderInterface;
+use Hydra\Auth\Contracts\HasEmailInterface;
 use Hydra\Auth\Contracts\UserProviderInterface;
 
 /**
@@ -15,7 +17,7 @@ use Hydra\Auth\Contracts\UserProviderInterface;
  * counts are how a test proves the guard caches: reading the user three times
  * in a request should look it up once.
  */
-final class ArrayUserProvider implements UserProviderInterface
+final class ArrayUserProvider implements UserProviderInterface, EmailUserProviderInterface
 {
     /** @var array<string, AuthenticatableInterface> keyed by username */
     private array $users = [];
@@ -49,6 +51,18 @@ final class ArrayUserProvider implements UserProviderInterface
         $this->usernameLookups++;
 
         return $this->users[$username] ?? null;
+    }
+
+    /** Case-insensitive, as a unique key under a _ci collation is. */
+    public function byEmail(string $email): ?AuthenticatableInterface
+    {
+        foreach ($this->users as $user) {
+            if ($user instanceof HasEmailInterface && $email !== '' && strcasecmp($user->getAuthEmail(), $email) === 0) {
+                return $user;
+            }
+        }
+
+        return null;
     }
 
     public function identifierLookups(): int

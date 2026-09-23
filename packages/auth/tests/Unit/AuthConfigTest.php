@@ -100,4 +100,36 @@ final class AuthConfigTest extends TestCase
         $this->assertSame(4, (new AuthConfig(hashCost: 4))->hashCost);
         $this->assertSame(31, (new AuthConfig(hashCost: 31))->hashCost);
     }
+
+    public function test_reset_links_last_an_hour_by_default(): void
+    {
+        $this->assertSame(3600, $this->fromEnv("APP_NAME=x\n")->resetTtl);
+    }
+
+    public function test_maps_the_reset_lifetime(): void
+    {
+        $this->assertSame(900, $this->fromEnv("AUTH_RESET_TTL=900\n")->resetTtl);
+    }
+
+    public function test_rejects_a_reset_link_that_is_born_expired(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new AuthConfig(resetTtl: 0);
+    }
+
+    public function test_verification_links_last_a_day_by_default(): void
+    {
+        $this->assertSame(86400, $this->fromEnv("APP_NAME=x\n")->verifyTtl);
+    }
+
+    public function test_maps_the_verification_lifetime(): void
+    {
+        $this->assertSame(600, $this->fromEnv("AUTH_VERIFY_TTL=600\n")->verifyTtl);
+    }
+
+    public function test_rejects_a_verification_link_that_is_born_expired(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new AuthConfig(verifyTtl: 0);
+    }
 }

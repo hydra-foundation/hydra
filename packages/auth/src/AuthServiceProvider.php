@@ -10,7 +10,9 @@ use Hydra\Auth\Contracts\UserProviderInterface;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
+use Hydra\Core\Security\Signer;
 use Hydra\Session\Contracts\SessionInterface;
+use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -50,6 +52,31 @@ final class AuthServiceProvider extends ServiceProvider
                 $container->get(UserProviderInterface::class),
                 $container->get(HasherInterface::class),
                 $events,
+            );
+        });
+
+        // Resolved lazily, so the clock and the signer are only demanded of an
+        // application that actually sends reset or verification links.
+        $container->singleton(SignedToken::class, function () use ($container) {
+            return new SignedToken(
+                $container->get(Signer::class),
+                $container->get(ClockInterface::class),
+            );
+        });
+
+        $container->singleton(PasswordResetTokens::class, function () use ($container) {
+            return new PasswordResetTokens(
+                $container->get(SignedToken::class),
+                $container->get(UserProviderInterface::class),
+                $container->get(AuthConfig::class)->resetTtl,
+            );
+        });
+
+        $container->singleton(EmailVerificationTokens::class, function () use ($container) {
+            return new EmailVerificationTokens(
+                $container->get(SignedToken::class),
+                $container->get(UserProviderInterface::class),
+                $container->get(AuthConfig::class)->verifyTtl,
             );
         });
 

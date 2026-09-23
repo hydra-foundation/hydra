@@ -31,6 +31,7 @@
         "hydrakit/core": "^0.8",
         "hydrakit/http": "^0.8",
         "hydrakit/session": "^0.8",
+        "psr/clock": "^1.0",
         "psr/event-dispatcher": "^1.0",
         "psr/log": "^3.0",
         "psr/http-message": "^2.0",

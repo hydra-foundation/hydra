@@ -7,20 +7,26 @@ namespace Hydra\Auth\Tests\Unit;
 use Hydra\Auth\AuthConfig;
 use Hydra\Auth\AuthServiceProvider;
 use Hydra\Auth\Contracts\GuardInterface;
+use Hydra\Auth\EmailVerificationTokens;
 use Hydra\Auth\Contracts\HasherInterface;
 use Hydra\Auth\Contracts\UserProviderInterface;
 use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\NativeHasher;
+use Hydra\Auth\PasswordResetTokens;
 use Hydra\Auth\SessionGuard;
 use Hydra\Auth\Testing\ArrayUserProvider;
 use Hydra\Auth\Testing\FakeUser;
 use Hydra\Core\Testing\FakeContainer;
 use Hydra\Core\Environment;
+use Hydra\Core\Security\Signer;
+use Hydra\Core\Testing\FixedSignerServiceProvider;
+use Hydra\Core\Testing\FrozenClock;
 use Hydra\Event\Testing\FakeDispatcher;
 use Hydra\Session\Contracts\SessionInterface;
 use Hydra\Session\Stores\ArraySessionStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Clock\ClockInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -107,6 +113,35 @@ final class AuthServiceProviderTest extends TestCase
             $container->get(GuardInterface::class),
             $container->get(GuardInterface::class),
         );
+    }
+
+    public function test_it_binds_reset_tokens_over_the_app_key_and_clock(): void
+    {
+        $container = $this->register(['AUTH_RESET_TTL' => '60']);
+        $container->instance(Signer::class, Signer::fromHex(FixedSignerServiceProvider::KEY_HEX));
+        $container->instance(ClockInterface::class, $clock = new FrozenClock);
+
+        $tokens = $container->get(PasswordResetTokens::class);
+        $token = $tokens->create(new FakeUser(1));
+        $clock->advance('+61 seconds');
+
+        $this->assertNull($tokens->resolve($token));
+    }
+
+    public function test_it_binds_verification_tokens_with_their_own_lifetime(): void
+    {
+        $container = $this->register(['AUTH_VERIFY_TTL' => '120']);
+        $container->instance(Signer::class, Signer::fromHex(FixedSignerServiceProvider::KEY_HEX));
+        $container->instance(ClockInterface::class, $clock = new FrozenClock);
+
+        $tokens = $container->get(EmailVerificationTokens::class);
+        $token = $tokens->create(new FakeUser('ada'));
+
+        $clock->advance('+61 seconds');
+        $this->assertNotNull($tokens->resolve($token));
+
+        $clock->advance('+60 seconds');
+        $this->assertNull($tokens->resolve($token));
     }
 
     public function test_it_does_not_bind_a_user_provider(): void
