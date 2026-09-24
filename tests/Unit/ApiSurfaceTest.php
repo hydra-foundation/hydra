@@ -227,6 +227,26 @@ final class ApiSurfaceTest extends TestCase
             'public function a(int $x, int $y = 0): void {}',
             'public function a(int $x): void {}',
         ];
+        yield 'a method parameter widens' => [
+            'public function find(int $id): void {}',
+            'public function find(int|string $id): void {}',
+        ];
+        yield 'a constructor parameter is retyped' => [
+            'public function __construct(int $id) {}',
+            'public function __construct(string $id) {}',
+        ];
+        yield 'a widened constructor parameter is renamed' => [
+            'public function __construct(int $id) {}',
+            'public function __construct(int|string $key) {}',
+        ];
+        yield 'a widened constructor parameter loses its default' => [
+            'public function __construct(int $id = 0) {}',
+            'public function __construct(int|string $id) {}',
+        ];
+        yield 'a public promotion is dropped' => [
+            'public function __construct(public readonly int $id) {}',
+            'public function __construct(int|string $id) {}',
+        ];
         yield 'an optional parameter is inserted before an existing one' => [
             'public function a(int $x, int $z = 0): void {}',
             'public function a(int $x, int $y = 0, int $z = 0): void {}',
@@ -293,6 +313,16 @@ final class ApiSurfaceTest extends TestCase
         ];
         // The commas inside the default are not parameter separators, and the
         // parentheses inside it are not the end of the signature.
+        // No constructor is checked against its parent's, so a widened type
+        // there reaches neither a caller nor a subclass.
+        yield 'a constructor parameter widens and drops its private promotion' => [
+            'public function __construct(private readonly Thing $t, private readonly string $p = "") {}',
+            'public function __construct(Thing|\Closure $t, private readonly string $p = "") {}',
+        ];
+        yield 'a nullable constructor parameter widens' => [
+            'public function __construct(?int $id = null) {}',
+            'public function __construct(int|string|null $id = null) {}',
+        ];
         yield 'an appended default carries its own punctuation' => [
             'public function a(int $x): void {}',
             'public function a(int $x, array $o = [1, 2], ?Thing $t = null): void {}',

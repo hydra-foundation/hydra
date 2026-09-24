@@ -19,10 +19,15 @@ declare(strict_types=1);
  * as not having a gate, so the one compatible shape is recognised here: the new
  * parameter list starts with the old one and everything after it is optional.
  *
- * Nothing else is forgiven. A renamed parameter, a widened type, a reordered
- * list and `?Foo` rewritten as `Foo|null` all still read as removals, because
- * named arguments make parameter names public and because a gate that guesses
- * should guess toward the tag that cannot break anyone.
+ * Constructors get one more: a parameter's type may widen and a private
+ * promotion may be dropped. PHP checks no constructor against its parent's, so
+ * neither reaches a subclass, and every argument a caller passed still fits.
+ *
+ * Nothing else is forgiven. A renamed parameter, a widened type on a method, a
+ * reordered list and `?Foo` rewritten as `Foo|null` all still read as removals,
+ * because named arguments make parameter names public, an interface's widened
+ * parameter is every implementer's break, and a gate that guesses should guess
+ * toward the tag that cannot break anyone.
  */
 
 if ($argc !== 3) {
@@ -119,6 +124,31 @@ foreach ($new as $line) {
     }
 }
 
+/**
+ * Whether a constructor parameter still takes everything it took: the same name
+ * and default, a promotion that was private and nothing wider, and a type naming
+ * at least the old one's members. Intersections are compared as written.
+ */
+$widens = static function (string $was, string $now): bool {
+    $pattern = '/^(?:private\s+)?(?:readonly\s+)?(.*?)\s*(&?(?:\.\.\.)?\$\w+.*)$/s';
+
+    if (preg_match($pattern, $was, $a) !== 1 || preg_match($pattern, $now, $b) !== 1 || $a[2] !== $b[2]) {
+        return false;
+    }
+
+    $visible = static fn (string $param): bool => preg_match('/^(public|protected)\b/', $param) === 1;
+
+    if ($visible($was) || $visible($now) || str_contains($a[1] . $b[1], '&')) {
+        return false;
+    }
+
+    $members = static fn (string $type): array => str_starts_with($type, '?')
+        ? [substr($type, 1), 'null']
+        : explode('|', $type);
+
+    return $a[1] !== '' && $b[1] !== '' && array_diff($members($a[1]), $members($b[1])) === [];
+};
+
 $present = array_flip($new);
 $removed = [];
 
@@ -141,7 +171,17 @@ foreach ($old as $line) {
 
     // Everything the old signature named has to survive unchanged and in
     // place; a caller's positional arguments land on those same slots.
-    if (array_slice($after, 0, count($before)) !== $before) {
+    $head = array_slice($after, 0, count($before));
+
+    if (str_ends_with($was[0], '->__construct')) {
+        foreach ($head as $i => $param) {
+            if ($param !== $before[$i] && $widens($before[$i], $param)) {
+                $head[$i] = $before[$i];
+            }
+        }
+    }
+
+    if ($head !== $before) {
         $removed[] = $line;
 
         continue;
