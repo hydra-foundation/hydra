@@ -25,6 +25,13 @@ use Stringable;
  * no password is present (the events never carry one).
  */
 #[CoversClass(LogAuthEventsListener::class)]
+#[CoversClass(Attempting::class)]
+#[CoversClass(LoginFailed::class)]
+#[CoversClass(LoggedIn::class)]
+#[CoversClass(LoggedOut::class)]
+#[CoversClass(PasswordResetLinkSent::class)]
+#[CoversClass(PasswordReset::class)]
+#[CoversClass(EmailVerified::class)]
 final class LogAuthEventsListenerTest extends TestCase
 {
     private RecordingLogger $logger;
