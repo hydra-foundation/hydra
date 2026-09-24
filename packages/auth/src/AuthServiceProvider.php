@@ -57,6 +57,13 @@ final class AuthServiceProvider extends ServiceProvider
             );
         });
 
+        // The same instance by its class, for validate(), which a second factor
+        // needs and the contract does not have. An application that binds its
+        // own guard binds this too.
+        $container->singleton(SessionGuard::class, function () use ($container): SessionGuard {
+            return $container->get(GuardInterface::class);
+        });
+
         // Resolved lazily, so the clock and the signer are only demanded of an
         // application that actually sends reset or verification links.
         $container->singleton(SignedToken::class, function () use ($container) {

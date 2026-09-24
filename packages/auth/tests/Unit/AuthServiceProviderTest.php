@@ -125,6 +125,13 @@ final class AuthServiceProviderTest extends TestCase
         );
     }
 
+    public function test_the_guard_by_its_class_is_the_same_instance(): void
+    {
+        $container = $this->register();
+
+        $this->assertSame($container->get(GuardInterface::class), $container->get(SessionGuard::class));
+    }
+
     public function test_it_binds_reset_tokens_over_the_app_key_and_clock(): void
     {
         $container = $this->register(['AUTH_RESET_TTL' => '60']);
