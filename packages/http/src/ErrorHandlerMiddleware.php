@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Http;
 
+use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Http\Contracts\ErrorRendererInterface;
 use Hydra\Http\Exceptions\HttpException;
 use Psr\Http\Message\ResponseInterface;
@@ -36,6 +37,7 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
         private readonly ErrorRendererInterface $renderer,
         private readonly bool $debug = false,
         ?LoggerInterface $logger = null,
+        private readonly ?ExceptionReporterInterface $reporter = null,
     ) {
         $this->logger = $logger ?? new NullLogger;
     }
@@ -52,8 +54,8 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Log the error if it is a fault (5xx), delegate rendering, then apply any
-     * headers the error mapped (e.g. Allow on a 405)
+     * Log and report the error if it is a fault (5xx), delegate rendering, then
+     * apply any headers the error mapped (e.g. Allow on a 405)
      *
      * @param array<string, string> $headers
      */
@@ -61,6 +63,7 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
     {
         if ($status >= 500) {
             $this->logger->error($e->getMessage(), ['exception' => $e]);
+            $this->report($e, $request);
         }
 
         $response = $this->renderer->render(new ErrorContext($e, $request, $status, $this->debug));
@@ -70,5 +73,24 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
         }
 
         return $response;
+    }
+
+    private function report(Throwable $e, ServerRequestInterface $request): void
+    {
+        if ($this->reporter === null) {
+            return;
+        }
+
+        $id = $request->getAttribute(RequestId::ATTRIBUTE);
+
+        try {
+            $this->reporter->report($e, [
+                'request_id' => is_string($id) ? $id : null,
+                'method' => $request->getMethod(),
+                'path' => $request->getUri()->getPath(),
+            ]);
+        } catch (Throwable $failure) {
+            $this->logger->warning('exception reporter failed: ' . $failure->getMessage(), ['exception' => $failure]);
+        }
     }
 }

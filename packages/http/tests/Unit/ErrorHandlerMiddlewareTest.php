@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Hydra\Http\Tests\Unit;
 
+use Hydra\Core\Contracts\ExceptionReporterInterface;
+use Hydra\Core\Testing\FakeExceptionReporter;
 use Hydra\Http\Contracts\ErrorRendererInterface;
 use Hydra\Http\ErrorContext;
 use Hydra\Http\ErrorHandlerMiddleware;
@@ -11,6 +13,7 @@ use Hydra\Http\Exceptions\HttpException;
 use Hydra\Http\Exceptions\MethodNotAllowedException;
 use Hydra\Http\Exceptions\NotFoundException;
 use Hydra\Http\PlainTextErrorRenderer;
+use Hydra\Http\RequestId;
 use Hydra\Http\Responder;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -20,6 +23,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;
+use LogicException;
 use RuntimeException;
 use Stringable;
 use TypeError;
@@ -310,5 +314,53 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->expectExceptionMessage('renderer exploded');
 
         $middleware->process($this->request(), $this->handlerThrowing(new RuntimeException('original')));
+    }
+
+    public function test_a_fault_is_reported_with_where_it_happened(): void
+    {
+        $reporter = new FakeExceptionReporter;
+        $exception = new RuntimeException('boom');
+        $request = (new Psr17Factory)->createServerRequest('POST', '/orders?x=1')
+            ->withAttribute(RequestId::ATTRIBUTE, 'r-123');
+
+        (new ErrorHandlerMiddleware($this->renderer(), reporter: $reporter))
+            ->process($request, $this->handlerThrowing($exception));
+
+        $report = $reporter->assertReported(RuntimeException::class);
+        $this->assertSame($exception, $report['exception']);
+        $this->assertSame(['request_id' => 'r-123', 'method' => 'POST', 'path' => '/orders'], $report['context']);
+    }
+
+    public function test_a_client_error_is_not_reported(): void
+    {
+        $reporter = new FakeExceptionReporter;
+
+        (new ErrorHandlerMiddleware($this->renderer(), reporter: $reporter))
+            ->process($this->realRequest(), $this->handlerThrowing(new NotFoundException));
+
+        $reporter->assertNothingReported();
+    }
+
+    public function test_a_reporter_that_throws_is_logged_and_the_500_still_goes_out(): void
+    {
+        $logger = new SpyLogger;
+        $reporter = new class implements ExceptionReporterInterface {
+            public function report(\Throwable $e, array $context = []): void
+            {
+                throw new LogicException('tracker down');
+            }
+        };
+
+        $response = (new ErrorHandlerMiddleware($this->renderer(), logger: $logger, reporter: $reporter))
+            ->process($this->realRequest(), $this->handlerThrowing(new RuntimeException('boom')));
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame([LogLevel::ERROR, LogLevel::WARNING], array_column($logger->records, 'level'));
+        $this->assertSame('exception reporter failed: tracker down', $logger->records[1]['message']);
+    }
+
+    private function realRequest(): ServerRequestInterface
+    {
+        return (new Psr17Factory)->createServerRequest('GET', '/');
     }
 }

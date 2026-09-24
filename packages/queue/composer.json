@@ -66,6 +66,7 @@
     ],
     "require": {
         "php": ">=8.2",
+        "hydrakit/core": "^0.9",
         "hydrakit/console": "^0.9",
         "hydrakit/database": "^0.9",
         "hydrakit/scheduler": "^0.9",
@@ -75,7 +76,6 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0",
-        "hydrakit/core": "^0.9",
         "hydrakit/log": "^0.9",
         "ext-pdo_sqlite": "*"
     },

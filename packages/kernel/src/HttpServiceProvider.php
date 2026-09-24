@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Kernel;
 
 use Hydra\Core\Contracts\ContainerInterface;
+use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Core\Contracts\KernelInterface;
 use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Http\Contracts\EmitterInterface;
@@ -81,6 +82,9 @@ final class HttpServiceProvider extends ServiceProvider
                 $container->get(ServerRequestProviderInterface::class),
                 $container->get(RequestHandlerInterface::class),
                 $container->get(EmitterInterface::class),
+                $container->bound(ExceptionReporterInterface::class)
+                    ? $container->get(ExceptionReporterInterface::class)
+                    : null,
             );
         });
     }

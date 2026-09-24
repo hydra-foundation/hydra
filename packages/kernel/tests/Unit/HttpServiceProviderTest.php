@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Kernel\Tests\Unit;
 
+use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Core\Contracts\KernelInterface;
 use Hydra\Http\Contracts\EmitterInterface;
 use Hydra\Http\Contracts\ErrorRendererInterface;
@@ -15,6 +16,8 @@ use Hydra\Http\Router;
 use Hydra\Kernel\HttpServiceProvider;
 use Hydra\Kernel\Tests\Support\StubController;
 use Hydra\Core\Testing\FakeContainer;
+use Hydra\Core\Testing\FakeExceptionReporter;
+use Hydra\Http\Testing\FakeHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -125,5 +128,23 @@ final class HttpServiceProviderTest extends TestCase
             $this->container->get(Responder::class),
             $this->container->get(Responder::class),
         );
+    }
+
+    public function test_a_bound_exception_reporter_reaches_the_kernel(): void
+    {
+        $reporter = new FakeExceptionReporter;
+        $this->container->instance(ExceptionReporterInterface::class, $reporter);
+        $this->container->instance(RequestHandlerInterface::class, FakeHandler::throwing(new \RuntimeException('boom')));
+        $previousLog = ini_set('error_log', '/dev/null');
+
+        ob_start();
+        try {
+            $this->container->get(KernelInterface::class)->handle();
+        } finally {
+            ob_end_clean();
+            ini_set('error_log', $previousLog === false ? '' : $previousLog);
+        }
+
+        $reporter->assertReported(\RuntimeException::class);
     }
 }

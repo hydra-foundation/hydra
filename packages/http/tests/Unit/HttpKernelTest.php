@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Hydra\Http\Tests\Unit;
 
+use Hydra\Core\Contracts\ExceptionReporterInterface;
+use Hydra\Core\Testing\FakeExceptionReporter;
 use Hydra\Http\Contracts\EmitterInterface;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
 use Hydra\Http\HttpKernel;
@@ -13,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Throwable;
 
 /** Records the response it was asked to emit. */
 final class CapturingEmitter implements EmitterInterface
@@ -80,5 +83,52 @@ final class HttpKernelTest extends TestCase
         // Reaching here at all is the core assertion: no throwable escaped.
         $this->assertNull($emitter->emitted, 'the last-resort path must not go through the emitter');
         $this->assertSame('Internal Server Error', $body, 'minimal body, never exception details');
+    }
+
+    public function test_a_throwable_outside_the_boundary_is_reported(): void
+    {
+        $reporter = new FakeExceptionReporter;
+        $e = new \RuntimeException('boom outside the error boundary');
+
+        [$body] = $this->panic($e, $reporter);
+
+        $this->assertSame('Internal Server Error', $body);
+        $this->assertSame([['exception' => $e, 'context' => []]], $reporter->reports());
+    }
+
+    public function test_a_reporter_that_throws_still_leaves_the_500_and_says_so(): void
+    {
+        $reporter = new class implements ExceptionReporterInterface {
+            public function report(Throwable $e, array $context = []): void
+            {
+                throw new \LogicException('tracker down');
+            }
+        };
+
+        [$body, $logged] = $this->panic(new \RuntimeException('boom'), $reporter);
+
+        $this->assertSame('Internal Server Error', $body);
+        $this->assertStringContainsString('Exception reporter failed: tracker down', $logged);
+    }
+
+    /** @return array{string, string} the echoed body and what reached error_log() */
+    private function panic(Throwable $e, ExceptionReporterInterface $reporter): array
+    {
+        $requests = $this->createStub(ServerRequestProviderInterface::class);
+        $requests->method('fromGlobals')->willReturn($this->createStub(ServerRequestInterface::class));
+        $log = (string) tempnam(sys_get_temp_dir(), 'hydra-panic-');
+        $previousLog = ini_set('error_log', $log);
+
+        ob_start();
+        try {
+            (new HttpKernel($requests, FakeHandler::throwing($e), new CapturingEmitter, $reporter))->handle();
+        } finally {
+            $body = (string) ob_get_clean();
+            ini_set('error_log', $previousLog === false ? '' : $previousLog);
+            $logged = (string) file_get_contents($log);
+            unlink($log);
+        }
+
+        return [$body, $logged];
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Scheduler;
 
 use DateInterval;
+use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Scheduler\Contracts\BatchInterface;
 use Hydra\Scheduler\Contracts\TaskInterface;
 use LogicException;
@@ -26,6 +27,7 @@ final class Runner
         private readonly ClockInterface $clock,
         private readonly LockDirectory $locks,
         private readonly LoggerInterface $logger,
+        private readonly ?ExceptionReporterInterface $reporter = null,
     ) {}
 
     /** @return list<TaskRun> */
@@ -52,10 +54,20 @@ final class Runner
             return new TaskRun($task->class, Outcome::Ran);
         } catch (Throwable $e) {
             $this->logger->error("Scheduled task {$task->class} failed: {$e->getMessage()}", ['exception' => $e]);
+            $this->report($e, $task);
 
             return new TaskRun($task->class, Outcome::Failed);
         } finally {
             $lock->release();
+        }
+    }
+
+    private function report(Throwable $e, ScheduledTask $task): void
+    {
+        try {
+            $this->reporter?->report($e, ['task' => $task->class]);
+        } catch (Throwable $failure) {
+            $this->logger->warning('exception reporter failed: ' . $failure->getMessage(), ['exception' => $failure]);
         }
     }
 

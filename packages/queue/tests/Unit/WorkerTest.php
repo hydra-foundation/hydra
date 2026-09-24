@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Hydra\Queue\Tests\Unit;
 
+use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Core\Testing\FakeContainer;
+use Hydra\Core\Testing\FakeExceptionReporter;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Database\Testing\FakeConnection;
 use Hydra\Log\Testing\CapturingLogger;
@@ -14,9 +16,12 @@ use Hydra\Queue\Tests\Support\QueueTables;
 use Hydra\Queue\Tests\Support\RecordingJob;
 use Hydra\Queue\Worker;
 use InvalidArgumentException;
+use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use stdClass;
+use Throwable;
 
 #[CoversClass(Worker::class)]
 final class WorkerTest extends TestCase
@@ -31,6 +36,8 @@ final class WorkerTest extends TestCase
 
     private CapturingLogger $log;
 
+    private FakeExceptionReporter $reporter;
+
     protected function setUp(): void
     {
         $this->db = FakeConnection::inMemory();
@@ -39,6 +46,7 @@ final class WorkerTest extends TestCase
         $this->queue = new DatabaseQueue($this->db, $this->clock, 'sqlite');
         $this->container = new FakeContainer;
         $this->log = new CapturingLogger;
+        $this->reporter = new FakeExceptionReporter;
     }
 
     public function test_a_finished_job_is_handed_its_payload_and_deleted(): void
@@ -85,6 +93,39 @@ final class WorkerTest extends TestCase
         $this->assertSame(3, $job->attempts);
         $this->assertTrue($this->log->has('Queued job ' . FailingJob::class . ' failed on attempt 3 of 3 and was moved to failed_jobs: the mail server is down'));
         $this->assertSame([], $this->db->select('SELECT id FROM jobs'));
+        $this->assertCount(1, $this->db->select('SELECT id FROM failed_jobs'));
+    }
+
+    public function test_only_the_failure_that_moves_a_job_to_failed_jobs_is_reported(): void
+    {
+        $this->bind(new FailingJob);
+        $this->queue->push(FailingJob::class);
+        $id = $this->db->select('SELECT id FROM jobs')[0]['id'];
+
+        $this->worker(tries: 2)->batch();
+        $this->reporter->assertNothingReported();
+
+        $this->clock->advance('+10 seconds');
+        $this->worker(tries: 2)->batch();
+
+        $report = $this->reporter->assertReported(RuntimeException::class);
+        $this->assertSame(['job' => FailingJob::class, 'id' => $id, 'attempt' => 2], $report['context']);
+    }
+
+    public function test_a_reporter_that_throws_is_logged_and_the_job_still_fails(): void
+    {
+        $this->bind(new FailingJob);
+        $this->queue->push(FailingJob::class);
+        $reporter = new class implements ExceptionReporterInterface {
+            public function report(Throwable $e, array $context = []): void
+            {
+                throw new LogicException('tracker down');
+            }
+        };
+
+        (new Worker($this->queue, $this->container, $this->log, tries: 1, reporter: $reporter))->batch();
+
+        $this->assertTrue($this->log->has('exception reporter failed: tracker down'));
         $this->assertCount(1, $this->db->select('SELECT id FROM failed_jobs'));
     }
 
@@ -156,6 +197,6 @@ final class WorkerTest extends TestCase
     /** @param list<int> $backoff */
     private function worker(int $tries = Worker::DEFAULT_TRIES, array $backoff = Worker::DEFAULT_BACKOFF, int $batchSize = Worker::DEFAULT_BATCH): Worker
     {
-        return new Worker($this->queue, $this->container, $this->log, $tries, $backoff, $batchSize);
+        return new Worker($this->queue, $this->container, $this->log, $tries, $backoff, $batchSize, $this->reporter);
     }
 }

@@ -6,7 +6,9 @@ namespace Hydra\Scheduler\Tests\Unit;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Core\Testing\FakeContainer;
+use Hydra\Core\Testing\FakeExceptionReporter;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Log\Testing\CapturingLogger;
 use Hydra\Scheduler\LockDirectory;
@@ -20,7 +22,10 @@ use Hydra\Scheduler\Tests\Support\NoteTask;
 use Hydra\Scheduler\Tests\Support\SlowBatch;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use LogicException;
+use RuntimeException;
 use stdClass;
+use Throwable;
 
 #[CoversClass(Runner::class)]
 #[CoversClass(TaskRun::class)]
@@ -36,6 +41,8 @@ final class RunnerTest extends TestCase
 
     private CapturingLogger $log;
 
+    private FakeExceptionReporter $reporter;
+
     protected function setUp(): void
     {
         $this->dir = sys_get_temp_dir() . '/hydra-scheduler-' . bin2hex(random_bytes(4));
@@ -43,6 +50,7 @@ final class RunnerTest extends TestCase
         $this->schedule = new Schedule(new DateTimeZone('UTC'));
         $this->container = new FakeContainer;
         $this->log = new CapturingLogger;
+        $this->reporter = new FakeExceptionReporter;
     }
 
     protected function tearDown(): void
@@ -107,6 +115,39 @@ final class RunnerTest extends TestCase
         $this->assertSame(Outcome::Failed, $runs[0]->outcome);
         $this->assertSame(1, $after->runs);
         $this->assertTrue($this->log->has('Scheduled task ' . FailingTask::class . ' failed: the disk is full'));
+    }
+
+    public function test_a_failure_is_reported_with_its_task(): void
+    {
+        $this->bind(new FailingTask);
+        $this->bind(new NoteTask);
+        $this->schedule->run(FailingTask::class)->everyMinute();
+        $this->schedule->run(NoteTask::class)->everyMinute();
+
+        $this->runner()->run();
+
+        $this->assertSame(['task' => FailingTask::class], $this->reporter->assertReported(RuntimeException::class)['context']);
+        $this->assertCount(1, $this->reporter->reports());
+    }
+
+    public function test_a_reporter_that_throws_is_logged_and_the_tick_goes_on(): void
+    {
+        $this->bind(new FailingTask);
+        $after = $this->bind(new NoteTask);
+        $this->schedule->run(FailingTask::class)->everyMinute();
+        $this->schedule->run(NoteTask::class)->everyMinute();
+        $reporter = new class implements ExceptionReporterInterface {
+            public function report(Throwable $e, array $context = []): void
+            {
+                throw new LogicException('tracker down');
+            }
+        };
+
+        $runs = (new Runner($this->schedule, $this->container, $this->clock, $this->locks(), $this->log, $reporter))->run();
+
+        $this->assertSame(Outcome::Failed, $runs[0]->outcome);
+        $this->assertSame(1, $after->runs);
+        $this->assertTrue($this->log->has('exception reporter failed: tracker down'));
     }
 
     public function test_the_lock_is_released_after_a_failure(): void
@@ -189,6 +230,6 @@ final class RunnerTest extends TestCase
 
     private function runner(): Runner
     {
-        return new Runner($this->schedule, $this->container, $this->clock, $this->locks(), $this->log);
+        return new Runner($this->schedule, $this->container, $this->clock, $this->locks(), $this->log, $this->reporter);
     }
 }

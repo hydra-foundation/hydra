@@ -5,19 +5,23 @@ declare(strict_types=1);
 namespace Hydra\Scheduler\Tests\Unit;
 
 use Hydra\Core\Contracts\ContainerInterface;
+use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Testing\FakeContainer;
+use Hydra\Core\Testing\FakeExceptionReporter;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Log\Testing\CapturingLogger;
 use Hydra\Scheduler\Outcome;
 use Hydra\Scheduler\Runner;
 use Hydra\Scheduler\Schedule;
 use Hydra\Scheduler\SchedulerServiceProvider;
+use Hydra\Scheduler\Tests\Support\FailingTask;
 use Hydra\Scheduler\Tests\Support\NoteTask;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 
 #[CoversClass(SchedulerServiceProvider::class)]
 final class SchedulerServiceProviderTest extends TestCase
@@ -49,6 +53,19 @@ final class SchedulerServiceProviderTest extends TestCase
         $this->assertSame(Outcome::Ran, $runs[0]->outcome);
         $this->assertSame(1, $task->runs);
         $this->assertFileExists($this->dir . '/' . str_replace('\\', '-', NoteTask::class) . '.lock');
+    }
+
+    public function test_a_bound_exception_reporter_reaches_the_runner(): void
+    {
+        $container = $this->container();
+        $reporter = new FakeExceptionReporter;
+        $container->instance(ExceptionReporterInterface::class, $reporter);
+        $container->instance(FailingTask::class, new FailingTask);
+
+        $container->get(Schedule::class)->run(FailingTask::class)->everyMinute();
+        $container->get(Runner::class)->run();
+
+        $reporter->assertReported(RuntimeException::class);
     }
 
     private function container(): ContainerInterface

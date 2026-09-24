@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Queue;
 
+use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Queue\Contracts\JobInterface;
 use Hydra\Scheduler\Contracts\BatchInterface;
 use InvalidArgumentException;
@@ -15,7 +16,8 @@ use Throwable;
 /**
  * Drains the queue from the scheduler: `$schedule->drain(Worker::class)`.
  * A job that finishes is deleted; one that throws waits out its backoff and
- * is tried again, until it is out of tries and moves to failed_jobs.
+ * is tried again, until it is out of tries and moves to failed_jobs. Only
+ * that last failure is reported: a retry that succeeds was never a fault.
  */
 final class Worker implements BatchInterface
 {
@@ -35,6 +37,7 @@ final class Worker implements BatchInterface
         private readonly int $tries = self::DEFAULT_TRIES,
         private readonly array $backoff = self::DEFAULT_BACKOFF,
         private readonly int $batchSize = self::DEFAULT_BATCH,
+        private readonly ?ExceptionReporterInterface $reporter = null,
     ) {
         if ($tries < 1 || $batchSize < 1) {
             throw new InvalidArgumentException('A worker needs at least one try and a batch of at least one job.');
@@ -82,6 +85,7 @@ final class Worker implements BatchInterface
                 "Queued job {$job->job} failed on attempt {$job->attempts} of {$this->tries} and was moved to failed_jobs: {$e->getMessage()}",
                 $context,
             );
+            $this->report($e, ['job' => $job->job, 'id' => $job->id, 'attempt' => $job->attempts]);
 
             return;
         }
@@ -92,5 +96,15 @@ final class Worker implements BatchInterface
             "Queued job {$job->job} failed on attempt {$job->attempts} of {$this->tries} and will be tried again in {$delay} seconds: {$e->getMessage()}",
             $context,
         );
+    }
+
+    /** @param array<string, scalar|null> $context */
+    private function report(Throwable $e, array $context): void
+    {
+        try {
+            $this->reporter?->report($e, $context);
+        } catch (Throwable $failure) {
+            $this->logger->warning('exception reporter failed: ' . $failure->getMessage(), ['exception' => $failure]);
+        }
     }
 }
