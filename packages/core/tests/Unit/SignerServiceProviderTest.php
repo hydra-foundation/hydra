@@ -6,6 +6,7 @@ namespace Hydra\Core\Tests\Unit;
 
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
+use Hydra\Core\Security\Encrypter;
 use Hydra\Core\Security\Signer;
 use Hydra\Core\Security\SignerServiceProvider;
 use Hydra\Core\Testing\FakeContainer;
@@ -58,6 +59,41 @@ final class SignerServiceProviderTest extends TestCase
         $this->assertInstanceOf(Signer::class, $signer);
         // The resolved signer works with the configured key.
         $this->assertSame('ok', $signer->verify($signer->sign('ok')));
+    }
+
+    public function test_app_previous_keys_still_verify_what_they_signed(): void
+    {
+        $old = 'ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100';
+        $container = $this->containerWithEnv("APP_KEY=" . self::KEY_HEX . "\nAPP_PREVIOUS_KEYS=" . $old . "\n");
+
+        (new SignerServiceProvider)->register($container);
+
+        $signed = Signer::fromHex($old)->sign('before the rotation');
+        $this->assertSame('before the rotation', $container->get(Signer::class)->verify($signed));
+    }
+
+    public function test_resolves_an_encrypter_under_the_same_keys(): void
+    {
+        $old = 'ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100';
+        $container = $this->containerWithEnv("APP_KEY=" . self::KEY_HEX . "\nAPP_PREVIOUS_KEYS=" . $old . "\n");
+
+        (new SignerServiceProvider)->register($container);
+        $encrypter = $container->get(Encrypter::class);
+
+        $this->assertSame('now', Encrypter::fromHex(self::KEY_HEX)->decrypt($encrypter->encrypt('now')));
+        $this->assertSame('before the rotation', $encrypter->decrypt(Encrypter::fromHex($old)->encrypt('before the rotation')));
+    }
+
+    public function test_the_encrypter_needs_app_key_too(): void
+    {
+        $container = $this->containerWithEnv("APP_NAME=hydra\n");
+
+        (new SignerServiceProvider)->register($container);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/APP_KEY/');
+
+        $container->get(Encrypter::class);
     }
 
     public function test_throws_at_resolve_when_app_key_is_missing(): void
