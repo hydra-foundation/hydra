@@ -299,13 +299,25 @@ final class TwoFactorChallengeTest extends TestCase
         $this->store = new class ($inner) implements TwoFactorStoreInterface {
             public function __construct(private readonly TwoFactorStoreInterface $inner) {}
 
-            public function secret(AuthenticatableInterface $user): ?string { return $this->inner->secret($user); }
+            public function secret(AuthenticatableInterface $user): ?string
+            {
+                return $this->inner->secret($user);
+            }
 
-            public function claimStep(AuthenticatableInterface $user, int $step): bool { return $this->inner->claimStep($user, $step); }
+            public function claimStep(AuthenticatableInterface $user, int $step): bool
+            {
+                return $this->inner->claimStep($user, $step);
+            }
 
-            public function recoveryHashes(AuthenticatableInterface $user): array { return $this->inner->recoveryHashes($user); }
+            public function recoveryHashes(AuthenticatableInterface $user): array
+            {
+                return $this->inner->recoveryHashes($user);
+            }
 
-            public function spendRecoveryHash(AuthenticatableInterface $user, string $hash): bool { return false; }
+            public function spendRecoveryHash(AuthenticatableInterface $user, string $hash): bool
+            {
+                return false;
+            }
 
             public function enable(AuthenticatableInterface $user, string $secret, array $recoveryHashes): void {}
 
