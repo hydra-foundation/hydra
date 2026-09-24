@@ -23,6 +23,7 @@
     "require": {
         "php": ">=8.2",
         "ext-pdo": "*",
+        "hydrakit/core": "^0.9",
         "hydrakit/validation": "^0.9",
         "hydrakit/console": "^0.9"
     },
