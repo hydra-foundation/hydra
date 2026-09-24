@@ -370,6 +370,9 @@ echo "Locking the skeleton onto $TAG ..."
 (cd "$DIR/app" && composer update "hydrakit/*" --no-install --no-interaction --quiet)
 (cd "$DIR/app" && composer validate --strict --quiet) \
     || die "app: composer.json and the refreshed lock disagree"
+behind=$(php "$DIR/hydra/bin/lock-behind.php" "$DIR/app/composer.lock" "$TAG")
+[ -z "$behind" ] \
+    || die "app: the refreshed lock holds $(printf '%s' "$behind" | tr '\n' ',' | sed 's/,/, /g') rather than $TAG. hydra is tagged; app is not. \`composer why-not <package> $VERSION\` in app says why — usually an extension this PHP lacks"
 
 # The lock is only a claim until something installs from it. This is the check
 # app's own CI runs, brought forward to where it can still stop the tag.
