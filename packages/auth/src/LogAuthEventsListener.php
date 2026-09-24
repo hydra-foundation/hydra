@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Hydra\Auth;
 
 use Hydra\Auth\Events\Attempting;
+use Hydra\Auth\Events\EmailVerified;
 use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\Events\LoggedOut;
 use Hydra\Auth\Events\LoginFailed;
+use Hydra\Auth\Events\PasswordReset;
+use Hydra\Auth\Events\PasswordResetLinkSent;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -38,5 +41,20 @@ final class LogAuthEventsListener
     public function onLoggedOut(LoggedOut $event): void
     {
         $this->logger->info('auth.logout', ['user' => $event->userId]);
+    }
+
+    public function onPasswordResetLinkSent(PasswordResetLinkSent $event): void
+    {
+        $this->logger->info('auth.reset_link_sent', ['user' => $event->user->getAuthIdentifier()]);
+    }
+
+    public function onPasswordReset(PasswordReset $event): void
+    {
+        $this->logger->notice('auth.password_reset', ['user' => $event->user->getAuthIdentifier()]);
+    }
+
+    public function onEmailVerified(EmailVerified $event): void
+    {
+        $this->logger->info('auth.email_verified', ['user' => $event->user->getAuthIdentifier()]);
     }
 }

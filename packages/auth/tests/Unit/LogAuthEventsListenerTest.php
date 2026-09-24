@@ -6,9 +6,12 @@ namespace Hydra\Auth\Tests\Unit;
 
 use Hydra\Auth\Contracts\AuthenticatableInterface;
 use Hydra\Auth\Events\Attempting;
+use Hydra\Auth\Events\EmailVerified;
 use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\Events\LoggedOut;
 use Hydra\Auth\Events\LoginFailed;
+use Hydra\Auth\Events\PasswordReset;
+use Hydra\Auth\Events\PasswordResetLinkSent;
 use Hydra\Auth\LogAuthEventsListener;
 use Hydra\Auth\Testing\FakeUser;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -59,6 +62,27 @@ final class LogAuthEventsListenerTest extends TestCase
         $this->listener->onLoggedOut(new LoggedOut(42));
 
         $this->assertSame(['info', 'auth.logout', ['user' => 42]], $this->logger->records[0]);
+    }
+
+    public function test_reset_link_sent_logs_at_info_with_the_identifier(): void
+    {
+        $this->listener->onPasswordResetLinkSent(new PasswordResetLinkSent(new FakeUser(42)));
+
+        $this->assertSame(['info', 'auth.reset_link_sent', ['user' => 42]], $this->logger->records[0]);
+    }
+
+    public function test_password_reset_logs_at_notice_with_the_identifier(): void
+    {
+        $this->listener->onPasswordReset(new PasswordReset(new FakeUser(42)));
+
+        $this->assertSame(['notice', 'auth.password_reset', ['user' => 42]], $this->logger->records[0]);
+    }
+
+    public function test_email_verified_logs_at_info_with_the_identifier(): void
+    {
+        $this->listener->onEmailVerified(new EmailVerified(new FakeUser(42)));
+
+        $this->assertSame(['info', 'auth.email_verified', ['user' => 42]], $this->logger->records[0]);
     }
 }
 
