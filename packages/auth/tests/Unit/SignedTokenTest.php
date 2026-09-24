@@ -39,6 +39,27 @@ final class SignedTokenTest extends TestCase
         $this->assertFalse($claims->bindsTo('hash-two'));
     }
 
+    public function test_a_carried_value_comes_back_as_it_went_in(): void
+    {
+        $token = $this->tokens()->mint('change', self::TTL, 1, 'x', 'a|b@example.com');
+
+        $this->assertSame('a|b@example.com', $this->tokens()->open('change', $token)?->carried);
+    }
+
+    public function test_nothing_carried_opens_as_empty(): void
+    {
+        $this->assertSame('', $this->tokens()->open('reset', $this->tokens()->mint('reset', self::TTL, 1, 'x'))?->carried);
+    }
+
+    public function test_a_tampered_carried_value_is_refused(): void
+    {
+        $token = $this->tokens()->mint('change', self::TTL, 1, 'x', 'mine@example.com');
+
+        $forged = str_replace(base64_encode('mine@example.com'), base64_encode('them@example.com'), $this->decode($token));
+
+        $this->assertNull($this->tokens()->open('change', $this->encode($forged)));
+    }
+
     public function test_the_token_is_url_safe(): void
     {
         $this->assertMatchesRegularExpression('/^[A-Za-z0-9_-]+$/', $this->tokens()->mint('reset', self::TTL, 1, 'x'));

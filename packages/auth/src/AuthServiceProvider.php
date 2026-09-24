@@ -80,6 +80,14 @@ final class AuthServiceProvider extends ServiceProvider
             );
         });
 
+        $container->singleton(EmailChangeTokens::class, function () use ($container) {
+            return new EmailChangeTokens(
+                $container->get(SignedToken::class),
+                $container->get(UserProviderInterface::class),
+                $container->get(AuthConfig::class)->verifyTtl,
+            );
+        });
+
         // AuthenticateMiddleware is left to container autowiring: its only
         // dependency is GuardInterface (bound above). This provider declares only
         // the wiring that can't be inferred.

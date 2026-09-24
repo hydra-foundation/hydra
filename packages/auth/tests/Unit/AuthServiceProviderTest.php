@@ -7,6 +7,7 @@ namespace Hydra\Auth\Tests\Unit;
 use Hydra\Auth\AuthConfig;
 use Hydra\Auth\AuthServiceProvider;
 use Hydra\Auth\Contracts\GuardInterface;
+use Hydra\Auth\EmailChangeTokens;
 use Hydra\Auth\EmailVerificationTokens;
 use Hydra\Auth\Contracts\HasherInterface;
 use Hydra\Auth\Contracts\UserProviderInterface;
@@ -136,6 +137,25 @@ final class AuthServiceProviderTest extends TestCase
 
         $tokens = $container->get(EmailVerificationTokens::class);
         $token = $tokens->create(new FakeUser('ada'));
+
+        $clock->advance('+61 seconds');
+        $this->assertNotNull($tokens->resolve($token));
+
+        $clock->advance('+60 seconds');
+        $this->assertNull($tokens->resolve($token));
+    }
+
+    public function test_it_binds_change_tokens_with_the_verification_lifetime(): void
+    {
+        $container = $this->register(['AUTH_VERIFY_TTL' => '120']);
+        $container->instance(Signer::class, Signer::fromHex(FixedSignerServiceProvider::KEY_HEX));
+        $container->instance(ClockInterface::class, $clock = new FrozenClock);
+
+        $tokens = $container->get(EmailChangeTokens::class);
+        // From the stored user: the token is bound to its password hash.
+        $user = $container->get(UserProviderInterface::class)->byIdentifier('ada');
+        $this->assertInstanceOf(FakeUser::class, $user);
+        $token = $tokens->create($user, 'ada@elsewhere.test');
 
         $clock->advance('+61 seconds');
         $this->assertNotNull($tokens->resolve($token));

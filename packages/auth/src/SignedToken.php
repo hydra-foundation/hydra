@@ -14,7 +14,8 @@ use Psr\Clock\ClockInterface;
  *
  * The message is signed, not encrypted, so the bound value travels as a
  * digest. A password hash in the clear would hand a mailbox reader something
- * to crack offline.
+ * to crack offline. A carried value is the opposite: readable by whoever holds
+ * the link, and only protected from being changed.
  */
 final readonly class SignedToken
 {
@@ -23,14 +24,18 @@ final readonly class SignedToken
         private ClockInterface $clock,
     ) {}
 
-    /** @param string $purpose keeps a token minted for one flow from opening another */
-    public function mint(string $purpose, int $ttl, int|string $id, string $boundTo): string
+    /**
+     * @param string $purpose keeps a token minted for one flow from opening another
+     * @param string $carry a value the token delivers, such as an address not yet confirmed
+     */
+    public function mint(string $purpose, int $ttl, int|string $id, string $boundTo, string $carry = ''): string
     {
         $expires = $this->clock->now()->getTimestamp() + $ttl;
 
         // The id goes last so a string identifier containing the separator
-        // cannot shift the fields in front of it.
-        $message = implode('|', [$purpose, $expires, self::digest($boundTo), $id]);
+        // cannot shift the fields in front of it; the carried value is encoded
+        // for the same reason.
+        $message = implode('|', [$purpose, $expires, self::digest($boundTo), base64_encode($carry), $id]);
 
         return rtrim(strtr(base64_encode($this->signer->sign($message)), '+/', '-_'), '=');
     }
@@ -40,20 +45,20 @@ final readonly class SignedToken
     {
         $signed = base64_decode(strtr($token, '-_', '+/'), true);
         $message = $signed === false ? null : $this->signer->verify($signed);
-        $fields = $message === null ? [] : explode('|', $message, 4);
+        $fields = $message === null ? [] : explode('|', $message, 5);
 
-        if (count($fields) !== 4) {
+        if (count($fields) !== 5) {
             return null;
         }
 
-        [$tokenPurpose, $expires, $digest, $id] = $fields;
+        [$tokenPurpose, $expires, $digest, $carried, $id] = $fields;
 
         if ($tokenPurpose !== $purpose || (int) $expires < $this->clock->now()->getTimestamp()) {
             return null;
         }
 
         // Only an id that survives the round trip was an int going in.
-        return new TokenClaims((string) (int) $id === $id ? (int) $id : $id, $digest);
+        return new TokenClaims((string) (int) $id === $id ? (int) $id : $id, $digest, (string) base64_decode($carried, true));
     }
 
     public static function digest(string $value): string
