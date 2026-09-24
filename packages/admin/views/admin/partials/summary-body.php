@@ -39,6 +39,9 @@
             <span class="admin-bar"></span>
         </div>
         <span class="visually-hidden">Loading <?= $this->e($widget->title()) ?></span>
+        <?php if ($url !== null): ?>
+            <?= $this->partial('admin/partials/widget-failed', ['url' => $url, 'target' => '#admin-summary-card', 'label' => $widget->title()]) ?>
+        <?php endif ?>
     <?php else: ?>
         <?= $this->partial($widget->template(), $data) ?>
     <?php endif ?>

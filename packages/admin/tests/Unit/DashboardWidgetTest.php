@@ -150,6 +150,26 @@ final class DashboardWidgetTest extends TestCase
         $this->assertStringNotContainsString('admin-widget-refresh', $this->dashboard());
     }
 
+    public function test_a_card_still_fetching_carries_a_hidden_way_to_try_again(): void
+    {
+        // The answer to a refused fetch is the error renderer's and knows nothing
+        // about cards, so the notice is drawn now and admin.js shows it. Without
+        // it a card whose first load fails keeps its bars: it polls only once it
+        // has data.
+        $card = $this->card($this->dashboard(), 'accounts');
+
+        $this->assertStringContainsString('<div class="admin-widget-failed" hidden>', $card);
+        $this->assertStringContainsString('Couldn&rsquo;t load Accounts.', $card);
+        $this->assertStringContainsString('hx-get="/admin/overview/w/accounts"', $card);
+        $this->assertStringContainsString('hx-target="#admin-widget-accounts"', $card);
+    }
+
+    public function test_a_filled_card_has_no_failure_to_show(): void
+    {
+        // A failed poll leaves the data it already has on screen.
+        $this->assertStringNotContainsString('admin-widget-failed', $this->widget('/admin/overview/w/live'));
+    }
+
     public function test_a_card_that_refreshes_comes_back_still_polling(): void
     {
         $body = $this->widget('/admin/overview/w/live');

@@ -105,6 +105,11 @@ final class DashboardPeriodTest extends TestCase
         $this->assertStringContainsString('id="admin-period"', $body);
     }
 
+    public function test_the_strip_can_be_tried_again_like_a_card(): void
+    {
+        $this->assertStringContainsString('hx-target="#admin-summary-card"', $this->dashboard());
+    }
+
     public function test_the_control_is_not_in_what_it_replaces(): void
     {
         // A select inside its own target is destroyed by its own answer: focus

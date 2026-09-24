@@ -85,6 +85,41 @@
         applyTheme();
     });
 
+    /* A card whose first fetch fails says so and offers to ask again. Only a
+       card still holding its placeholder has the notice to show (see
+       widget-failed.php); one with data keeps it through a failed poll. htmx
+       swaps an error answer too, but the error renderer sends it out of band,
+       so the card is left as it was for this to finish. */
+    const CARD = '.admin-widget, .admin-summary-card';
+
+    function failed(event) {
+        const card = event.target.closest?.(CARD);
+        const notice = card?.querySelector('.admin-widget-failed');
+
+        if (!notice) {
+            return;
+        }
+
+        card.classList.add('is-failed');
+        card.setAttribute('aria-busy', 'false');
+        notice.hidden = false;
+    }
+
+    document.addEventListener('htmx:response:error', failed);
+    document.addEventListener('htmx:error', failed);
+
+    document.addEventListener('htmx:before:request', function (event) {
+        const card = event.target.closest?.(CARD);
+
+        if (!card?.classList.contains('is-failed')) {
+            return;
+        }
+
+        card.classList.remove('is-failed');
+        card.setAttribute('aria-busy', 'true');
+        card.querySelector('.admin-widget-failed').hidden = true;
+    });
+
     /* Dragging the viewport wide while the drawer is open would otherwise leave
        the scroll lock on a page that no longer has a drawer to blame. */
     window.matchMedia('(min-width: 56.001rem)').addEventListener('change', function (event) {

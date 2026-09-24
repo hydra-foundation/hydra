@@ -817,6 +817,33 @@
 .admin-widget-loading:not(.is-block) .admin-bar:nth-child(3n+2) { width: 45%; }
 .admin-widget-loading:not(.is-block) .admin-bar:nth-child(3n+3) { width: 60%; }
 
+/* A card whose first fetch failed: the notice takes the placeholder's place,
+   and the card keeps the height the bars were holding open for it. */
+.is-failed .admin-widget-loading,
+.is-failed .admin-summary-loading,
+.is-failed .admin-widget-loading + .visually-hidden,
+.is-failed .admin-summary-loading + .visually-hidden {
+    display: none;
+}
+
+.admin-widget-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-3);
+    color: var(--muted);
+}
+
+.admin-widget-failed p {
+    margin: 0;
+}
+
+.admin-summary-card .admin-widget-failed {
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+}
+
 /* Only where the card is one block: everything else stacks at its own size and
    a column would change nothing but the rules it is laid out by. */
 .admin-widget.is-block .card-body {
