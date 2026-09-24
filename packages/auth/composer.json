@@ -18,6 +18,8 @@
         { "type": "path", "url": "../core", "options": { "symlink": true } },
         { "type": "path", "url": "../http", "options": { "symlink": true } },
         { "type": "path", "url": "../session", "options": { "symlink": true } },
+        { "type": "path", "url": "../throttle", "options": { "symlink": true } },
+        { "type": "path", "url": "../cache", "options": { "symlink": true } },
         { "type": "path", "url": "../event", "options": { "symlink": true } }
     ],
     "authors": [
@@ -31,6 +33,7 @@
         "hydrakit/core": "^0.9",
         "hydrakit/http": "^0.9",
         "hydrakit/session": "^0.9",
+        "hydrakit/throttle": "^0.9",
         "psr/clock": "^1.0",
         "psr/event-dispatcher": "^1.0",
         "psr/log": "^3.0",

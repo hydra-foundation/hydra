@@ -6,12 +6,14 @@ namespace Hydra\Auth;
 
 use Hydra\Auth\Contracts\GuardInterface;
 use Hydra\Auth\Contracts\HasherInterface;
+use Hydra\Auth\Contracts\TwoFactorStoreInterface;
 use Hydra\Auth\Contracts\UserProviderInterface;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Core\Security\Signer;
 use Hydra\Session\Contracts\SessionInterface;
+use Hydra\Throttle\RateLimiter;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -85,6 +87,30 @@ final class AuthServiceProvider extends ServiceProvider
                 $container->get(SignedToken::class),
                 $container->get(UserProviderInterface::class),
                 $container->get(AuthConfig::class)->verifyTtl,
+            );
+        });
+
+        $container->singleton(Totp::class, function () use ($container) {
+            return new Totp($container->get(ClockInterface::class));
+        });
+
+        $container->singleton(RecoveryCodes::class, function () use ($container) {
+            return new RecoveryCodes($container->get(HasherInterface::class));
+        });
+
+        // Like the guard, it pulls a TwoFactorStoreInterface this provider does
+        // not bind: where the secret lives is the application's schema.
+        $container->singleton(TwoFactorChallenge::class, function () use ($container) {
+            return new TwoFactorChallenge(
+                $container->get(SessionInterface::class),
+                $container->get(UserProviderInterface::class),
+                $container->get(GuardInterface::class),
+                $container->get(TwoFactorStoreInterface::class),
+                $container->get(Totp::class),
+                $container->get(RecoveryCodes::class),
+                $container->get(RateLimiter::class),
+                $container->get(ClockInterface::class),
+                $container->bound(EventDispatcherInterface::class) ? $container->get(EventDispatcherInterface::class) : null,
             );
         });
 

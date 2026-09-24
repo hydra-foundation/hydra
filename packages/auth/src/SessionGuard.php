@@ -101,6 +101,24 @@ final class SessionGuard implements GuardInterface
 
     public function attempt(string $username, string $password): bool
     {
+        $user = $this->validate($username, $password);
+
+        if ($user === null) {
+            return false;
+        }
+
+        $this->login($user);
+
+        return true;
+    }
+
+    /**
+     * The user these credentials name, without signing them in: what a second
+     * factor needs to know before it asks for a code. Announces Attempting and
+     * LoginFailed exactly as attempt() does, and costs the same either way.
+     */
+    public function validate(string $username, string $password): ?AuthenticatableInterface
+    {
         // Announced before any lookup, so a listener sees every attempt.
         $this->events?->dispatch(new Attempting($username));
 
@@ -115,22 +133,20 @@ final class SessionGuard implements GuardInterface
         // cached dummy hash made the FIRST miss pay two hash runs where later
         // misses paid one, and precomputing it in the constructor would bill
         // every request that merely constructs the guard a full hash.
-        if ($hash === '') {
+        if ($user === null || $hash === '') {
             $this->hasher->hash($password);
             $this->events?->dispatch(new LoginFailed($username));
 
-            return false;
+            return null;
         }
 
         if (!$this->hasher->verify($password, $hash)) {
             $this->events?->dispatch(new LoginFailed($username));
 
-            return false;
+            return null;
         }
 
-        $this->login($user);
-
-        return true;
+        return $user;
     }
 
     public function login(AuthenticatableInterface $user): void

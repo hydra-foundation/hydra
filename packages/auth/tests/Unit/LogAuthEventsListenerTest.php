@@ -12,6 +12,9 @@ use Hydra\Auth\Events\LoggedOut;
 use Hydra\Auth\Events\LoginFailed;
 use Hydra\Auth\Events\PasswordReset;
 use Hydra\Auth\Events\PasswordResetLinkSent;
+use Hydra\Auth\Events\RecoveryCodeUsed;
+use Hydra\Auth\Events\TwoFactorChallenged;
+use Hydra\Auth\Events\TwoFactorFailed;
 use Hydra\Auth\LogAuthEventsListener;
 use Hydra\Auth\Testing\FakeUser;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -32,6 +35,9 @@ use Stringable;
 #[CoversClass(PasswordResetLinkSent::class)]
 #[CoversClass(PasswordReset::class)]
 #[CoversClass(EmailVerified::class)]
+#[CoversClass(TwoFactorChallenged::class)]
+#[CoversClass(TwoFactorFailed::class)]
+#[CoversClass(RecoveryCodeUsed::class)]
 final class LogAuthEventsListenerTest extends TestCase
 {
     private RecordingLogger $logger;
@@ -90,6 +96,27 @@ final class LogAuthEventsListenerTest extends TestCase
         $this->listener->onEmailVerified(new EmailVerified(new FakeUser(42)));
 
         $this->assertSame(['info', 'auth.email_verified', ['user' => 42]], $this->logger->records[0]);
+    }
+
+    public function test_a_challenge_logs_at_info_with_the_identifier(): void
+    {
+        $this->listener->onTwoFactorChallenged(new TwoFactorChallenged(new FakeUser(42)));
+
+        $this->assertSame(['info', 'auth.two_factor_challenged', ['user' => 42]], $this->logger->records[0]);
+    }
+
+    public function test_a_failed_code_logs_at_warning_with_the_identifier(): void
+    {
+        $this->listener->onTwoFactorFailed(new TwoFactorFailed(new FakeUser(42)));
+
+        $this->assertSame(['warning', 'auth.two_factor_failed', ['user' => 42]], $this->logger->records[0]);
+    }
+
+    public function test_a_recovery_code_logs_at_notice_with_how_many_are_left(): void
+    {
+        $this->listener->onRecoveryCodeUsed(new RecoveryCodeUsed(new FakeUser(42), 3));
+
+        $this->assertSame(['notice', 'auth.recovery_code_used', ['user' => 42, 'remaining' => 3]], $this->logger->records[0]);
     }
 }
 

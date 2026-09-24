@@ -131,6 +131,36 @@ final class SessionGuardTest extends TestCase
         $this->assertNull($guard->id());
     }
 
+    public function test_validate_names_the_user_without_signing_them_in(): void
+    {
+        $events = new FakeDispatcher;
+        $guard = $this->guardWithEvents($events);
+        $before = $this->session->id();
+
+        $user = $guard->validate('ada', self::PASSWORD);
+
+        $this->assertSame(1, $user?->getAuthIdentifier());
+        $this->assertFalse($guard->check());
+        $this->assertSame($before, $this->session->id(), 'nothing is rotated until someone signs in');
+        $this->assertSame([Attempting::class], $events->types());
+    }
+
+    public function test_validate_refuses_wrong_credentials_as_attempt_does(): void
+    {
+        $events = new FakeDispatcher;
+        $hasher = new FakeHasher;
+        $this->provider->add('bea', new FakeUser(2, $hasher->hash('right')));
+        $guard = new SessionGuard($this->session, $this->provider, $hasher, $events);
+        $hasher->reset();
+
+        $this->assertNull($guard->validate('bea', 'wrong'));
+        $this->assertNull($guard->validate('nobody', 'wrong'));
+
+        $this->assertSame([Attempting::class, LoginFailed::class, Attempting::class, LoginFailed::class], $events->types());
+        $this->assertSame(2, $hasher->hashes() + $hasher->verifications(), 'one hash for each, known or not');
+        $this->assertFalse($guard->check());
+    }
+
     public function test_login_then_logout_then_check_within_one_request(): void
     {
         $guard = $this->guard();

@@ -11,6 +11,15 @@ use Hydra\Auth\EmailChangeTokens;
 use Hydra\Auth\EmailVerificationTokens;
 use Hydra\Auth\Contracts\HasherInterface;
 use Hydra\Auth\Contracts\UserProviderInterface;
+use Hydra\Auth\Contracts\TwoFactorStoreInterface;
+use Hydra\Auth\Events\TwoFactorChallenged;
+use Hydra\Auth\RecoveryCodes;
+use Hydra\Auth\Testing\ArrayTwoFactorStore;
+use Hydra\Auth\Totp;
+use Hydra\Auth\TwoFactorChallenge;
+use Hydra\Cache\ArrayStore;
+use Hydra\Http\ClientIpResolver;
+use Hydra\Throttle\RateLimiter;
 use Hydra\Auth\Events\LoggedIn;
 use Hydra\Auth\NativeHasher;
 use Hydra\Auth\PasswordResetTokens;
@@ -200,6 +209,50 @@ final class AuthServiceProviderTest extends TestCase
         $this->assertFalse($container->isResolved(AuthConfig::class));
         $this->assertFalse($container->isResolved(HasherInterface::class));
         $this->assertFalse($container->isResolved(GuardInterface::class));
+    }
+
+    public function test_it_binds_the_two_factor_pieces_over_the_clock_and_hasher(): void
+    {
+        $container = $this->register();
+        $container->instance(ClockInterface::class, $clock = new FrozenClock('@59'));
+        $container->instance(TwoFactorStoreInterface::class, $store = new ArrayTwoFactorStore);
+        $container->instance(RateLimiter::class, new RateLimiter(ArrayStore::withClock($clock), new ClientIpResolver));
+        $container->instance(EventDispatcherInterface::class, $events = new FakeDispatcher);
+        $store->enable(new FakeUser('ada'), 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', []);
+
+        $this->assertSame('287082', $container->get(Totp::class)->code('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'));
+        $this->assertCount(2, $container->get(RecoveryCodes::class)->generate(2)['hashes']);
+
+        $challenge = $container->get(TwoFactorChallenge::class);
+        $challenge->begin(new FakeUser('ada'));
+
+        $this->assertTrue($challenge->verify('287082'));
+        $this->assertSame('ada', $container->get(GuardInterface::class)->id());
+        $this->assertSame([TwoFactorChallenged::class, LoggedIn::class], $events->types());
+    }
+
+    public function test_a_challenge_without_a_dispatcher_announces_nothing_and_still_works(): void
+    {
+        $container = $this->register();
+        $container->instance(ClockInterface::class, $clock = new FrozenClock('@59'));
+        $container->instance(TwoFactorStoreInterface::class, $store = new ArrayTwoFactorStore);
+        $container->instance(RateLimiter::class, new RateLimiter(ArrayStore::withClock($clock), new ClientIpResolver));
+        $store->enable(new FakeUser('ada'), 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', []);
+
+        $challenge = $container->get(TwoFactorChallenge::class);
+        $challenge->begin(new FakeUser('ada'));
+
+        $this->assertTrue($challenge->verify('287082'));
+    }
+
+    public function test_a_challenge_without_a_store_says_which_binding_is_missing(): void
+    {
+        $container = $this->register();
+
+        $this->expectException(NotFoundExceptionInterface::class);
+        $this->expectExceptionMessageMatches('/TwoFactorStoreInterface/');
+
+        $container->get(TwoFactorChallenge::class);
     }
 
     public function test_a_guard_built_without_a_user_provider_says_which_binding_is_missing(): void

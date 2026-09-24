@@ -11,6 +11,9 @@ use Hydra\Auth\Events\LoggedOut;
 use Hydra\Auth\Events\LoginFailed;
 use Hydra\Auth\Events\PasswordReset;
 use Hydra\Auth\Events\PasswordResetLinkSent;
+use Hydra\Auth\Events\RecoveryCodeUsed;
+use Hydra\Auth\Events\TwoFactorChallenged;
+use Hydra\Auth\Events\TwoFactorFailed;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -56,5 +59,23 @@ final class LogAuthEventsListener
     public function onEmailVerified(EmailVerified $event): void
     {
         $this->logger->info('auth.email_verified', ['user' => $event->user->getAuthIdentifier()]);
+    }
+
+    public function onTwoFactorChallenged(TwoFactorChallenged $event): void
+    {
+        $this->logger->info('auth.two_factor_challenged', ['user' => $event->user->getAuthIdentifier()]);
+    }
+
+    public function onTwoFactorFailed(TwoFactorFailed $event): void
+    {
+        $this->logger->warning('auth.two_factor_failed', ['user' => $event->user->getAuthIdentifier()]);
+    }
+
+    public function onRecoveryCodeUsed(RecoveryCodeUsed $event): void
+    {
+        $this->logger->notice('auth.recovery_code_used', [
+            'user' => $event->user->getAuthIdentifier(),
+            'remaining' => $event->remaining,
+        ]);
     }
 }
