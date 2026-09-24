@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 namespace Hydra\Cache;
 
+use Closure;
 use Hydra\Cache\Contracts\StoreInterface;
 use Redis;
 use RedisException;
 use RuntimeException;
+use Throwable;
 
 /**
  * The store every php-fpm worker shares, which is what makes a per-client
  * budget mean one budget rather than one per worker. Every key is written under
  * a configured prefix so several applications can
  * share a Redis instance without counting each other's requests.
+ *
+ * Given an opener rather than a connection, it connects on the first command
+ * and not when it is built. The pipeline builds every middleware up front, so a
+ * store that connected on construction took the whole application down with
+ * Redis, the health endpoint included, before anything could catch it.
  */
 final class RedisStore implements StoreInterface
 {
@@ -37,14 +44,27 @@ final class RedisStore implements StoreInterface
         return total
         LUA;
 
+    private ?Redis $redis;
+
+    /** @var (Closure(): Redis)|null */
+    private ?Closure $opener;
+
+    private ?Throwable $unreachable = null;
+
+    /**
+     * @param Redis|(Closure(): Redis) $redis a connection, or what opens one on first use
+     */
     public function __construct(
-        private readonly Redis $redis,
+        Redis|Closure $redis,
         private readonly string $prefix = '',
-    ) {}
+    ) {
+        $this->redis = $redis instanceof Redis ? $redis : null;
+        $this->opener = $redis instanceof Closure ? $redis : null;
+    }
 
     public function get(string $key): mixed
     {
-        $value = $this->call(fn (): mixed => $this->redis->get($this->prefix . $key));
+        $value = $this->call(fn (Redis $redis): mixed => $redis->get($this->prefix . $key));
 
         // phpredis reports a missing key as false, which is also a storable
         // value; serialization keeps them apart, so only a literal miss is null.
@@ -55,25 +75,25 @@ final class RedisStore implements StoreInterface
     {
         $encoded = $this->encode($value);
 
-        $this->call(function () use ($key, $encoded, $ttl): void {
+        $this->call(function (Redis $redis) use ($key, $encoded, $ttl): void {
             if ($ttl > 0) {
-                $this->redis->setex($this->prefix . $key, $ttl, $encoded);
+                $redis->setex($this->prefix . $key, $ttl, $encoded);
 
                 return;
             }
 
-            $this->redis->set($this->prefix . $key, $encoded);
+            $redis->set($this->prefix . $key, $encoded);
         });
     }
 
     public function forget(string $key): void
     {
-        $this->call(fn () => $this->redis->del($this->prefix . $key));
+        $this->call(fn (Redis $redis) => $redis->del($this->prefix . $key));
     }
 
     public function increment(string $key, int $by = 1, int $ttl = 0): int
     {
-        $total = $this->call(fn (): mixed => $this->redis->eval(
+        $total = $this->call(fn (Redis $redis): mixed => $redis->eval(
             self::INCREMENT,
             [$this->prefix . $key, (string) $by, (string) $ttl],
             1,
@@ -84,7 +104,7 @@ final class RedisStore implements StoreInterface
 
     public function ttl(string $key): int
     {
-        $ttl = $this->counter($this->call(fn (): mixed => $this->redis->ttl($this->prefix . $key)), 'TTL ' . $key);
+        $ttl = $this->counter($this->call(fn (Redis $redis): mixed => $redis->ttl($this->prefix . $key)), 'TTL ' . $key);
 
         // -1 (no expiry) and -2 (no key) both mean "nothing is going to clear".
         return $ttl < 0 ? 0 : $ttl;
@@ -114,14 +134,14 @@ final class RedisStore implements StoreInterface
         do {
             // By reference: phpredis advances the cursor through the argument,
             // and an arrow function would only ever hand it a copy of null.
-            $keys = $this->call(function () use (&$cursor): mixed {
-                return $this->redis->scan($cursor, $this->prefix . '*', 1000);
+            $keys = $this->call(function (Redis $redis) use (&$cursor): mixed {
+                return $redis->scan($cursor, $this->prefix . '*', 1000);
             });
 
             // A page of the keyspace that matched nothing is normal, and it is
             // not the end of the scan: only the cursor says that.
             if (is_array($keys) && $keys !== []) {
-                $this->call(fn () => $this->redis->del($keys));
+                $this->call(fn (Redis $redis) => $redis->del($keys));
             }
         } while ((int) $cursor !== 0);
     }
@@ -138,22 +158,46 @@ final class RedisStore implements StoreInterface
      */
     private function call(callable $operation): mixed
     {
+        $redis = $this->connection();
+
         try {
-            $this->redis->clearLastError();
-            $result = $operation();
+            $redis->clearLastError();
+            $result = $operation($redis);
         } catch (RedisException $e) {
             throw new RuntimeException('Cache store is unavailable: ' . $e->getMessage(), previous: $e);
         }
 
-        $error = $this->redis->getLastError();
+        $error = $redis->getLastError();
 
         if ($error !== null) {
-            $this->redis->clearLastError();
+            $redis->clearLastError();
 
             throw new RuntimeException('Cache store refused the command: ' . $error);
         }
 
         return $result;
+    }
+
+    /**
+     * A failed open is kept and thrown again rather than retried: the session,
+     * the limiter and the page would otherwise each wait out the connect
+     * timeout in turn, and one request would stall for several of them.
+     */
+    private function connection(): Redis
+    {
+        if ($this->redis !== null) {
+            return $this->redis;
+        }
+
+        if ($this->unreachable !== null) {
+            throw $this->unreachable;
+        }
+
+        try {
+            return $this->redis = ($this->opener)();
+        } catch (Throwable $e) {
+            throw $this->unreachable = $e;
+        }
     }
 
     /**

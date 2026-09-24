@@ -31,7 +31,9 @@ final class RedisConnection
         $where = sprintf('%s:%d', $config->host, $config->port);
 
         try {
-            if ($redis->connect($config->host, $config->port, $config->timeout) === false) {
+            // Silenced: phpredis raises a warning beside the exception it throws,
+            // and a displayed warning sends the headers, so a 503 goes out as 200.
+            if (@$redis->connect($config->host, $config->port, $config->timeout) === false) {
                 throw new RuntimeException("Could not connect to Redis at {$where}.");
             }
 

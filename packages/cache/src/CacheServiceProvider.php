@@ -33,7 +33,7 @@ final class CacheServiceProvider extends ServiceProvider
                 return new ArrayStore;
             }
 
-            return new RedisStore(RedisConnection::open($config), $config->prefix);
+            return new RedisStore(fn () => RedisConnection::open($config), $config->prefix);
         });
     }
 }

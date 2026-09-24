@@ -47,6 +47,24 @@ final class RedisStoreTest extends StoreContractTestCase
         $this->store = new RedisStore($redis, 'hydra-test:' . uniqid('', true) . ':');
     }
 
+    public function test_an_opener_runs_once_on_the_first_command(): void
+    {
+        $opened = 0;
+        $store = new RedisStore(function () use (&$opened): Redis {
+            $opened++;
+
+            return $this->redis;
+        }, 'hydra-test:' . uniqid('', true) . ':');
+
+        $this->assertSame(0, $opened);
+
+        $store->put('a', 'x', 10);
+        $this->assertSame('x', $store->get('a'));
+        $store->forget('a');
+
+        $this->assertSame(1, $opened);
+    }
+
     protected function tearDown(): void
     {
         if (isset($this->redis)) {
