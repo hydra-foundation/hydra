@@ -357,6 +357,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $this->assertSame(500, $response->getStatusCode());
         $this->assertSame([LogLevel::ERROR, LogLevel::WARNING], array_column($logger->records, 'level'));
         $this->assertSame('exception reporter failed: tracker down', $logger->records[1]['message']);
+        $this->assertInstanceOf(LogicException::class, $logger->records[1]['context']['exception'] ?? null);
     }
 
     private function realRequest(): ServerRequestInterface

@@ -111,8 +111,17 @@ final class HttpKernelTest extends TestCase
         $this->assertStringContainsString('Exception reporter failed: tracker down', $logged);
     }
 
+    public function test_with_no_reporter_only_the_panic_line_is_logged(): void
+    {
+        [$body, $logged] = $this->panic(new \RuntimeException('boom'), null);
+
+        $this->assertSame('Internal Server Error', $body);
+        $this->assertStringContainsString('Uncaught RuntimeException outside the error boundary: boom', $logged);
+        $this->assertStringNotContainsString('reporter', $logged);
+    }
+
     /** @return array{string, string} the echoed body and what reached error_log() */
-    private function panic(Throwable $e, ExceptionReporterInterface $reporter): array
+    private function panic(Throwable $e, ?ExceptionReporterInterface $reporter): array
     {
         $requests = $this->createStub(ServerRequestProviderInterface::class);
         $requests->method('fromGlobals')->willReturn($this->createStub(ServerRequestInterface::class));

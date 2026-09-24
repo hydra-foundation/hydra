@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LogLevel;
+use RuntimeException;
 
 /**
  * The probe answers itself, and says which dependency is down but never why.
@@ -61,6 +62,7 @@ final class HealthMiddlewareTest extends TestCase
         $this->assertStringNotContainsString('3306', (string) $response->getBody());
         $record = $this->log->firstWith('Health check database failed: db:3306 refused');
         $this->assertSame(LogLevel::WARNING, $record['level']);
+        $this->assertInstanceOf(RuntimeException::class, $record['context']['exception'] ?? null);
     }
 
     public function test_no_checks_is_a_process_that_answers(): void
