@@ -25,6 +25,12 @@ final class VerifyCsrfTokenMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        // A browser cannot send an Authorization header cross-site without a
+        // preflight, and a bearer request started no session to ride on.
+        if (preg_match('/^Bearer(\s|$)/i', $request->getHeaderLine('Authorization')) === 1) {
+            return $handler->handle($request);
+        }
+
         if (
             !in_array(strtoupper($request->getMethod()), self::SAFE, true)
             && !$this->guard->validate($this->submittedToken($request))

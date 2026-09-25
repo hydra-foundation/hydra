@@ -239,6 +239,37 @@ final class VerifyCsrfTokenMiddlewareTest extends TestCase
         $handler->assertHandled();
     }
 
+    public function test_a_bearer_request_needs_no_token_and_never_touches_the_session(): void
+    {
+        // Never started: a validate() against it would throw.
+        $guard = new CsrfGuard(
+            new ArraySessionStore,
+            Signer::fromHex('00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff'),
+        );
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
+
+        (new VerifyCsrfTokenMiddleware($guard))->process(
+            $this->request('POST', '/api/x')->withHeader('Authorization', 'Bearer hyd_abc'),
+            $handler,
+        );
+
+        $handler->assertHandled();
+    }
+
+    public function test_another_scheme_still_needs_a_token(): void
+    {
+        $guard = $this->guard();
+        $guard->token();
+        $handler = FakeHandler::respondingWith((new Psr17Factory)->createResponse(200));
+
+        $this->expectException(TokenMismatchException::class);
+
+        (new VerifyCsrfTokenMiddleware($guard))->process(
+            $this->request('POST', '/x')->withHeader('Authorization', 'Basic YWRhOnNlY3JldA=='),
+            $handler,
+        );
+    }
+
     private function request(string $method, string $path): ServerRequestInterface
     {
         return (new Psr17Factory)->createServerRequest($method, $path);

@@ -54,6 +54,53 @@ final class StartSessionMiddlewareTest extends TestCase
         $this->assertSame(['start', 'handle', 'save'], $session->calls);
     }
 
+    public function test_a_bearer_request_neither_starts_nor_saves_the_session(): void
+    {
+        $session = new RecordingSession;
+        $response = $this->createStub(ResponseInterface::class);
+
+        (new StartSessionMiddleware($session))->process(
+            $this->requestWith('Bearer hyd_abc'),
+            new RecordingHandler($session, $response),
+        );
+
+        $this->assertSame(['handle'], $session->calls);
+    }
+
+    public function test_the_bearer_scheme_is_recognised_in_any_case(): void
+    {
+        $session = new RecordingSession;
+
+        (new StartSessionMiddleware($session))->process(
+            $this->requestWith('bEaReR hyd_abc'),
+            new RecordingHandler($session, $this->createStub(ResponseInterface::class)),
+        );
+
+        $this->assertSame(['handle'], $session->calls);
+    }
+
+    public function test_another_scheme_still_gets_a_session(): void
+    {
+        foreach (['Basic YWRhOnNlY3JldA==', 'Bearerish hyd_abc', ''] as $authorization) {
+            $session = new RecordingSession;
+
+            (new StartSessionMiddleware($session))->process(
+                $this->requestWith($authorization),
+                new RecordingHandler($session, $this->createStub(ResponseInterface::class)),
+            );
+
+            $this->assertSame(['start', 'handle', 'save'], $session->calls, $authorization);
+        }
+    }
+
+    private function requestWith(string $authorization): ServerRequestInterface
+    {
+        $request = $this->createStub(ServerRequestInterface::class);
+        $request->method('getHeaderLine')->willReturnMap([['Authorization', $authorization]]);
+
+        return $request;
+    }
+
     private function request(): ServerRequestInterface
     {
         return $this->createStub(ServerRequestInterface::class);
