@@ -6,10 +6,15 @@ namespace Hydra\Admin;
 
 use Hydra\Admin\Contracts\ModuleInterface;
 use Hydra\Admin\Contracts\TimezoneInterface;
+use Hydra\Admin\Updates\HttpReleaseFeed;
+use Hydra\Admin\Updates\UpdateCheck;
 use Hydra\Authorization\Contracts\GateInterface;
+use Hydra\Cache\Contracts\StoreInterface;
 use Hydra\Core\Clock\SystemClock;
 use Hydra\Core\Contracts\ContainerInterface;
+use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
+use Hydra\Core\Versions;
 use Hydra\Http\Responder;
 use Hydra\Http\Router;
 use Hydra\Validation\Validator;
@@ -113,6 +118,15 @@ final class AdminServiceProvider extends ServiceProvider
                 $container->bound(TimezoneInterface::class)
                     ? $container->get(TimezoneInterface::class)
                     : new FixedTimezone,
+            );
+        });
+
+        $container->singleton(UpdateCheck::class, function () use ($container) {
+            return new UpdateCheck(
+                new HttpReleaseFeed,
+                $container->get(StoreInterface::class),
+                $container->get(Versions::class)->hydra(),
+                $container->get(Environment::class)->bool('HYDRA_UPDATE_CHECK', true),
             );
         });
 

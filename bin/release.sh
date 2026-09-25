@@ -5,6 +5,7 @@
 #   bin/release.sh 0.3.1                 # dry run: report what would happen
 #   bin/release.sh 0.3.1 --push          # tag and push
 #   bin/release.sh 0.4.0 --minor --push  # also rewrite the ^0.3 constraints first
+#   bin/release.sh 0.3.2 --security --push  # mark it a security fix in version.json
 #
 # Two repositories are tagged: the hydra monorepo and the app skeleton. The
 # hydrakit/* package repositories are not touched here — the split
@@ -44,6 +45,7 @@ PACKAGES=(admin auth authorization cache console core csrf database event http
 VERSION=""
 DO_PUSH=0
 DO_MINOR=0
+DO_SECURITY=0
 ASSUME_YES=0
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -81,6 +83,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --push)  DO_PUSH=1 ;;
         --minor) DO_MINOR=1 ;;
+        --security) DO_SECURITY=1 ;;
         --yes|-y) ASSUME_YES=1 ;;
         -h|--help) usage 0 ;;
         -*) die "unknown flag: $1 (try --help)" ;;
@@ -293,7 +296,7 @@ echo "Plan for $TAG:"
 n=$([ "$DO_MINOR" -eq 1 ] && echo 1 || echo 0)
 echo "  $((n + 1)). tag hydra $TAG and push $BRANCH + tag"
 echo "  $((n + 2)). the split workflow regenerates the ${#PACKAGES[@]} package repos at $TAG"
-echo "  $((n + 3)). wait for Packagist to index all ${#PACKAGES[@]} at $TAG"
+echo "  $((n + 3)). wait for Packagist to index all ${#PACKAGES[@]} at $TAG, then write version.json$([ "$DO_SECURITY" -eq 1 ] && echo " marking it a security fix")"
 echo "  $((n + 4)). refresh app's lock onto $TAG and verify the skeleton against it"
 echo "  $((n + 5)). commit the lock, tag app $TAG and push"
 
@@ -362,6 +365,17 @@ for pkg in "${PACKAGES[@]}"; do
     done
     echo "  hydrakit/$pkg $TAG"
 done
+
+# What the admin's update check reads. Not before Packagist has the tag, or
+# every install is told to upgrade to a release composer cannot find yet.
+if [ -d "$WIKI" ]; then
+    php "$DIR/hydra/bin/version-feed.php" "$WIKI/version.json" "$VERSION" \
+        $([ "$DO_SECURITY" -eq 1 ] && echo --security) \
+        && echo "  version.json names $TAG" \
+        || echo "warning: version.json was not updated; installs will not hear of $TAG" >&2
+else
+    echo "warning: no wiki at $WIKI; version.json was not updated" >&2
+fi
 
 # --no-install because app/vendor holds the symlinks to hydra/packages/*, and a
 # plain update would replace them with copies from Packagist.
