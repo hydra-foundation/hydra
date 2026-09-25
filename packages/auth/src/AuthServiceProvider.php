@@ -40,8 +40,9 @@ final class AuthServiceProvider extends ServiceProvider
         // The session-backed guard, shared for the request so the middleware and
         // controllers see one consistent authentication state (and its per-request
         // user cache). It pulls the app-supplied UserProviderInterface, which
-        // this provider intentionally does NOT bind.
-        $container->singleton(GuardInterface::class, function () use ($container) {
+        // this provider intentionally does NOT bind. Bound by its class, since
+        // sign-in and a second factor need validate(), which the contract lacks.
+        $container->singleton(SessionGuard::class, function () use ($container) {
             // The event dispatcher is OPTIONAL: auth depends on the PSR interface,
             // not on hydrakit/event. When an app has bound a dispatcher the guard
             // announces its lifecycle through it; when it hasn't, the guard gets
@@ -58,11 +59,15 @@ final class AuthServiceProvider extends ServiceProvider
             );
         });
 
-        // The same instance by its class, for validate(), which a second factor
-        // needs and the contract does not have. An application that binds its
-        // own guard binds this too.
-        $container->singleton(SessionGuard::class, function () use ($container): SessionGuard {
-            return $container->get(GuardInterface::class);
+        // What everything else asks: the bearer token's owner when one was
+        // accepted, the session guard above otherwise. An application that
+        // binds its own guard binds all three.
+        $container->singleton(RequestGuard::class, function () use ($container): RequestGuard {
+            return new RequestGuard($container->get(SessionGuard::class));
+        });
+
+        $container->singleton(GuardInterface::class, function () use ($container): RequestGuard {
+            return $container->get(RequestGuard::class);
         });
 
         // Resolved lazily, so the clock and the signer are only demanded of an

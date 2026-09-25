@@ -16,6 +16,7 @@ use Hydra\Auth\Events\TwoFactorChallenged;
 use Hydra\Auth\ApiTokens;
 use Hydra\Auth\Contracts\ApiTokenStoreInterface;
 use Hydra\Auth\RecoveryCodes;
+use Hydra\Auth\RequestGuard;
 use Hydra\Auth\Testing\ArrayApiTokenStore;
 use Hydra\Auth\Testing\ArrayTwoFactorStore;
 use Hydra\Auth\Totp;
@@ -108,11 +109,12 @@ final class AuthServiceProviderTest extends TestCase
         $this->assertSame(12, $container->get(AuthConfig::class)->hashCost);
     }
 
-    public function test_it_binds_the_session_guard_behind_the_interface(): void
+    public function test_it_binds_the_request_guard_behind_the_interface(): void
     {
         $container = $this->register();
 
-        $this->assertInstanceOf(SessionGuard::class, $container->get(GuardInterface::class));
+        $this->assertInstanceOf(RequestGuard::class, $container->get(GuardInterface::class));
+        $this->assertSame($container->get(GuardInterface::class), $container->get(RequestGuard::class));
     }
 
     public function test_the_guard_is_shared_for_the_request(): void
@@ -128,11 +130,14 @@ final class AuthServiceProviderTest extends TestCase
         );
     }
 
-    public function test_the_guard_by_its_class_is_the_same_instance(): void
+    public function test_the_session_guard_by_its_class_is_the_one_the_request_guard_asks(): void
     {
         $container = $this->register();
 
-        $this->assertSame($container->get(GuardInterface::class), $container->get(SessionGuard::class));
+        $container->get(SessionGuard::class)->login(new FakeUser('ada'));
+
+        $this->assertInstanceOf(SessionGuard::class, $container->get(SessionGuard::class));
+        $this->assertSame('ada', $container->get(GuardInterface::class)->id());
     }
 
     public function test_it_binds_reset_tokens_over_the_app_key_and_clock(): void
