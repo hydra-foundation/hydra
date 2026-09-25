@@ -13,7 +13,10 @@ use Hydra\Auth\Contracts\HasherInterface;
 use Hydra\Auth\Contracts\UserProviderInterface;
 use Hydra\Auth\Contracts\TwoFactorStoreInterface;
 use Hydra\Auth\Events\TwoFactorChallenged;
+use Hydra\Auth\ApiTokens;
+use Hydra\Auth\Contracts\ApiTokenStoreInterface;
 use Hydra\Auth\RecoveryCodes;
+use Hydra\Auth\Testing\ArrayApiTokenStore;
 use Hydra\Auth\Testing\ArrayTwoFactorStore;
 use Hydra\Auth\Totp;
 use Hydra\Auth\TwoFactorChallenge;
@@ -216,6 +219,28 @@ final class AuthServiceProviderTest extends TestCase
         $this->assertFalse($container->isResolved(AuthConfig::class));
         $this->assertFalse($container->isResolved(HasherInterface::class));
         $this->assertFalse($container->isResolved(GuardInterface::class));
+    }
+
+    public function test_it_binds_api_tokens_over_the_apps_store_and_the_clock(): void
+    {
+        $container = $this->register();
+        $container->instance(ClockInterface::class, new FrozenClock('2026-09-25 10:00:00'));
+        $container->instance(ApiTokenStoreInterface::class, new ArrayApiTokenStore);
+        $tokens = $container->get(ApiTokens::class);
+
+        $issued = $tokens->issue(new FakeUser('ada'), 'CLI');
+
+        $this->assertSame('2026-09-25 10:00:00', $issued->token->createdAt->format('Y-m-d H:i:s'));
+        $this->assertSame('ada', $tokens->authenticate($issued->plain)?->user->getAuthIdentifier());
+        $this->assertSame($tokens, $container->get(ApiTokens::class));
+    }
+
+    public function test_api_tokens_ask_for_no_store_until_they_are_used(): void
+    {
+        $container = $this->register();
+
+        $this->assertFalse($container->isResolved(ApiTokens::class));
+        $this->assertFalse($container->bound(ApiTokenStoreInterface::class));
     }
 
     public function test_it_binds_the_two_factor_pieces_over_the_clock_and_hasher(): void

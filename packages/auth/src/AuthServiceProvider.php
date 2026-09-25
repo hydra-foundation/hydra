@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Auth;
 
+use Hydra\Auth\Contracts\ApiTokenStoreInterface;
 use Hydra\Auth\Contracts\GuardInterface;
 use Hydra\Auth\Contracts\HasherInterface;
 use Hydra\Auth\Contracts\TwoFactorStoreInterface;
@@ -118,6 +119,16 @@ final class AuthServiceProvider extends ServiceProvider
                 $container->get(RateLimiter::class),
                 $container->get(ClockInterface::class),
                 $container->bound(EventDispatcherInterface::class) ? $container->get(EventDispatcherInterface::class) : null,
+            );
+        });
+
+        // Like the challenge, over a store the application binds: an app that
+        // never issues a token never has to.
+        $container->singleton(ApiTokens::class, function () use ($container) {
+            return new ApiTokens(
+                $container->get(ApiTokenStoreInterface::class),
+                $container->get(UserProviderInterface::class),
+                $container->get(ClockInterface::class),
             );
         });
 
