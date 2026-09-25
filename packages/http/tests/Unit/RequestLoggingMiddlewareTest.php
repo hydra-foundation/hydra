@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Hydra\Http\Tests\Unit;
 
+use Hydra\Http\Contracts\PathRedactorInterface;
 use Hydra\Http\RequestLoggingMiddleware;
 use Hydra\Http\Testing\FakeHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\AbstractLogger;
 
 /**
@@ -35,6 +37,22 @@ final class RequestLoggingMiddlewareTest extends TestCase
         $this->assertSame(201, $context['status']);
         $this->assertArrayHasKey('duration_ms', $context);
         $this->assertIsFloat($context['duration_ms']);
+    }
+
+    public function test_the_path_is_logged_as_the_redactor_writes_it(): void
+    {
+        $logger = new RecordingLogger;
+        $paths = new class implements PathRedactorInterface {
+            public function redact(ServerRequestInterface $request): string
+            {
+                return '/reset-password/{token}';
+            }
+        };
+        $request = (new Psr17Factory)->createServerRequest('GET', '/reset-password/abc123');
+
+        (new RequestLoggingMiddleware($logger, $paths))->process($request, $this->handler(302));
+
+        $this->assertSame('/reset-password/{token}', $logger->records[0][2]['path']);
     }
 
     public function test_returns_the_inner_response_unchanged(): void

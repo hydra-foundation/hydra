@@ -10,6 +10,7 @@ use Hydra\Core\Contracts\KernelInterface;
 use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Http\Contracts\EmitterInterface;
 use Hydra\Http\Contracts\ErrorRendererInterface;
+use Hydra\Http\Contracts\PathRedactorInterface;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
 use Hydra\Http\CspNonce;
 use Hydra\Http\Emitter;
@@ -67,6 +68,8 @@ final class HttpServiceProvider extends ServiceProvider
             $router->loadRoutes($this->compileRoutes($container));
             return $router;
         });
+
+        $container->singleton(PathRedactorInterface::class, fn () => $container->get(Router::class));
 
         $container->singleton(RequestHandlerInterface::class, function () use ($container) {
             $middleware = array_map(

@@ -8,6 +8,7 @@ use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Core\Contracts\KernelInterface;
 use Hydra\Http\Contracts\EmitterInterface;
 use Hydra\Http\Contracts\ErrorRendererInterface;
+use Hydra\Http\Contracts\PathRedactorInterface;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
 use Hydra\Http\PlainTextErrorRenderer;
 use Hydra\Http\Responder;
@@ -78,6 +79,11 @@ final class HttpServiceProviderTest extends TestCase
         $this->assertInstanceOf(Router::class, $this->container->get(Router::class));
         $this->assertInstanceOf(RequestHandlerInterface::class, $this->container->get(RequestHandlerInterface::class));
         $this->assertInstanceOf(KernelInterface::class, $this->container->get(KernelInterface::class));
+    }
+
+    public function test_the_router_is_what_redacts_a_logged_path(): void
+    {
+        $this->assertSame($this->container->get(Router::class), $this->container->get(PathRedactorInterface::class));
     }
 
     public function test_binds_the_default_error_renderer(): void

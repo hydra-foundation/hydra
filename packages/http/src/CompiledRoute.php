@@ -50,6 +50,33 @@ final class CompiledRoute
     }
 
     /**
+     * $path with each named parameter's segment replaced by its {name}, as
+     * sent rather than decoded, so the rest of the path reads as it arrived.
+     *
+     * @param list<string> $names
+     */
+    public function mask(string $path, array $names): string
+    {
+        if (preg_match($this->pattern, $path, $matches, PREG_OFFSET_CAPTURE) !== 1) {
+            return $path;
+        }
+
+        $spans = [];
+        foreach ($names as $name) {
+            if (isset($matches[$name])) {
+                $spans[$matches[$name][1]] = [strlen($matches[$name][0]), '{' . $name . '}'];
+            }
+        }
+
+        krsort($spans);
+        foreach ($spans as $offset => [$length, $placeholder]) {
+            $path = substr_replace($path, $placeholder, $offset, $length);
+        }
+
+        return $path;
+    }
+
+    /**
      * Turn "/users/{id}" into "#^/users/(?P<id>[^/]+)$#":
      * literal segments are regex-escaped, {name} placeholders become named
      * captures that stop at a slash (one path segment each).

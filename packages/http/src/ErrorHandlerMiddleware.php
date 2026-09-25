@@ -6,6 +6,7 @@ namespace Hydra\Http;
 
 use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Http\Contracts\ErrorRendererInterface;
+use Hydra\Http\Contracts\PathRedactorInterface;
 use Hydra\Http\Exceptions\HttpException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -38,6 +39,7 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
         private readonly bool $debug = false,
         ?LoggerInterface $logger = null,
         private readonly ?ExceptionReporterInterface $reporter = null,
+        private readonly ?PathRedactorInterface $paths = null,
     ) {
         $this->logger = $logger ?? new NullLogger;
     }
@@ -87,7 +89,7 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
             $this->reporter->report($e, [
                 'request_id' => is_string($id) ? $id : null,
                 'method' => $request->getMethod(),
-                'path' => $request->getUri()->getPath(),
+                'path' => $this->paths?->redact($request) ?? $request->getUri()->getPath(),
             ]);
         } catch (Throwable $failure) {
             $this->logger->warning('exception reporter failed: ' . $failure->getMessage(), ['exception' => $failure]);

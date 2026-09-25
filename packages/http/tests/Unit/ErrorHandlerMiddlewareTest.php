@@ -7,6 +7,7 @@ namespace Hydra\Http\Tests\Unit;
 use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Core\Testing\FakeExceptionReporter;
 use Hydra\Http\Contracts\ErrorRendererInterface;
+use Hydra\Http\Contracts\PathRedactorInterface;
 use Hydra\Http\ErrorContext;
 use Hydra\Http\ErrorHandlerMiddleware;
 use Hydra\Http\Exceptions\HttpException;
@@ -329,6 +330,23 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $report = $reporter->assertReported(RuntimeException::class);
         $this->assertSame($exception, $report['exception']);
         $this->assertSame(['request_id' => 'r-123', 'method' => 'POST', 'path' => '/orders'], $report['context']);
+    }
+
+    public function test_a_fault_is_reported_with_the_redacted_path(): void
+    {
+        $reporter = new FakeExceptionReporter;
+        $paths = new class implements PathRedactorInterface {
+            public function redact(ServerRequestInterface $request): string
+            {
+                return '/reset-password/{token}';
+            }
+        };
+        $request = (new Psr17Factory)->createServerRequest('GET', '/reset-password/abc123');
+
+        (new ErrorHandlerMiddleware($this->renderer(), reporter: $reporter, paths: $paths))
+            ->process($request, $this->handlerThrowing(new RuntimeException('boom')));
+
+        $this->assertSame('/reset-password/{token}', $reporter->assertReported(RuntimeException::class)['context']['path']);
     }
 
     public function test_a_client_error_is_not_reported(): void

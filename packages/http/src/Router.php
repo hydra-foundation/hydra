@@ -6,12 +6,16 @@ namespace Hydra\Http;
 
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Http\Contracts\ArgumentResolverInterface;
+use Hydra\Http\Contracts\PathRedactorInterface;
 use Hydra\Http\Exceptions\MethodNotAllowedException;
 use Hydra\Http\Exceptions\NotFoundException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use ReflectionException;
+use ReflectionMethod;
+use SensitiveParameter;
 
 /**
  * The innermost handler of the pipeline: matches a request to a route, then
@@ -19,7 +23,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  *
  * @phpstan-import-type RouteDefinition from RouteScanner
  */
-final class Router implements RequestHandlerInterface
+final class Router implements RequestHandlerInterface, PathRedactorInterface
 {
     /** @var list<CompiledRoute> */
     private array $routes = [];
@@ -125,6 +129,33 @@ final class Router implements RequestHandlerInterface
         throw new NotFoundException;
     }
 
+    /**
+     * A parameter its target marks #[\SensitiveParameter] is masked. Read off
+     * the target rather than the route, so a token route says so once, in the
+     * signature that receives the token.
+     */
+    public function redact(ServerRequestInterface $request): string
+    {
+        $path = $this->normalize($request->getUri()->getPath());
+
+        foreach ($this->routes as $route) {
+            if ($route->matchPath($path) === null || !$this->methodMatches($route->method, $request->getMethod())) {
+                continue;
+            }
+
+            try {
+                $names = $this->sensitive($route->target);
+            } catch (ReflectionException) {
+                // A target that cannot be read gets every parameter masked.
+                return $route->path;
+            }
+
+            return $names === [] ? $request->getUri()->getPath() : $route->mask($path, $names);
+        }
+
+        return $request->getUri()->getPath();
+    }
+
     /** HEAD falls back to a GET route, a HEAD being a GET without the body. */
     private function methodMatches(string $routeMethod, string $requestMethod): bool
     {
@@ -173,6 +204,37 @@ final class Router implements RequestHandlerInterface
 
         // Closure / already-callable target.
         return new CallableHandler($target, $this->arguments, $params);
+    }
+
+    /**
+     * @return list<string>
+     *
+     * @throws ReflectionException
+     */
+    private function sensitive(mixed $target): array
+    {
+        $names = [];
+        foreach ($this->reflect($target)->getParameters() as $parameter) {
+            if ($parameter->getAttributes(SensitiveParameter::class) !== []) {
+                $names[] = $parameter->getName();
+            }
+        }
+
+        return $names;
+    }
+
+    /** @throws ReflectionException */
+    private function reflect(mixed $target): ReflectionMethod
+    {
+        if (is_array($target)) {
+            return new ReflectionMethod($target[0], $target[1]);
+        }
+
+        if (is_string($target) || is_object($target)) {
+            return new ReflectionMethod($target, '__invoke');
+        }
+
+        throw new ReflectionException('Route target is not a callable Router can read.');
     }
 
     /** Collapse surrounding slashes so "/health" and "/health/" match the same route. */

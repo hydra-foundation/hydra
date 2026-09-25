@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Http;
 
+use Hydra\Http\Contracts\PathRedactorInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -15,7 +16,10 @@ use Psr\Log\LoggerInterface;
  */
 final class RequestLoggingMiddleware implements MiddlewareInterface
 {
-    public function __construct(private readonly LoggerInterface $logger) {}
+    public function __construct(
+        private readonly LoggerInterface $logger,
+        private readonly ?PathRedactorInterface $paths = null,
+    ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
@@ -25,7 +29,7 @@ final class RequestLoggingMiddleware implements MiddlewareInterface
 
         $this->logger->info('request handled', [
             'method' => $request->getMethod(),
-            'path' => $request->getUri()->getPath(),
+            'path' => $this->paths?->redact($request) ?? $request->getUri()->getPath(),
             'status' => $response->getStatusCode(),
             'duration_ms' => round((microtime(true) - $start) * 1000, 2),
         ]);
