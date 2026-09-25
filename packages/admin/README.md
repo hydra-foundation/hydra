@@ -95,6 +95,8 @@ value:
 - `--accent-hover`
 - `--accent-wash`
 - `--danger`
+- `--danger-line`
+- `--danger-wash`
 - `--ease`
 - `--font-display`
 - `--font-mono`
@@ -105,6 +107,7 @@ value:
 - `--line`
 - `--line-strong`
 - `--muted`
+- `--ok`
 - `--paper`
 - `--r-1`
 - `--r-2`

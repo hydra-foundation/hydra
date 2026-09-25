@@ -1513,6 +1513,154 @@
     border-bottom-color: var(--accent);
 }
 
+/* One column for every category, the width the theme grid already uses, so
+   readouts, rows and forms share a right edge. A row names a setting, shows
+   its value and opens the one form that changes it. */
+.settings-rows,
+.settings-panel {
+    max-width: 34rem;
+    margin: 0 0 var(--s-5);
+}
+
+.settings-row {
+    border-bottom: 1px solid var(--line);
+}
+
+.settings-row > summary,
+.settings-row-static {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: var(--s-4);
+    padding: var(--s-4) 0;
+}
+
+.settings-row > summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.settings-row > summary::-webkit-details-marker {
+    display: none;
+}
+
+.settings-row > summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--r-1);
+}
+
+.settings-row-label {
+    font-size: var(--t-base);
+    font-weight: 600;
+    color: var(--ink-strong);
+}
+
+.settings-row-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--ink);
+}
+
+.settings-row-value.is-data {
+    font-family: var(--font-mono);
+    font-size: var(--t-data);
+    font-variant-numeric: tabular-nums;
+}
+
+.settings-row-value small {
+    display: block;
+    margin-top: 0.125rem;
+    font-size: var(--t-small);
+    color: var(--muted);
+}
+
+.settings-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.settings-state::before {
+    content: "";
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: 50%;
+    background: var(--muted);
+}
+
+.settings-state.is-on::before {
+    background: var(--ok);
+}
+
+/* The action reads Cancel while the row is open, since closing the row is how
+   a change is abandoned. */
+.settings-row-action {
+    font-size: var(--t-small);
+    font-weight: 500;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+.settings-row > summary:hover .settings-row-action {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+.settings-row-action .when-open,
+.settings-row[open] .settings-row-action .when-closed {
+    display: none;
+}
+
+.settings-row[open] .settings-row-action .when-open {
+    display: inline;
+}
+
+.settings-row[open] .settings-row-action {
+    color: var(--muted);
+}
+
+/* Hung under the value column, so the label keeps naming what is changing. */
+.settings-row-form {
+    margin: 0 0 var(--s-4) calc(9rem + var(--s-4));
+    padding: var(--s-4);
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--r-3);
+}
+
+.settings-row-form .admin-form-actions {
+    margin-top: var(--s-4);
+    padding-top: 0;
+    border-top: 0;
+}
+
+.settings-row.is-danger:not([open]) .settings-row-action {
+    color: var(--danger);
+}
+
+.settings-row.is-danger .settings-row-form {
+    background: var(--danger-wash);
+    border-color: var(--danger-line);
+}
+
+@container (max-width: 36rem) {
+    .settings-row > summary,
+    .settings-row-static {
+        grid-template-columns: minmax(0, 1fr) auto;
+        row-gap: var(--s-1);
+    }
+
+    .settings-row-value {
+        grid-row: 2;
+        grid-column: 1 / -1;
+    }
+
+    .settings-row-form {
+        margin-left: 0;
+    }
+}
+
 /* Narrow because it is one control and a sentence, and a select stretched the
    width of the frame reads as a search box. */
 .regional-field {
