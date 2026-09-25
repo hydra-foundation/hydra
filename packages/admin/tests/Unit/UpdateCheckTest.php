@@ -111,8 +111,11 @@ final class UpdateCheckTest extends TestCase
         $feed = new FakeReleaseFeed(null);
         $store = new ArrayStore;
 
-        $this->assertSame(Standing::Unknown, $this->check('0.9.7', $feed, $store)->update()->standing);
-        $this->assertSame(Standing::Unknown, $this->check('0.9.7', $feed, $store)->update()->standing);
+        $first = $this->check('0.9.7', $feed, $store)->update();
+        $again = $this->check('0.9.7', $feed, $store)->update();
+
+        $this->assertSame(Standing::Unknown, $first->standing);
+        $this->assertSame(Standing::Unknown, $again->standing);
         $this->assertSame(1, $feed->fetches);
         $this->assertLessThanOrEqual(3600, $store->ttl('admin:updates:feed'));
     }
