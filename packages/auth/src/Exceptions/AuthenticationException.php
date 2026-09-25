@@ -12,8 +12,9 @@ use Throwable;
  */
 final class AuthenticationException extends HttpException
 {
-    public function __construct(string $message = 'Unauthenticated.', ?Throwable $previous = null)
+    /** @param array<string, string> $headers such as the WWW-Authenticate a refused bearer token earns */
+    public function __construct(string $message = 'Unauthenticated.', ?Throwable $previous = null, array $headers = [])
     {
-        parent::__construct(401, $message, [], $previous);
+        parent::__construct(401, $message, $headers, $previous);
     }
 }
