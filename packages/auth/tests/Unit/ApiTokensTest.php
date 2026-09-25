@@ -43,6 +43,14 @@ final class ApiTokensTest extends TestCase
         $this->assertNotSame($issued->plain, $this->tokens->issue(new FakeUser('ada'), 'CLI')->plain);
     }
 
+    public function test_a_dump_of_an_issued_token_does_not_show_it(): void
+    {
+        $issued = $this->tokens->issue(new FakeUser('ada'), 'CLI');
+
+        $this->assertStringNotContainsString($issued->plain, print_r($issued, true));
+        $this->assertStringNotContainsString($issued->plain, var_export($issued->__debugInfo(), true));
+    }
+
     public function test_the_store_holds_only_the_sha256_of_the_token(): void
     {
         $issued = $this->tokens->issue(new FakeUser('ada'), 'CLI');

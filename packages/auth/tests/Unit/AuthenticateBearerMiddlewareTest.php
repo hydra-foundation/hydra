@@ -26,6 +26,7 @@ use Psr\Http\Message\ServerRequestInterface;
 final class AuthenticateBearerMiddlewareTest extends TestCase
 {
     private FrozenClock $clock;
+    private ArrayApiTokenStore $store;
     private ApiTokens $tokens;
     private RequestGuard $guard;
     private AuthenticateBearerMiddleware $middleware;
@@ -34,7 +35,7 @@ final class AuthenticateBearerMiddlewareTest extends TestCase
     {
         $this->clock = new FrozenClock('2026-09-25 10:00:00');
         $this->tokens = new ApiTokens(
-            new ArrayApiTokenStore,
+            $this->store = new ArrayApiTokenStore,
             (new ArrayUserProvider)->add('grace', new FakeUser('grace')),
             $this->clock,
         );
@@ -42,9 +43,9 @@ final class AuthenticateBearerMiddlewareTest extends TestCase
         $this->middleware = new AuthenticateBearerMiddleware($this->guard, $this->tokens);
     }
 
-    private function request(?string $authorization = null): ServerRequestInterface
+    private function request(?string $authorization = null, string $path = '/api/v1/me'): ServerRequestInterface
     {
-        $request = (new Psr17Factory)->createServerRequest('GET', '/api/v1/me');
+        $request = (new Psr17Factory)->createServerRequest('GET', $path);
 
         return $authorization === null ? $request : $request->withHeader('Authorization', $authorization);
     }
@@ -121,6 +122,46 @@ final class AuthenticateBearerMiddlewareTest extends TestCase
 
         $handler->assertNotHandled();
         $this->assertSame('ada', $this->guard->id(), 'a refused token must leave the guard alone');
+    }
+
+    public function test_a_token_outside_the_api_is_refused_even_when_it_is_live(): void
+    {
+        $issued = $this->tokens->issue(new FakeUser('grace'), 'CLI');
+        $handler = $this->handler();
+
+        try {
+            $this->middleware->process($this->request('Bearer ' . $issued->plain, '/admin/settings/account'), $handler);
+            $this->fail('A token was accepted outside the API.');
+        } catch (AuthenticationException $e) {
+            $this->assertSame(['WWW-Authenticate' => 'Bearer error="invalid_request"'], $e->headers());
+        }
+
+        $handler->assertNotHandled();
+        $this->assertNull($this->store->findByHash($issued->token->hash)?->lastUsedAt, 'refused before any lookup');
+    }
+
+    public function test_the_api_prefixes_are_configurable(): void
+    {
+        $issued = $this->tokens->issue(new FakeUser('grace'), 'CLI');
+        $middleware = new AuthenticateBearerMiddleware($this->guard, $this->tokens, ['/hooks/']);
+
+        $middleware->process($this->request('Bearer ' . $issued->plain, '/hooks/deploy'), $this->handler());
+        $this->assertSame('grace', $this->guard->id());
+
+        $this->expectException(AuthenticationException::class);
+        $middleware->process($this->request('Bearer ' . $issued->plain), $this->handler());
+    }
+
+    public function test_a_prefix_is_matched_whole(): void
+    {
+        $issued = $this->tokens->issue(new FakeUser('grace'), 'CLI');
+
+        try {
+            $this->middleware->process($this->request('Bearer ' . $issued->plain, '/apix/v1/me'), $this->handler());
+            $this->fail('A token was accepted outside the API.');
+        } catch (AuthenticationException $e) {
+            $this->assertSame(['WWW-Authenticate' => 'Bearer error="invalid_request"'], $e->headers());
+        }
     }
 
     public function test_an_expired_token_is_a_401(): void

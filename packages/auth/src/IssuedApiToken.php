@@ -14,4 +14,10 @@ final readonly class IssuedApiToken
         public ApiToken $token,
         #[\SensitiveParameter] public string $plain,
     ) {}
+
+    /** @return array{token: ApiToken, plain: string} */
+    public function __debugInfo(): array
+    {
+        return ['token' => $this->token, 'plain' => '[redacted]'];
+    }
 }
