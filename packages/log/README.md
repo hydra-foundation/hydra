@@ -9,5 +9,6 @@ Part of the [Hydra PHP framework](https://hydra.williamhleucka.com). Documentati
 > reason, and a pull request opened here cannot be merged. Both belong upstream.
 
 A minimal PSR-3 logger that writes one plain-text line per record to a writable
-stream. No handlers, no processors, no formatters config. Hydra's logging is a
-single deliberate class, the data-layer-style "ship the verb" of logging.
+stream. No handlers, no processors, no formatters config. Around it: wrappers
+that redact secrets, add ambient context and fan a record out to several
+loggers, and a `LogReader` that parses the file back, newest first.
