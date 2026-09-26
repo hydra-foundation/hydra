@@ -76,6 +76,20 @@
                                        hx-push-url="true">Edit</a>
                                 <?php endif ?>
 
+                                <?php foreach ($vm->rowActions($row) as $button): ?>
+                                    <form class="btn-group"
+                                          method="post"
+                                          action="<?= $this->e($button->url) ?>"
+                                          hx-nonce="<?= $this->e($this->cspNonce()) ?>"
+                                          hx-post="<?= $this->e($button->url) ?>"
+                                          hx-target="#admin-frame"<?php if ($button->prompt !== null): ?>
+
+                                          hx-confirm="<?= $this->e($button->prompt) ?>"<?php endif ?>>
+                                        <?= $this->csrf() ?>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary"><?= $this->e($button->label) ?></button>
+                                    </form>
+                                <?php endforeach ?>
+
                                 <?php if ($vm->deleteUrl($row) !== null): ?>
                                     <?php /* A form, not a link: deleting is a POST, and this still
                                        works when htmx is not the one sending it. It is a btn-group
@@ -89,7 +103,7 @@
                                           hx-target="#admin-frame"
                                           hx-confirm="<?= $this->e($vm->deletePrompt()) ?>">
                                         <?= $this->csrf() ?>
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><?= $this->e($vm->deleteLabel()) ?></button>
                                     </form>
                                 <?php endif ?>
                             </div>

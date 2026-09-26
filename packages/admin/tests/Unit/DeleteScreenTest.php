@@ -56,6 +56,21 @@ final class DeleteScreenTest extends TestCase
         $this->assertSame('Sure?', DeleteScreen::make()->confirm('Sure?')->prompt());
     }
 
+    public function test_it_says_delete_until_given_another_word(): void
+    {
+        $this->assertSame('Delete', DeleteScreen::make()->label());
+        $this->assertSame('Cancel', DeleteScreen::make()->labelled('Cancel')->label());
+    }
+
+    public function test_it_shows_on_every_row_until_told_otherwise(): void
+    {
+        $picky = DeleteScreen::make()->when(static fn (array $row): bool => $row['reserved_at'] === null);
+
+        $this->assertTrue(DeleteScreen::make()->shows(['reserved_at' => 5]));
+        $this->assertTrue($picky->shows(['reserved_at' => null]));
+        $this->assertFalse($picky->shows(['reserved_at' => 5]));
+    }
+
     public function test_a_screen_ability_overrides_the_modules(): void
     {
         $blueprint = Definition::make('users')

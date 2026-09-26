@@ -28,9 +28,15 @@ final class ActionUsersModule implements ModuleInterface
             )
             ->screens(
                 ShowScreen::make()->title('User'),
-                DeleteScreen::make(),
-                ActionScreen::row('flag')->confirm('Flag this user?')->runs(RecordingRowAction::class),
+                DeleteScreen::make()->labelled('Remove')->when(self::notTheFirst(...)),
+                ActionScreen::row('flag')->confirm('Flag this user?')->when(self::notTheFirst(...))->runs(RecordingRowAction::class),
                 ActionScreen::module('flag-all')->labelled('Flag everyone')->runs(RecordingModuleAction::class),
             );
+    }
+
+    /** @param array<string, mixed> $row */
+    private static function notTheFirst(array $row): bool
+    {
+        return ($row['id'] ?? null) !== 1;
     }
 }

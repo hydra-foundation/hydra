@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Screens;
 
+use Closure;
 use Hydra\Admin\AdminController;
 use Hydra\Admin\Contracts\ScreenInterface;
 
@@ -19,7 +20,11 @@ final class DeleteScreen implements ScreenInterface
     private const CONFIRM = 'Delete this row? This cannot be undone.';
 
     private string $confirm = self::CONFIRM;
+    private string $label = 'Delete';
     private ?string $ability = null;
+
+    /** @var (Closure(array<string, mixed>): bool)|null */
+    private ?Closure $shows = null;
 
     private function __construct(private readonly string $path) {}
 
@@ -34,6 +39,29 @@ final class DeleteScreen implements ScreenInterface
     {
         $clone = clone $this;
         $clone->confirm = $confirm;
+
+        return $clone;
+    }
+
+    /** The button's word, for a delete that is really a cancel or a dismiss. */
+    public function labelled(string $label): self
+    {
+        $clone = clone $this;
+        $clone->label = $label;
+
+        return $clone;
+    }
+
+    /**
+     * Which rows get the button. Only the button: the source still decides
+     * whether the row may go, since it can change between the page and the click.
+     *
+     * @param Closure(array<string, mixed>): bool $shows
+     */
+    public function when(Closure $shows): self
+    {
+        $clone = clone $this;
+        $clone->shows = $shows;
 
         return $clone;
     }
@@ -75,5 +103,16 @@ final class DeleteScreen implements ScreenInterface
     public function prompt(): string
     {
         return $this->confirm;
+    }
+
+    public function label(): string
+    {
+        return $this->label;
+    }
+
+    /** @param array<string, mixed> $row */
+    public function shows(array $row): bool
+    {
+        return $this->shows === null || ($this->shows)($row);
     }
 }

@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Hydra\Admin\Blueprint;
 use Hydra\Admin\Field;
+use Hydra\Admin\Screens\ActionScreen;
 use Hydra\Admin\Screens\DeleteScreen;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Surface;
@@ -71,9 +72,36 @@ final readonly class ShowViewModel
     /** Where this row is deleted, or null when the module declares no delete screen. */
     public function deleteUrl(): ?string
     {
-        return $this->blueprint->screen('delete') instanceof DeleteScreen
+        $screen = $this->blueprint->screen('delete');
+
+        return $screen instanceof DeleteScreen && $screen->shows($this->row)
             ? $this->rowUrl('delete')
             : null;
+    }
+
+    public function deleteLabel(): string
+    {
+        $screen = $this->blueprint->screen('delete');
+
+        return $screen instanceof DeleteScreen ? $screen->label() : 'Delete';
+    }
+
+    /**
+     * The row's own action buttons, less the ones its when() turns away.
+     *
+     * @return list<ActionButton>
+     */
+    public function rowActions(): array
+    {
+        $buttons = [];
+
+        foreach ($this->blueprint->screens as $screen) {
+            if ($screen instanceof ActionScreen && $screen->isRowScoped() && $screen->shows($this->row)) {
+                $buttons[] = new ActionButton((string) $this->rowUrl($screen->name()), $screen->label(), $screen->prompt());
+            }
+        }
+
+        return $buttons;
     }
 
     /** What the visitor is asked before the row goes. */

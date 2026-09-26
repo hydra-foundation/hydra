@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Screens;
 
+use Closure;
 use Hydra\Admin\AdminController;
 use Hydra\Admin\Contracts\ModuleActionInterface;
 use Hydra\Admin\Contracts\RowActionInterface;
@@ -26,6 +27,9 @@ final class ActionScreen implements ScreenInterface
 
     /** @var class-string<RowActionInterface|ModuleActionInterface>|null */
     private ?string $action = null;
+
+    /** @var (Closure(array<string, mixed>): bool)|null */
+    private ?Closure $shows = null;
 
     private function __construct(
         private readonly string $name,
@@ -86,6 +90,24 @@ final class ActionScreen implements ScreenInterface
         return $clone;
     }
 
+    /**
+     * Which rows get the button. Only the button: the action still decides
+     * whether it may run, since the row can change between the page and the click.
+     *
+     * @param Closure(array<string, mixed>): bool $shows
+     */
+    public function when(Closure $shows): self
+    {
+        if (!$this->rowScoped) {
+            throw new LogicException("\"{$this->name}\" is a module action, so there is no row for when() to ask about.");
+        }
+
+        $clone = clone $this;
+        $clone->shows = $shows;
+
+        return $clone;
+    }
+
     /** @param class-string|null $ability */
     public function requires(?string $ability): self
     {
@@ -139,5 +161,11 @@ final class ActionScreen implements ScreenInterface
     public function prompt(): ?string
     {
         return $this->prompt;
+    }
+
+    /** @param array<string, mixed> $row */
+    public function shows(array $row): bool
+    {
+        return $this->shows === null || ($this->shows)($row);
     }
 }

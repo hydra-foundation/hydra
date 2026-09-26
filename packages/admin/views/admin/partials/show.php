@@ -24,8 +24,22 @@
        hx-target="#admin-frame"
        hx-push-url="true">Back</a>
 
+    <?php foreach ($vm->rowActions() as $index => $button): ?>
+        <form class="<?= $index === 0 ? 'ms-auto' : '' ?>"
+              method="post"
+              action="<?= $this->e($button->url) ?>"
+              hx-nonce="<?= $this->e($this->cspNonce()) ?>"
+              hx-post="<?= $this->e($button->url) ?>"
+              hx-target="#admin-frame"<?php if ($button->prompt !== null): ?>
+
+              hx-confirm="<?= $this->e($button->prompt) ?>"<?php endif ?>>
+            <?= $this->csrf() ?>
+            <button type="submit" class="btn btn-outline-primary"><?= $this->e($button->label) ?></button>
+        </form>
+    <?php endforeach ?>
+
     <?php if ($vm->deleteUrl() !== null): ?>
-        <form class="ms-auto"
+        <form class="<?= $vm->rowActions() === [] ? 'ms-auto' : '' ?>"
               method="post"
               action="<?= $this->e($vm->deleteUrl()) ?>"
               hx-nonce="<?= $this->e($this->cspNonce()) ?>"
@@ -33,7 +47,7 @@
               hx-target="#admin-frame"
               hx-confirm="<?= $this->e($vm->deletePrompt()) ?>">
             <?= $this->csrf() ?>
-            <button type="submit" class="btn btn-outline-danger">Delete</button>
+            <button type="submit" class="btn btn-outline-danger"><?= $this->e($vm->deleteLabel()) ?></button>
         </form>
     <?php endif ?>
 </div>

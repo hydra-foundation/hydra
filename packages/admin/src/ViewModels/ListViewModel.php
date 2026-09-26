@@ -10,6 +10,7 @@ use Hydra\Admin\Blueprint;
 use Hydra\Admin\Field;
 use Hydra\Admin\Link;
 use Hydra\Admin\Page;
+use Hydra\Admin\Screens\ActionScreen;
 use Hydra\Admin\Screens\DeleteScreen;
 use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Screens\FormScreen;
@@ -233,7 +234,37 @@ final readonly class ListViewModel
      */
     public function deleteUrl(array $row): ?string
     {
-        return $this->isDeletable() ? $this->rowUrl('delete', $row) : null;
+        $screen = $this->blueprint->screen('delete');
+
+        return $screen instanceof DeleteScreen && $screen->shows($row) ? $this->rowUrl('delete', $row) : null;
+    }
+
+    public function deleteLabel(): string
+    {
+        $screen = $this->blueprint->screen('delete');
+
+        return $screen instanceof DeleteScreen ? $screen->label() : 'Delete';
+    }
+
+    /**
+     * The row's own action buttons, less the ones its when() turns away.
+     *
+     * @param array<string, mixed> $row
+     * @return list<ActionButton>
+     */
+    public function rowActions(array $row): array
+    {
+        $buttons = [];
+
+        foreach ($this->actions(rowScoped: true) as $screen) {
+            $url = $screen->shows($row) ? $this->rowUrl($screen->name(), $row) : null;
+
+            if ($url !== null) {
+                $buttons[] = new ActionButton($url, $screen->label(), $screen->prompt());
+            }
+        }
+
+        return $buttons;
     }
 
     /** What the visitor is asked before a row goes. */
@@ -247,7 +278,7 @@ final readonly class ListViewModel
     /** Whether any row action needs a column of its own. */
     public function hasRowActions(): bool
     {
-        return $this->isEditable() || $this->isViewable() || $this->isDeletable();
+        return $this->isEditable() || $this->isViewable() || $this->isDeletable() || $this->actions(rowScoped: true) !== [];
     }
 
     /** @param array<string, mixed> $row */
@@ -316,6 +347,15 @@ final readonly class ListViewModel
     private function isDeletable(): bool
     {
         return $this->blueprint->screen('delete') instanceof DeleteScreen;
+    }
+
+    /** @return list<ActionScreen> */
+    private function actions(bool $rowScoped): array
+    {
+        return array_values(array_filter(
+            $this->blueprint->screens,
+            static fn ($screen): bool => $screen instanceof ActionScreen && $screen->isRowScoped() === $rowScoped,
+        ));
     }
 
     /**

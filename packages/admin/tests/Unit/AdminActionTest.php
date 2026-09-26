@@ -108,6 +108,36 @@ final class AdminActionTest extends TestCase
         }
     }
 
+    public function test_each_row_gets_its_buttons_where_their_when_allows(): void
+    {
+        $body = (string) $this->admin->controller->list($this->admin->request('GET', '/admin/users'))->getBody();
+
+        $this->assertStringContainsString('hx-post="/admin/users/2/flag"', $body);
+        $this->assertStringContainsString('hx-confirm="Flag this user?"', $body);
+        $this->assertStringContainsString('>Flag</button>', $body);
+        $this->assertStringContainsString('>Remove</button>', $body);
+        $this->assertStringNotContainsString('/admin/users/1/flag', $body);
+        $this->assertStringNotContainsString('/admin/users/1/delete', $body);
+    }
+
+    public function test_a_row_screen_carries_the_buttons_its_row_allows(): void
+    {
+        $grace = (string) $this->admin->controller->show($this->admin->request('GET', '/admin/users/2'))->getBody();
+        $ada = (string) $this->admin->controller->show($this->admin->request('GET', '/admin/users/1'))->getBody();
+
+        $this->assertStringContainsString('hx-post="/admin/users/2/flag"', $grace);
+        $this->assertStringContainsString('>Remove</button>', $grace);
+        $this->assertStringNotContainsString('/flag', $ada);
+        $this->assertStringNotContainsString('>Remove</button>', $ada);
+    }
+
+    public function test_a_hidden_button_is_no_guard_and_the_action_still_decides(): void
+    {
+        $this->act('/admin/users/1/flag');
+
+        $this->assertSame(['1'], $this->row->ran);
+    }
+
     /** @param array<string, string> $headers */
     private function act(string $path, array $headers = []): ResponseInterface
     {

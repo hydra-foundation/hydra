@@ -64,6 +64,24 @@ final class ActionScreenTest extends TestCase
         $this->assertSame('Sure?', $screen->confirm('Sure?')->prompt());
     }
 
+    public function test_it_shows_on_every_row_until_told_otherwise(): void
+    {
+        $screen = ActionScreen::row('retry');
+        $picky = $screen->when(static fn (array $row): bool => $row['id'] === 2);
+
+        $this->assertTrue($screen->shows(['id' => 1]));
+        $this->assertTrue($picky->shows(['id' => 2]));
+        $this->assertFalse($picky->shows(['id' => 1]));
+    }
+
+    public function test_a_module_action_has_no_row_to_ask_about(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('"retry-all" is a module action, so there is no row for when() to ask about.');
+
+        ActionScreen::module('retry-all')->when(static fn (array $row): bool => true);
+    }
+
     public function test_a_screen_ability_overrides_the_modules(): void
     {
         $this->assertNull(ActionScreen::row('retry')->ability());
