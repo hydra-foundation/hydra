@@ -19,14 +19,19 @@
     <?php foreach ($vm->filters() as $field): ?>
         <div class="col-auto">
             <label class="form-label" for="admin-filter-<?= $this->e($field->name()) ?>"><?= $this->e($field->label()) ?></label>
-            <select class="form-select" id="admin-filter-<?= $this->e($field->name()) ?>" name="<?= $this->e($field->name()) ?>">
-                <option value="">All</option>
-                <?php foreach ($field->options() ?? [] as $value => $label): ?>
-                    <option value="<?= $this->e($value) ?>"<?= $vm->filterValue($field) === (string) $value ? ' selected' : '' ?>>
-                        <?= $this->e($label) ?>
-                    </option>
-                <?php endforeach ?>
-            </select>
+            <?php if ($field->options() === null): ?>
+                <input class="form-control" id="admin-filter-<?= $this->e($field->name()) ?>" type="text" name="<?= $this->e($field->name()) ?>"
+                       value="<?= $this->e($vm->filterValue($field)) ?>" autocomplete="off">
+            <?php else: ?>
+                <select class="form-select" id="admin-filter-<?= $this->e($field->name()) ?>" name="<?= $this->e($field->name()) ?>">
+                    <option value="">All</option>
+                    <?php foreach ($field->options() as $value => $label): ?>
+                        <option value="<?= $this->e($value) ?>"<?= $vm->filterValue($field) === (string) $value ? ' selected' : '' ?>>
+                            <?= $this->e($label) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+            <?php endif ?>
         </div>
     <?php endforeach ?>
 </form>
