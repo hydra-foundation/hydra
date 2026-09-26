@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Scheduler;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
 
@@ -25,6 +26,8 @@ final readonly class CronExpression
         'month' => [1, 12],
         'day of week' => [0, 7],
     ];
+
+    private const SEARCH_SECONDS = 5 * 366 * 86400;
 
     /**
      * @param array<string, array<int, true>> $allowed per field, the values that match
@@ -74,6 +77,43 @@ final readonly class CronExpression
             return false;
         }
 
+        return $this->dayMatches($at);
+    }
+
+    /**
+     * The first minute after $after that this matches, in $after's zone, or
+     * null when none does within five years. A wall-clock time the clocks
+     * skip is skipped here too, as the minute tick would skip it.
+     */
+    public function next(DateTimeInterface $after): ?DateTimeImmutable
+    {
+        $zone = $after->getTimezone();
+        $limit = $after->getTimestamp() + self::SEARCH_SECONDS;
+        // Minutes and hours move by elapsed seconds, so the hour the clocks
+        // go back is walked through once rather than re-entered.
+        $at = (int) (intdiv($after->getTimestamp(), 60) * 60) + 60;
+
+        while ($at <= $limit) {
+            $local = (new DateTimeImmutable('@' . $at))->setTimezone($zone);
+
+            if (!isset($this->allowed['month'][(int) $local->format('n')])) {
+                $at = $local->setDate((int) $local->format('Y'), (int) $local->format('n') + 1, 1)->setTime(0, 0)->getTimestamp();
+            } elseif (!$this->dayMatches($local)) {
+                $at = $local->modify('tomorrow')->getTimestamp();
+            } elseif (!isset($this->allowed['hour'][(int) $local->format('G')])) {
+                $at += (60 - (int) $local->format('i')) * 60;
+            } elseif (!isset($this->allowed['minute'][(int) $local->format('i')])) {
+                $at += 60;
+            } else {
+                return $local;
+            }
+        }
+
+        return null;
+    }
+
+    private function dayMatches(DateTimeInterface $at): bool
+    {
         $dayOfMonth = isset($this->allowed['day of month'][(int) $at->format('j')]);
         $dayOfWeek = isset($this->allowed['day of week'][(int) $at->format('w')]);
 

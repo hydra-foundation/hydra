@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Scheduler\Tests\Unit;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Hydra\Scheduler\CronExpression;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -45,6 +46,62 @@ final class CronExpressionTest extends TestCase
     public function test_the_expression_is_kept_as_written(): void
     {
         $this->assertSame('*/5 * * * *', CronExpression::parse('  */5 * * * * ')->expression);
+    }
+
+    #[DataProvider('next')]
+    public function test_the_next_run_is_the_first_matching_minute_after(string $expression, string $after, string $next): void
+    {
+        $at = CronExpression::parse($expression)->next(new DateTimeImmutable($after));
+
+        $this->assertSame($next, $at?->format('Y-m-d H:i T'));
+    }
+
+    public function test_the_next_run_is_read_in_the_zone_it_is_handed(): void
+    {
+        $at = CronExpression::parse('0 4 * * *')->next(new DateTimeImmutable('2026-09-23 05:00', new DateTimeZone('America/New_York')));
+
+        $this->assertSame('2026-09-24T04:00:00-04:00', $at?->format(DATE_ATOM));
+    }
+
+    public function test_a_time_skipped_by_the_clocks_going_forward_is_skipped_as_the_tick_would(): void
+    {
+        $zone = new DateTimeZone('America/New_York');
+        $cron = CronExpression::parse('30 2 * * *');
+        $at = $cron->next(new DateTimeImmutable('2027-03-13 03:00', $zone));
+
+        $this->assertSame('2027-03-15 02:30', $at?->format('Y-m-d H:i'));
+        $this->assertFalse($cron->isDue(new DateTimeImmutable('2027-03-14 03:30', $zone)));
+    }
+
+    public function test_the_hour_the_clocks_go_back_is_not_run_backwards_into(): void
+    {
+        $zone = new DateTimeZone('America/New_York');
+        // 01:30 EST, the second 01:30 of 2026-11-01.
+        $after = (new DateTimeImmutable('@1793514600'))->setTimezone($zone);
+
+        $at = CronExpression::parse('* * * * *')->next($after);
+
+        $this->assertSame('01:31 EST', $at?->format('H:i T'));
+        $this->assertSame(60, $at->getTimestamp() - $after->getTimestamp());
+    }
+
+    public function test_an_expression_that_never_matches_has_no_next_run(): void
+    {
+        $this->assertNull(CronExpression::parse('0 0 30 2 *')->next(new DateTimeImmutable('2026-09-23 00:00')));
+    }
+
+    /** @return iterable<string, array{string, string, string}> */
+    public static function next(): iterable
+    {
+        yield 'every minute' => ['* * * * *', '2026-09-23 13:37:42 UTC', '2026-09-23 13:38 UTC'];
+        yield 'strictly after' => ['0 4 * * *', '2026-09-23 04:00 UTC', '2026-09-24 04:00 UTC'];
+        yield 'hourly across midnight' => ['0 * * * *', '2026-09-23 23:15 UTC', '2026-09-24 00:00 UTC'];
+        yield 'a step' => ['*/15 * * * *', '2026-09-23 10:46 UTC', '2026-09-23 11:00 UTC'];
+        yield 'weekly' => ['0 0 * * 0', '2026-09-23 12:00 UTC', '2026-09-27 00:00 UTC'];
+        yield 'across a year' => ['0 0 1 1 *', '2026-09-23 12:00 UTC', '2027-01-01 00:00 UTC'];
+        yield 'either day: the 1st' => ['0 4 1 * 1', '2026-09-29 12:00 UTC', '2026-10-01 04:00 UTC'];
+        yield 'either day: a monday' => ['0 4 1 * 1', '2026-09-23 12:00 UTC', '2026-09-28 04:00 UTC'];
+        yield 'a leap day' => ['0 0 29 2 *', '2026-09-23 00:00 UTC', '2028-02-29 00:00 UTC'];
     }
 
     /** @return iterable<string, array{string, string}> */
