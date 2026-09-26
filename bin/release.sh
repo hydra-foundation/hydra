@@ -255,7 +255,7 @@ fi
 # A warning rather than a refusal. The wiki is neither of the repositories
 # being tagged, it is live whatever this script decides, and a release that is
 # otherwise correct should not be held for it.
-WIKI="${HYDRA_WIKI_DIR:-$HOME/.mount/hydra}/public"
+WIKI="${HYDRA_WIKI_DIR:-$DIR/hydra-frontend}/public"
 
 if [ -d "$WIKI" ] && command -v md5sum >/dev/null 2>&1; then
     stale=()

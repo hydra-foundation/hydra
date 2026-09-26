@@ -5,7 +5,7 @@ declare(strict_types=1);
 /*
  * Merge one release into the version.json the admin's update check reads.
  *
- *   php bin/version-feed.php ~/.mount/hydra/public/version.json 0.9.8 [--security]
+ *   php bin/version-feed.php ../hydra-frontend/public/version.json 0.9.8 [--security]
  *
  * Merged rather than written fresh, since the security list is history: an
  * install three patches behind still has to learn it skipped a fix.
