@@ -120,6 +120,14 @@ final class AdminActionTest extends TestCase
         $this->assertStringNotContainsString('/admin/users/1/delete', $body);
     }
 
+    public function test_a_module_action_is_a_button_above_the_table(): void
+    {
+        $body = (string) $this->admin->controller->list($this->admin->request('GET', '/admin/users?q=grace'))->getBody();
+
+        $this->assertStringContainsString('hx-post="/admin/users/flag-all?q=grace', $body);
+        $this->assertStringContainsString('>Flag everyone</button>', $body);
+    }
+
     public function test_a_row_screen_carries_the_buttons_its_row_allows(): void
     {
         $grace = (string) $this->admin->controller->show($this->admin->request('GET', '/admin/users/2'))->getBody();

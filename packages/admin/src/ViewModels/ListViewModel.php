@@ -275,6 +275,24 @@ final readonly class ListViewModel
         return $screen instanceof DeleteScreen ? $screen->prompt() : '';
     }
 
+    /**
+     * The buttons above the table. Each carries the list's query so the table
+     * comes back as the visitor had it, though the action runs on every row.
+     *
+     * @return list<ActionButton>
+     */
+    public function moduleActions(): array
+    {
+        return array_map(
+            fn (ActionScreen $screen): ActionButton => new ActionButton(
+                $this->url() . '/' . $screen->path() . $this->listQuery(),
+                $screen->label(),
+                $screen->prompt(),
+            ),
+            $this->actions(rowScoped: false),
+        );
+    }
+
     /** Whether any row action needs a column of its own. */
     public function hasRowActions(): bool
     {

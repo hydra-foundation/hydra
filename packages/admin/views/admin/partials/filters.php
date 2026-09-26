@@ -32,6 +32,19 @@
 </form>
 
     <div class="d-flex align-items-end gap-2">
+        <?php foreach ($vm->moduleActions() as $button): ?>
+            <form method="post"
+                  action="<?= $this->e($button->url) ?>"
+                  hx-nonce="<?= $this->e($this->cspNonce()) ?>"
+                  hx-post="<?= $this->e($button->url) ?>"
+                  hx-target="#admin-frame"<?php if ($button->prompt !== null): ?>
+
+                  hx-confirm="<?= $this->e($button->prompt) ?>"<?php endif ?>>
+                <?= $this->csrf() ?>
+                <button type="submit" class="btn btn-outline-primary text-nowrap"><?= $this->e($button->label) ?></button>
+            </form>
+        <?php endforeach ?>
+
         <?= $this->partial('admin/partials/export', ['vm' => $vm]) ?>
 
         <?php if ($vm->createUrl() !== null): ?>

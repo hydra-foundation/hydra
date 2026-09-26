@@ -132,6 +132,14 @@ final class ListViewModelTest extends TestCase
         );
     }
 
+    public function test_a_module_without_actions_offers_no_buttons(): void
+    {
+        $vm = $this->viewModel(1, 1);
+
+        $this->assertSame([], $vm->moduleActions());
+        $this->assertSame([], $vm->rowActions(['id' => 1]));
+    }
+
     private function viewModel(
         int $pages,
         int $current,
