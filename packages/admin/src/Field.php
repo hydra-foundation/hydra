@@ -422,7 +422,7 @@ final class Field
     {
         if ($this->relative && $now !== null && $value !== '') {
             try {
-                $at = new DateTimeImmutable($value, new DateTimeZone('UTC'));
+                $at = self::stored($value);
             } catch (Exception) {
                 return $value;
             }
@@ -437,7 +437,11 @@ final class Field
             ));
         }
 
-        return $zone === null ? $value : $this->inZone($value, $zone);
+        if ($zone === null) {
+            return ctype_digit($value) ? self::stored($value)->format('Y-m-d H:i:s') : $value;
+        }
+
+        return $this->inZone($value, $zone);
     }
 
     /**
@@ -528,12 +532,20 @@ final class Field
         }
 
         try {
-            return (new DateTimeImmutable($value, new DateTimeZone('UTC')))
+            return self::stored($value)
                 ->setTimezone($zone)
                 ->format('Y-m-d H:i:s');
         } catch (Exception) {
             return $value;
         }
+    }
+
+    /** A column of unix seconds is as much an instant as a DATETIME in UTC. */
+    private static function stored(string $value): DateTimeImmutable
+    {
+        return ctype_digit($value)
+            ? new DateTimeImmutable('@' . $value)
+            : new DateTimeImmutable($value, new DateTimeZone('UTC'));
     }
 
     /** @param list<Surface> $on */

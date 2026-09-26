@@ -297,6 +297,17 @@ final class FieldTest extends TestCase
         );
     }
 
+    public function test_a_column_of_unix_seconds_reads_as_the_instant_it_counts_to(): void
+    {
+        $field = Field::datetime('failed_at');
+        $stored = (string) (new DateTimeImmutable('2026-09-21 11:00:00', new DateTimeZone('UTC')))->getTimestamp();
+        $now = new DateTimeImmutable('2026-09-21 12:00:00', new DateTimeZone('UTC'));
+
+        $this->assertSame('2026-09-21 11:00:00', $field->display(Surface::Export, ['failed_at' => $stored]));
+        $this->assertSame('2026-09-21 20:00:00', $field->display(Surface::List, ['failed_at' => $stored], new DateTimeZone('Asia/Tokyo')));
+        $this->assertSame('1 hour ago', $this->text($field->relative(), $stored, $now));
+    }
+
     public function test_only_a_datetime_can_be_relative(): void
     {
         $this->expectException(LogicException::class);
