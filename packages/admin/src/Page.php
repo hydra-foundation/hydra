@@ -9,11 +9,15 @@ namespace Hydra\Admin;
  */
 final readonly class Page
 {
-    /** @param list<array<string, mixed>> $rows */
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @param string|null $note what the source wants said about these rows, shown beside the count
+     */
     public function __construct(
         public array $rows,
         public int $total,
         public Criteria $criteria,
+        public ?string $note = null,
     ) {}
 
     public function pages(): int

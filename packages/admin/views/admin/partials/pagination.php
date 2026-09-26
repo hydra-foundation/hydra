@@ -4,6 +4,7 @@
 <div class="admin-pager" hx-nonce="<?= $this->e($this->cspNonce()) ?>">
     <small class="text-body-secondary">
         <?= $page->isEmpty() ? 'No results' : sprintf('Showing %d–%d of %d', $page->from(), $page->to(), $page->total) ?>
+        <?php if ($page->note !== null): ?>&middot; <?= $this->e($page->note) ?><?php endif ?>
     </small>
 
     <?php if ($page->pages() > 1): ?>
