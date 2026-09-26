@@ -25,6 +25,8 @@ kills its worker still runs out of tries.
 `queue:failed` lists what ran out of tries, newest first, with the
 exception's message. `queue:retry <id>` puts one back on the queue, due now
 and with its tries restored; `queue:retry --all` puts back every one.
+`queue:forget <id>` deletes one without running it, and `queue:flush`
+deletes them all.
 
 `Testing\FakeQueue` records pushes for `assertQueued()`, and refuses whatever
 the database queue would.
