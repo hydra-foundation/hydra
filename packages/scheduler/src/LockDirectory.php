@@ -35,6 +35,26 @@ final class LockDirectory
         return new HeldLock($handle);
     }
 
+    /**
+     * Whether a run holds the lock now. Read-only: it never creates the
+     * directory or the file, and lets go of its probe at once, so a tick
+     * racing it at worst sees the task as held and runs it next minute.
+     */
+    public function isHeld(string $name): bool
+    {
+        $file = $this->file($name);
+        $handle = is_file($file) ? @fopen($file, 'r') : false;
+
+        if ($handle === false) {
+            return false;
+        }
+
+        $free = flock($handle, LOCK_SH | LOCK_NB);
+        fclose($handle);
+
+        return !$free;
+    }
+
     /** When the current or last holder started, as a Unix timestamp. */
     public function startedAt(string $name): ?int
     {

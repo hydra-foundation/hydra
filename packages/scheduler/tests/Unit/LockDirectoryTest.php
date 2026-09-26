@@ -45,6 +45,40 @@ final class LockDirectoryTest extends TestCase
         $this->assertNotNull($locks->acquire('App\\Jobs\\Sitemap', $now));
     }
 
+    public function test_a_lock_is_held_only_while_a_run_holds_it(): void
+    {
+        $locks = new LockDirectory($this->dir);
+        $held = $locks->acquire('App\\Jobs\\Sitemap', new DateTimeImmutable());
+
+        $this->assertTrue($locks->isHeld('App\\Jobs\\Sitemap'));
+
+        $held?->release();
+
+        $this->assertFalse($locks->isHeld('App\\Jobs\\Sitemap'));
+        $this->assertNotNull($locks->acquire('App\\Jobs\\Sitemap', new DateTimeImmutable()), 'a probe must not keep the lock');
+    }
+
+    public function test_asking_about_a_lock_that_was_never_taken_creates_nothing(): void
+    {
+        $locks = new LockDirectory($this->dir);
+
+        $this->assertFalse($locks->isHeld('Never'));
+        $this->assertDirectoryDoesNotExist($this->dir);
+    }
+
+    public function test_a_lock_that_cannot_be_read_is_not_reported_held(): void
+    {
+        $locks = new LockDirectory($this->dir);
+        $locks->acquire('Sealed', new DateTimeImmutable())?->release();
+        chmod($this->dir . '/Sealed.lock', 0o000);
+
+        try {
+            $this->assertFalse(@$locks->isHeld('Sealed'));
+        } finally {
+            chmod($this->dir . '/Sealed.lock', 0o644);
+        }
+    }
+
     public function test_each_name_has_its_own_lock(): void
     {
         $locks = new LockDirectory($this->dir);
