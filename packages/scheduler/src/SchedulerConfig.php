@@ -11,9 +11,13 @@ use InvalidArgumentException;
 
 final readonly class SchedulerConfig
 {
+    public const DEFAULT_KEEP_DAYS = 7;
+
+    /** @param int $keepDays how long a recorded run is kept before it is pruned */
     public function __construct(
         public DateTimeZone $timezone,
         public string $lockPath,
+        public int $keepDays = self::DEFAULT_KEEP_DAYS,
     ) {}
 
     /**
@@ -30,6 +34,12 @@ final readonly class SchedulerConfig
             throw new InvalidArgumentException("The schedule's timezone \"{$zone}\" is not one PHP knows; set SCHEDULE_TIMEZONE or APP_TIMEZONE to an identifier such as Europe/London.");
         }
 
-        return new self($timezone, $env->string('SCHEDULE_LOCK_DIR') ?: $lockPath);
+        $keepDays = $env->int('SCHEDULE_KEEP_DAYS', self::DEFAULT_KEEP_DAYS);
+
+        if ($keepDays < 1) {
+            throw new InvalidArgumentException("SCHEDULE_KEEP_DAYS must be at least 1; it is {$keepDays}.");
+        }
+
+        return new self($timezone, $env->string('SCHEDULE_LOCK_DIR') ?: $lockPath, $keepDays);
     }
 }

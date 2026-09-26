@@ -27,3 +27,11 @@ another in the order declared, so a long `drain()` belongs at the end.
 fill from its own provider's `boot()`. Times are read in `SCHEDULE_TIMEZONE`,
 else `APP_TIMEZONE`, else UTC; locks live wherever the provider is told unless
 `SCHEDULE_LOCK_DIR` moves them.
+
+Each run a tick makes is handed to a `RunLogInterface`: when it started, how
+long it took, what a batch handled, and the exception's class and message when
+it failed. The default keeps nothing. `DatabaseRunLog` keeps them in a
+`scheduled_runs` table, and `latest()` gives the newest run of each task. A run
+log that fails is logged as a warning; it never stops a task. Schedule
+`PruneScheduledRuns` daily to keep the table to `SCHEDULE_KEEP_DAYS` (7 by
+default).

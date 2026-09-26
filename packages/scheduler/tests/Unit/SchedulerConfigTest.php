@@ -68,6 +68,20 @@ final class SchedulerConfigTest extends TestCase
         $this->config(['SCHEDULE_TIMEZONE' => 'Mars/Olympus']);
     }
 
+    public function test_runs_are_kept_a_week_unless_told_otherwise(): void
+    {
+        $this->assertSame(7, $this->config([])->keepDays);
+        $this->assertSame(30, $this->config(['SCHEDULE_KEEP_DAYS' => '30'])->keepDays);
+    }
+
+    public function test_runs_are_kept_at_least_a_day(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('SCHEDULE_KEEP_DAYS must be at least 1; it is 0.');
+
+        $this->config(['SCHEDULE_KEEP_DAYS' => '0']);
+    }
+
     /** @param array<string, string> $values */
     private function config(array $values): SchedulerConfig
     {
