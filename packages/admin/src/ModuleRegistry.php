@@ -6,14 +6,17 @@ namespace Hydra\Admin;
 
 use Hydra\Admin\Contracts\CreateSourceInterface;
 use Hydra\Admin\Contracts\DeleteSourceInterface;
+use Hydra\Admin\Contracts\ModuleActionInterface;
 use Hydra\Admin\Contracts\ModuleInterface;
 use Hydra\Admin\Contracts\PeriodAwareInterface;
 use Hydra\Admin\Contracts\PresenterInterface;
+use Hydra\Admin\Contracts\RowActionInterface;
 use Hydra\Admin\Contracts\RowSourceInterface;
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Contracts\SourceInterface;
 use Hydra\Admin\Contracts\SubmittableInterface;
 use Hydra\Admin\Contracts\UpdateSourceInterface;
+use Hydra\Admin\Screens\ActionScreen;
 use Hydra\Admin\Screens\PageScreen;
 use Hydra\Core\Contracts\ContainerInterface;
 use LogicException;
@@ -335,6 +338,18 @@ final class ModuleRegistry
         }
 
         return $source;
+    }
+
+    public function action(ActionScreen $screen): RowActionInterface|ModuleActionInterface
+    {
+        $action = $screen->action();
+        $resolved = $action === null ? null : $this->container->get($action);
+
+        if (!$resolved instanceof RowActionInterface && !$resolved instanceof ModuleActionInterface) {
+            throw new RuntimeException(sprintf('The action "%s" resolved to nothing it can run.', $screen->name()));
+        }
+
+        return $resolved;
     }
 
     /** The module's declared source, resolved from the container when it is a service id. */

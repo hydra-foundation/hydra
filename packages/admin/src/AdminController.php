@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace Hydra\Admin;
 
+use Hydra\Admin\Contracts\RowActionInterface;
 use Hydra\Admin\Contracts\RowSourceInterface;
 use Hydra\Admin\Contracts\TimezoneInterface;
 use Hydra\Admin\Contracts\ScreenInterface;
+use Hydra\Admin\Events\ActionTaken;
 use Hydra\Admin\Events\Exported;
 use Hydra\Admin\Events\RowCreated;
 use Hydra\Admin\Events\RowDeleted;
 use Hydra\Admin\Events\RowUpdated;
 use Hydra\Admin\Exceptions\WriteRejected;
 use Hydra\Admin\Period;
+use Hydra\Admin\Screens\ActionScreen;
 use Hydra\Admin\Screens\DashboardScreen;
 use Hydra\Admin\Screens\DeleteScreen;
 use Hydra\Admin\Screens\ExportScreen;
@@ -474,6 +477,47 @@ final class AdminController
         $this->events?->dispatch(new RowDeleted($blueprint->slug, $id, $before));
 
         return $this->done($request, $blueprint, Notice::deleted());
+    }
+
+    /**
+     * Run a module's action, on one row or on the module, and answer as a delete
+     * does. A row action whose row is gone is the action's to refuse.
+     */
+    public function act(Request $request): Response
+    {
+        [$blueprint, $screen] = $this->resolve($request);
+
+        if (!$screen instanceof ActionScreen) {
+            throw new NotFoundException;
+        }
+
+        $id = null;
+        $action = $this->registry->action($screen);
+
+        try {
+            if ($action instanceof RowActionInterface) {
+                $id = $request->getAttribute('id');
+
+                if (!is_string($id) || $id === '') {
+                    throw new NotFoundException;
+                }
+
+                $said = $action->run($id);
+            } else {
+                $said = $action->run();
+            }
+        } catch (WriteRejected $rejected) {
+            return $this->done(
+                $request,
+                $blueprint,
+                Notice::failure($rejected->summary()),
+                Status::UnprocessableEntity,
+            );
+        }
+
+        $this->events?->dispatch(new ActionTaken($blueprint->slug, $screen->name(), $id));
+
+        return $this->done($request, $blueprint, Notice::success($said));
     }
 
     /**
