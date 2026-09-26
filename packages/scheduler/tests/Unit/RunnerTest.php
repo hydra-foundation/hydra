@@ -11,7 +11,10 @@ use Hydra\Core\Testing\FakeContainer;
 use Hydra\Core\Testing\FakeExceptionReporter;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Log\Testing\CapturingLogger;
+use Hydra\Scheduler\Contracts\RunLogInterface;
+use Hydra\Scheduler\Contracts\TaskInterface;
 use Hydra\Scheduler\LockDirectory;
+use Hydra\Scheduler\NullRunLog;
 use Hydra\Scheduler\Outcome;
 use Hydra\Scheduler\Runner;
 use Hydra\Scheduler\Schedule;
@@ -19,6 +22,7 @@ use Hydra\Scheduler\TaskRun;
 use Hydra\Scheduler\Tests\Support\BacklogBatch;
 use Hydra\Scheduler\Tests\Support\FailingTask;
 use Hydra\Scheduler\Tests\Support\NoteTask;
+use Hydra\Scheduler\Tests\Support\RecordingRunLog;
 use Hydra\Scheduler\Tests\Support\SlowBatch;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -29,6 +33,7 @@ use Throwable;
 
 #[CoversClass(Runner::class)]
 #[CoversClass(TaskRun::class)]
+#[CoversClass(NullRunLog::class)]
 final class RunnerTest extends TestCase
 {
     private string $dir;
@@ -68,7 +73,7 @@ final class RunnerTest extends TestCase
         $runs = $this->runner()->run();
 
         $this->assertSame(1, $due->runs);
-        $this->assertEquals([new TaskRun(NoteTask::class, Outcome::Ran)], $runs);
+        $this->assertSame([[NoteTask::class, Outcome::Ran]], self::summary($runs));
     }
 
     public function test_a_batch_is_called_until_it_reports_nothing_left(): void
@@ -169,7 +174,8 @@ final class RunnerTest extends TestCase
         $runs = $this->runner()->run();
 
         $this->assertSame(0, $task->runs);
-        $this->assertEquals([new TaskRun(NoteTask::class, Outcome::Held, heldMinutes: 5)], $runs);
+        $this->assertSame([[NoteTask::class, Outcome::Held]], self::summary($runs));
+        $this->assertSame(5, $runs[0]->heldMinutes);
         $this->assertSame([], $this->log->records());
         $this->assertNotNull($held);
     }
@@ -211,6 +217,87 @@ final class RunnerTest extends TestCase
         $this->assertSame(1, $later->runs);
     }
 
+    public function test_each_run_is_recorded_with_when_it_started_and_how_long_it_took(): void
+    {
+        $this->bind(new SlowBatch($this->clock));
+        $this->bind(new FailingTask);
+        $this->schedule->drain(SlowBatch::class)->everyMinute()->for(15);
+        $this->schedule->run(FailingTask::class)->everyMinute();
+        $log = new RecordingRunLog;
+
+        $runs = $this->runner($log)->run();
+
+        $this->assertSame($runs, $log->runs);
+        [$batch, $failed] = $log->runs;
+        $this->assertSame('2026-09-23T04:00:00+00:00', $batch->startedAt?->format(DATE_ATOM));
+        $this->assertSame(20 * 60_000, $batch->durationMs);
+        $this->assertNull($batch->error);
+        $this->assertSame('2026-09-23T04:20:00+00:00', $failed->startedAt?->format(DATE_ATOM));
+        $this->assertSame(0, $failed->durationMs);
+        $this->assertSame('RuntimeException: the disk is full', $failed->error);
+    }
+
+    public function test_a_held_run_is_recorded_without_a_duration(): void
+    {
+        $this->bind(new NoteTask);
+        $this->schedule->run(NoteTask::class)->everyMinute();
+        $held = $this->locks()->acquire(NoteTask::class, $this->clock->now());
+        $log = new RecordingRunLog;
+
+        $this->runner($log)->run();
+
+        $this->assertSame(Outcome::Held, $log->runs[0]->outcome);
+        $this->assertSame('2026-09-23T04:00:00+00:00', $log->runs[0]->startedAt?->format(DATE_ATOM));
+        $this->assertNull($log->runs[0]->durationMs);
+        $this->assertNotNull($held);
+    }
+
+    public function test_an_error_is_kept_to_one_line(): void
+    {
+        $this->container->instance(NoteTask::class, new class implements TaskInterface {
+            public function run(): void
+            {
+                throw new RuntimeException("first\nsecond\r\nthird");
+            }
+        });
+        $this->schedule->run(NoteTask::class)->everyMinute();
+        $log = new RecordingRunLog;
+
+        $this->runner($log)->run();
+
+        $this->assertSame('RuntimeException: first second third', $log->runs[0]->error);
+    }
+
+    public function test_a_run_log_that_fails_stops_nothing(): void
+    {
+        $first = $this->bind(new NoteTask);
+        $second = $this->bind(new BacklogBatch(remaining: 3));
+        $this->schedule->run(NoteTask::class)->everyMinute();
+        $this->schedule->drain(BacklogBatch::class)->everyMinute();
+        $log = new class implements RunLogInterface {
+            public function record(TaskRun $run): void
+            {
+                throw new RuntimeException('database gone');
+            }
+        };
+
+        $runs = $this->runner($log)->run();
+
+        $this->assertSame(1, $first->runs);
+        $this->assertSame(0, $second->remaining);
+        $this->assertSame([Outcome::Ran, Outcome::Ran], array_map(static fn (TaskRun $run): Outcome => $run->outcome, $runs));
+        $this->assertTrue($this->log->has('Could not record the run of ' . NoteTask::class . ': database gone'));
+    }
+
+    /**
+     * @param list<TaskRun> $runs
+     * @return list<array{string, Outcome}>
+     */
+    private static function summary(array $runs): array
+    {
+        return array_map(static fn (TaskRun $run): array => [$run->class, $run->outcome], $runs);
+    }
+
     /**
      * @template T of object
      * @param T $instance
@@ -228,8 +315,8 @@ final class RunnerTest extends TestCase
         return new LockDirectory($this->dir);
     }
 
-    private function runner(): Runner
+    private function runner(?RunLogInterface $runs = null): Runner
     {
-        return new Runner($this->schedule, $this->container, $this->clock, $this->locks(), $this->log, $this->reporter);
+        return new Runner($this->schedule, $this->container, $this->clock, $this->locks(), $this->log, $this->reporter, $runs ?? new NullRunLog);
     }
 }

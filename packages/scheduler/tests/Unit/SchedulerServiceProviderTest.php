@@ -11,12 +11,14 @@ use Hydra\Core\Testing\FakeContainer;
 use Hydra\Core\Testing\FakeExceptionReporter;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Log\Testing\CapturingLogger;
+use Hydra\Scheduler\Contracts\RunLogInterface;
 use Hydra\Scheduler\Outcome;
 use Hydra\Scheduler\Runner;
 use Hydra\Scheduler\Schedule;
 use Hydra\Scheduler\SchedulerServiceProvider;
 use Hydra\Scheduler\Tests\Support\FailingTask;
 use Hydra\Scheduler\Tests\Support\NoteTask;
+use Hydra\Scheduler\Tests\Support\RecordingRunLog;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
@@ -66,6 +68,19 @@ final class SchedulerServiceProviderTest extends TestCase
         $container->get(Runner::class)->run();
 
         $reporter->assertReported(RuntimeException::class);
+    }
+
+    public function test_a_bound_run_log_is_what_the_runner_records_to(): void
+    {
+        $container = $this->container();
+        $log = new RecordingRunLog;
+        $container->instance(RunLogInterface::class, $log);
+        $container->instance(NoteTask::class, new NoteTask);
+
+        $container->get(Schedule::class)->run(NoteTask::class)->everyMinute();
+        $container->get(Runner::class)->run();
+
+        $this->assertSame(NoteTask::class, $log->runs[0]->class);
     }
 
     private function container(): ContainerInterface

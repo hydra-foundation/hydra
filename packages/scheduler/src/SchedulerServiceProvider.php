@@ -7,6 +7,7 @@ namespace Hydra\Scheduler;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Core\Environment;
+use Hydra\Scheduler\Contracts\RunLogInterface;
 use Hydra\Core\Providers\ServiceProvider;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -40,6 +41,9 @@ final class SchedulerServiceProvider extends ServiceProvider
                 $container->bound(ExceptionReporterInterface::class)
                     ? $container->get(ExceptionReporterInterface::class)
                     : null,
+                $container->bound(RunLogInterface::class)
+                    ? $container->get(RunLogInterface::class)
+                    : new NullRunLog,
             );
         });
     }
