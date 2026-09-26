@@ -159,6 +159,28 @@ final class DatabaseQueue implements QueueInterface
         });
     }
 
+    /**
+     * Take a job off the queue before any worker has it. False when there is
+     * no such job or a worker holds it, stale claims included: the next worker
+     * to look takes a stale one, so it is as good as running.
+     */
+    public function cancel(int $id): bool
+    {
+        return $this->db->execute('DELETE FROM jobs WHERE id = ? AND reserved_at IS NULL', [$id]) > 0;
+    }
+
+    /** Delete one failed job for good. False when no failed job has that id. */
+    public function forget(int $id): bool
+    {
+        return $this->db->execute('DELETE FROM failed_jobs WHERE id = ?', [$id]) > 0;
+    }
+
+    /** Delete every failed job, returning how many there were. */
+    public function flush(): int
+    {
+        return $this->db->execute('DELETE FROM failed_jobs');
+    }
+
     private function now(): int
     {
         return $this->clock->now()->getTimestamp();

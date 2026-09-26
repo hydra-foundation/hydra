@@ -230,6 +230,63 @@ final class DatabaseQueueTest extends TestCase
         $this->assertSame([], $this->db->select('SELECT id FROM jobs'));
     }
 
+    public function test_a_job_no_worker_holds_can_be_cancelled(): void
+    {
+        $this->queue()->push(RecordingJob::class, ['n' => 1], delay: 60);
+        $this->queue()->push(RecordingJob::class, ['n' => 2]);
+        [$released] = $this->queue()->reserve(1);
+        $this->queue()->release($released, 0);
+        [$delayed, $free] = array_column($this->db->select('SELECT id FROM jobs ORDER BY id'), 'id');
+
+        $this->assertTrue($this->queue()->cancel((int) $delayed));
+        $this->assertTrue($this->queue()->cancel((int) $free));
+        $this->assertSame([], $this->db->select('SELECT id FROM jobs'));
+    }
+
+    public function test_a_held_job_cannot_be_cancelled_even_once_its_claim_is_stale(): void
+    {
+        $this->queue()->push(RecordingJob::class);
+        [$held] = $this->queue()->reserve(1);
+
+        $this->assertFalse($this->queue()->cancel($held->id));
+
+        $this->clock->advance('+' . DatabaseQueue::DEFAULT_RESERVE_SECONDS . ' seconds');
+
+        $this->assertFalse($this->queue()->cancel($held->id));
+        $this->assertFalse($this->queue()->cancel(99));
+        $this->assertCount(1, $this->db->select('SELECT id FROM jobs'));
+    }
+
+    public function test_a_forgotten_failure_is_gone_and_a_second_forget_says_so(): void
+    {
+        $this->queue()->push(RecordingJob::class, ['n' => 1]);
+        $this->queue()->push(RecordingJob::class, ['n' => 2]);
+        [$first, $second] = $this->queue()->reserve(2);
+        $this->queue()->fail($first, new RuntimeException('down'));
+        $this->queue()->fail($second, new RuntimeException('down'));
+        $id = $this->queue()->failed()[1]->id;
+
+        $this->assertTrue($this->queue()->forget($id));
+        $this->assertFalse($this->queue()->forget($id));
+        $this->assertSame(['{"n":2}'], array_map(static fn (FailedJob $j): string => $j->payload, $this->queue()->failed()));
+    }
+
+    public function test_flush_empties_the_failures_and_counts_them(): void
+    {
+        $this->assertSame(0, $this->queue()->flush());
+
+        $this->queue()->push(RecordingJob::class);
+        $this->queue()->push(RecordingJob::class);
+        $this->queue()->push(RecordingJob::class);
+        [$first, $second] = $this->queue()->reserve(2);
+        $this->queue()->fail($first, new RuntimeException('down'));
+        $this->queue()->fail($second, new RuntimeException('down'));
+
+        $this->assertSame(2, $this->queue()->flush());
+        $this->assertSame([], $this->queue()->failed());
+        $this->assertCount(1, $this->db->select('SELECT id FROM jobs'));
+    }
+
     private function queue(): DatabaseQueue
     {
         return new DatabaseQueue($this->db, $this->clock, 'sqlite');
