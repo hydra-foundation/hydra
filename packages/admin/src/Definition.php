@@ -40,6 +40,7 @@ final class Definition
     private int $perPage = 25;
     private ?string $defaultSort = null;
     private string $defaultDirection = 'asc';
+    private ?string $gone = null;
 
     private function __construct(private readonly string $slug)
     {
@@ -143,6 +144,18 @@ final class Definition
         return $clone;
     }
 
+    /**
+     * What to tell a visitor whose row went away after the list was drawn,
+     * shown over the list instead of a bare 404.
+     */
+    public function gone(string $message): self
+    {
+        $clone = clone $this;
+        $clone->gone = $message;
+
+        return $clone;
+    }
+
     public function screens(ScreenInterface ...$screens): self
     {
         $clone = clone $this;
@@ -209,6 +222,7 @@ final class Definition
             perPage: $this->perPage,
             defaultSort: $this->defaultSort,
             defaultDirection: $this->defaultDirection,
+            gone: $this->gone,
         );
     }
 

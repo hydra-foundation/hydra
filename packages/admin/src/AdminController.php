@@ -350,7 +350,7 @@ final class AdminController
         $row = $this->registry->rowSource($blueprint)->find($id);
 
         if ($row === null) {
-            throw new NotFoundException;
+            return $this->gone($request, $blueprint);
         }
 
         return $this->row($request, $blueprint, $screen, $id, $row);
@@ -399,7 +399,7 @@ final class AdminController
         $row = $this->registry->updateSource($blueprint)->find($id);
 
         if ($row === null) {
-            throw new NotFoundException;
+            return $this->gone($request, $blueprint);
         }
 
         return $this->form($request, $blueprint, $screen, $id, $row);
@@ -415,7 +415,7 @@ final class AdminController
         $before = $source->find($id);
 
         if ($before === null) {
-            throw new NotFoundException;
+            return $this->gone($request, $blueprint);
         }
 
         $submitted = $this->submitted($request, $screen);
@@ -584,6 +584,15 @@ final class AdminController
      * pushed after it. A refusal is rendered rather than redirected, because a redirect
      * would throw away the only account of why the row is still there.
      */
+    private function gone(Request $request, Blueprint $blueprint): Response
+    {
+        if ($blueprint->gone === null) {
+            throw new NotFoundException;
+        }
+
+        return $this->done($request, $blueprint, Notice::failure($blueprint->gone), Status::NotFound);
+    }
+
     private function done(
         Request $request,
         Blueprint $blueprint,

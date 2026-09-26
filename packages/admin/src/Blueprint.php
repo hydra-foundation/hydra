@@ -31,6 +31,7 @@ final readonly class Blueprint
         public int $perPage,
         public ?string $defaultSort,
         public string $defaultDirection,
+        public ?string $gone = null,
     ) {}
 
     /** @return list<Field> */
