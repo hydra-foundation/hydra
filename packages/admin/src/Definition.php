@@ -6,6 +6,7 @@ namespace Hydra\Admin;
 
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Contracts\SourceInterface;
+use Hydra\Admin\Screens\ActionScreen;
 use Hydra\Admin\Screens\DashboardScreen;
 use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Screens\FormScreen;
@@ -169,6 +170,7 @@ final class Definition
         }
 
         $screens = [...$screens, ...$this->widgetRoutes($screens)];
+        $this->assertActionsAreRunnable($screens);
 
         if ($screens === []) {
             throw new LogicException("Admin module \"{$this->slug}\" declares no screens.");
@@ -208,6 +210,40 @@ final class Definition
             defaultSort: $this->defaultSort,
             defaultDirection: $this->defaultDirection,
         );
+    }
+
+    /**
+     * An action's name is how the controller and the templates find it, so one
+     * that shares a name with another screen, declared or added, would find
+     * the wrong one.
+     *
+     * @param list<ScreenInterface> $screens
+     */
+    private function assertActionsAreRunnable(array $screens): void
+    {
+        foreach ($screens as $screen) {
+            if (!$screen instanceof ActionScreen) {
+                continue;
+            }
+
+            if ($screen->action() === null) {
+                throw new LogicException(
+                    "Admin module \"{$this->slug}\" declares an action \"{$screen->name()}\" that runs nothing."
+                );
+            }
+
+            $named = $screen->name();
+            $taken = array_filter(
+                $screens,
+                static fn (ScreenInterface $other): bool => $other !== $screen && $other->name() === $named,
+            );
+
+            if ($taken !== []) {
+                throw new LogicException(
+                    "Admin module \"{$this->slug}\" declares an action \"{$named}\" but another screen already has that name."
+                );
+            }
+        }
     }
 
     /**
