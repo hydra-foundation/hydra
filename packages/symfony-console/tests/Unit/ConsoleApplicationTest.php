@@ -57,6 +57,33 @@ final class ConsoleApplicationTest extends TestCase
         $this->assertSame(0, $built);
     }
 
+    public function test_listing_names_a_lazy_command_without_building_it(): void
+    {
+        // `list` is what a bare `bin/console` runs, and it wants every
+        // command's description. Read off the attribute, that costs nothing;
+        // read off a built command, it builds all of them, and one whose
+        // dependencies need APP_KEY left a fresh checkout unable to list the
+        // command that writes the key.
+        $built = 0;
+
+        $console = (new ConsoleApplication)->addLazy([
+            LazyCommand::class => function () use (&$built): LazyCommand {
+                $built++;
+
+                return new LazyCommand;
+            },
+        ]);
+        $symfony = $console->symfony();
+        $symfony->setAutoExit(false);
+
+        $output = new BufferedOutput;
+        $status = $symfony->run(new ArrayInput(['command' => 'list']), $output);
+
+        $this->assertSame(0, $status);
+        $this->assertSame(0, $built);
+        $this->assertMatchesRegularExpression('/demo:lazy\s+Built when named/', $output->fetch());
+    }
+
     public function test_a_lazy_command_is_built_when_it_is_run(): void
     {
         $built = 0;

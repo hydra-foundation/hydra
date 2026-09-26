@@ -7,6 +7,7 @@ namespace Hydra\SymfonyConsole;
 use Hydra\Console\CommandScanner;
 use Hydra\Console\Contracts\CommandInterface;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\LazyCommand;
 use Symfony\Component\Console\CommandLoader\FactoryCommandLoader;
 
 /**
@@ -55,9 +56,19 @@ final class ConsoleApplication
     public function addLazy(array $factories): self
     {
         foreach ($factories as $class => $factory) {
-            $name = $this->scanner->describe($class)->name;
+            $described = $this->scanner->describe($class);
 
-            $this->lazy[$name] = fn (): SymfonyCommand => new SymfonyCommand($factory(), $this->scanner);
+            // Symfony's LazyCommand answers name and description itself, so
+            // `list` and has() read the attribute and never reach the factory.
+            // Handing the loader the adapter directly would build every
+            // command just to describe it.
+            $this->lazy[$described->name] = fn (): LazyCommand => new LazyCommand(
+                $described->name,
+                [],
+                $described->description,
+                false,
+                fn (): SymfonyCommand => new SymfonyCommand($factory(), $this->scanner),
+            );
         }
 
         // Applied now rather than at run(): the application can then answer
