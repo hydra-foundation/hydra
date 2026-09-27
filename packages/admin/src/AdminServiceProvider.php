@@ -23,6 +23,7 @@ use Hydra\Validation\Validator;
 use Hydra\View\Contracts\ViewInterface;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -149,6 +150,13 @@ final class AdminServiceProvider extends ServiceProvider
         $container->singleton(AssetController::class, function () use ($container) {
             return new AssetController($container->get(Responder::class));
         });
+
+        $container->singleton(FileController::class, function () use ($container) {
+            return new FileController(
+                $container->get(ResponseFactoryInterface::class),
+                $container->bound(PublicStorageInterface::class) ? $container->get(Uploads::class) : null,
+            );
+        });
     }
 
     public function boot(ContainerInterface $container): void
@@ -161,6 +169,7 @@ final class AdminServiceProvider extends ServiceProvider
     {
         return [
             ...$this->assetRoutes(),
+            ...$this->fileRoutes(),
             ...(new ModuleScanner)->scan(
                 $container->get(ModuleRegistry::class)->all(),
                 $this->prefix,
@@ -186,6 +195,24 @@ final class AdminServiceProvider extends ServiceProvider
             'handler' => [AssetController::class, 'show'],
             'middleware' => [],
             'name' => 'admin.asset',
+        ]];
+    }
+
+    /**
+     * Private files, behind the same middleware as every screen: signed in is
+     * the whole of the check, the way it is for the dashboard. Ahead of the
+     * modules for the reason the assets are.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fileRoutes(): array
+    {
+        return [[
+            'method' => 'GET',
+            'path' => rtrim($this->prefix, '/') . '/files',
+            'handler' => [FileController::class, 'show'],
+            'middleware' => $this->middleware,
+            'name' => 'admin.file',
         ]];
     }
 }

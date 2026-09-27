@@ -7,6 +7,7 @@ namespace Hydra\Admin\Tests\Unit;
 use Hydra\Admin\AdminController;
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Admin\AssetController;
+use Hydra\Admin\FileController;
 use Hydra\Admin\Chrome;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Navigation;
@@ -22,6 +23,8 @@ use Hydra\Filesystem\Contracts\PublicStorageInterface;
 use Hydra\Filesystem\Disks;
 use LogicException;
 use Nyholm\Psr7\Stream;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use Nyholm\Psr7\UploadedFile;
 use Hydra\Admin\Tests\Support\CrudUsersModule;
 use Hydra\Admin\Tests\Support\UsersModule;
@@ -98,6 +101,35 @@ final class AdminServiceProviderTest extends TestCase
         }
     }
 
+    public function test_private_files_are_served_ahead_of_the_modules_and_behind_the_guard(): void
+    {
+        // Behind it, because a private file is one nobody signed out may read;
+        // ahead of the modules, because a module is free to call itself "files".
+        $container = $this->container();
+        $provider = new AdminServiceProvider([UsersModule::class], '/admin', ['RequireSignIn']);
+        $provider->register($container);
+
+        $routes = $provider->routes($container);
+        $files = array_values(array_filter($routes, static fn (array $route): bool => $route['handler'] === [FileController::class, 'show']));
+
+        $this->assertCount(1, $files);
+        $this->assertSame('GET', $files[0]['method']);
+        $this->assertSame('/admin/files', $files[0]['path']);
+        $this->assertSame(['RequireSignIn'], $files[0]['middleware']);
+        $this->assertLessThan(
+            array_search($this->moduleRoutes($routes)[0], $routes, true),
+            array_search($files[0], $routes, true),
+        );
+    }
+
+    public function test_the_file_controller_is_built_with_or_without_disks(): void
+    {
+        $container = $this->container([StreamFactoryInterface::class => new Psr17Factory, ResponseFactoryInterface::class => new Psr17Factory]);
+        (new AdminServiceProvider([]))->register($container);
+
+        $this->assertInstanceOf(FileController::class, $container->get(FileController::class));
+    }
+
     public function test_the_assets_are_served_ahead_of_the_modules_and_outside_the_guard(): void
     {
         // First, because the router takes the first match and nothing stops a
@@ -130,7 +162,7 @@ final class AdminServiceProviderTest extends TestCase
     {
         return array_values(array_filter(
             $routes,
-            static fn (array $route): bool => $route['handler'][0] !== AssetController::class,
+            static fn (array $route): bool => !in_array($route['handler'][0], [AssetController::class, FileController::class], true),
         ));
     }
 
@@ -190,7 +222,7 @@ final class AdminServiceProviderTest extends TestCase
         $request = $this->write('/admin/users/new', ['username' => 'linus'])->withUploadedFiles([
             'avatar' => new UploadedFile(Stream::create(base64_decode(
                 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
-            )), 67, UPLOAD_ERR_OK, 'me.png', 'image/png'),
+            )), 68, UPLOAD_ERR_OK, 'me.png', 'image/png'),
         ]);
         $container->get(AdminController::class)->store($request);
 
