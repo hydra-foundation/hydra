@@ -484,11 +484,12 @@ final class AdminController
         }
 
         $source = $this->registry->deleteSource($blueprint);
+        $files = $blueprint->fileColumns();
         // Read before the write lands, the way update() does, and for a stronger
         // reason: an updated row can still be read afterwards and a deleted one
-        // cannot. Skipped when nothing is listening, so a module with no audit
-        // trail does not pay for a lookup on every delete.
-        $before = $this->events !== null && $source instanceof RowSourceInterface
+        // cannot. Skipped when nothing is listening and no file would be left
+        // behind, so a plain module does not pay for a lookup on every delete.
+        $before = ($this->events !== null || $files !== []) && $source instanceof RowSourceInterface
             ? $source->find($id) ?? []
             : [];
 
@@ -501,6 +502,10 @@ final class AdminController
                 Notice::failure($rejected->summary()),
                 Status::UnprocessableEntity,
             );
+        }
+
+        foreach ($files as $column) {
+            $this->uploads?->delete($before[$column] ?? null);
         }
 
         $this->events?->dispatch(new RowDeleted($blueprint->slug, $id, $before));

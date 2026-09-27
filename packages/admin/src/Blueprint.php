@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin;
 
+use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Contracts\ScreenInterface;
 use Hydra\Admin\Contracts\SourceInterface;
 
@@ -83,6 +84,31 @@ final readonly class Blueprint
         }
 
         return null;
+    }
+
+    /**
+     * The columns any form of this module stores a file key in: the files a
+     * row takes with it when it is deleted.
+     *
+     * @return list<string>
+     */
+    public function fileColumns(): array
+    {
+        $columns = [];
+
+        foreach ($this->screens as $screen) {
+            if (!$screen instanceof FormScreen) {
+                continue;
+            }
+
+            foreach ($screen->controls() as $control) {
+                if ($control->isFile()) {
+                    $columns[$control->name()] = true;
+                }
+            }
+        }
+
+        return array_keys($columns);
     }
 
     public function screen(string $name): ?ScreenInterface

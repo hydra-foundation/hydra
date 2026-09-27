@@ -227,6 +227,36 @@ final class AdminUploadTest extends TestCase
         $disks->remove();
     }
 
+    public function test_deleting_a_row_deletes_its_file(): void
+    {
+        $key = $this->seed('2');
+
+        $this->admin->controller->destroy($this->admin->request('POST', '/admin/users/2/delete'));
+
+        $this->assertNull($this->source->find('2'));
+        $this->assertFalse($this->stored($key));
+    }
+
+    public function test_a_delete_the_source_refuses_keeps_the_file(): void
+    {
+        // Row 1 is the one CrudUserSource will not let go of.
+        $key = $this->seed('1');
+
+        $response = $this->admin->controller->destroy($this->admin->request('POST', '/admin/users/1/delete'));
+
+        $this->assertSame(422, $response->getStatusCode());
+        $this->assertTrue($this->stored($key));
+    }
+
+    public function test_deleting_a_row_with_no_file_touches_nothing(): void
+    {
+        $other = $this->seed('3');
+
+        $this->admin->controller->destroy($this->admin->request('POST', '/admin/users/2/delete'));
+
+        $this->assertTrue($this->stored($other));
+    }
+
     public function test_a_file_control_with_nowhere_to_store_it_is_a_wiring_mistake(): void
     {
         $admin = new AdminHarness(
