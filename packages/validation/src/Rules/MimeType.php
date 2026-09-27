@@ -38,7 +38,7 @@ final class MimeType implements RuleInterface
 
     public function __construct(string ...$types)
     {
-        $this->types = array_values(array_map('strtolower', $types));
+        $this->types = array_map('strtolower', $types);
     }
 
     public function withMessage(string $message): self
@@ -83,7 +83,7 @@ final class MimeType implements RuleInterface
             $stream->rewind();
         }
 
-        return is_string($type) && $type !== '' ? strtolower($type) : 'application/octet-stream';
+        return is_string($type) ? $type : 'application/octet-stream';
     }
 
     private function message(): string

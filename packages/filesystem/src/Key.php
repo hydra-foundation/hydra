@@ -41,10 +41,7 @@ final class Key
      */
     public static function valid(string $key): string
     {
-        if ($key === '') {
-            throw InvalidKey::of($key);
-        }
-
+        // An empty key is one empty segment, which the pattern refuses too.
         foreach (explode('/', $key) as $segment) {
             if (preg_match(self::SEGMENT, $segment) !== 1) {
                 throw InvalidKey::of($key);

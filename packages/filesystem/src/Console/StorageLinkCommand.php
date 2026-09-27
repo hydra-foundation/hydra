@@ -35,7 +35,8 @@ final class StorageLinkCommand extends Command
 
     public function execute(InputInterface $input, OutputInterface $output): ExitCode
     {
-        if (!is_dir($this->target) && !mkdir($this->target, 0o775, true) && !is_dir($this->target)) {
+        // Silenced: each failure is reported below, in words, as an error.
+        if (!is_dir($this->target) && !@mkdir($this->target, 0o775, true) && !is_dir($this->target)) {
             $output->error("Could not create the public disk at {$this->target}.");
 
             return ExitCode::Failure;
@@ -61,7 +62,7 @@ final class StorageLinkCommand extends Command
             return ExitCode::Failure;
         }
 
-        if (!symlink($relative, $this->link)) {
+        if (!@symlink($relative, $this->link)) {
             $output->error("Could not create the link at {$this->link}.");
 
             return ExitCode::Failure;

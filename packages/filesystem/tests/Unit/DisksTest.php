@@ -68,6 +68,13 @@ final class DisksTest extends TestCase
         $this->disks->locate($qualified);
     }
 
+    public function test_a_key_is_never_qualified_with_a_disk_that_does_not_exist(): void
+    {
+        $this->expectException(InvalidKey::class);
+
+        $this->disks->qualify('s3', 'blog/a.png');
+    }
+
     /** @return iterable<string, array{string}> */
     public static function malformed(): iterable
     {
@@ -76,5 +83,6 @@ final class DisksTest extends TestCase
         yield 'empty key' => ['private:'];
         yield 'traversal' => ['private:../.env'];
         yield 'empty' => [''];
+        yield 'two colons' => ['private:avatars:a.png'];
     }
 }

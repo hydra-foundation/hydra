@@ -10,16 +10,21 @@ use Hydra\Filesystem\Exceptions\FileNotFound;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use RuntimeException;
+use Throwable;
 
 /**
  * A disk in a directory on this machine.
  *
- * A write goes to a temporary file beside its destination and is renamed into
- * place once its type is known, so a reader never sees half a file and a crash
- * mid-copy leaves nothing under a real key.
+ * The type is read from the start of the stream before anything is written, so
+ * the file goes straight to its final key. Nobody can read it mid-copy, since
+ * the key is random and not handed back until the copy is done, and a copy
+ * that fails partway takes its half-file with it.
  */
 class LocalStorage implements StorageInterface
 {
+    /** Enough of a file for any magic number finfo knows. */
+    private const SNIFF = 65536;
+
     private readonly string $root;
 
     public function __construct(string $root, private readonly StreamFactoryInterface $streams)
@@ -29,23 +34,35 @@ class LocalStorage implements StorageInterface
 
     public function put(string $directory, StreamInterface $contents): string
     {
-        $dir = $this->path(Key::valid($directory));
-        $this->ensureDirectory($dir);
+        if ($contents->isSeekable()) {
+            $contents->rewind();
+        }
 
-        $temporary = $dir . '/.upload-' . bin2hex(random_bytes(8));
-        $this->copy($contents, $temporary);
+        $head = $contents->read(self::SNIFF);
+        $key = Key::fresh($directory, $this->sniff($head));
+        $path = $this->path($key);
+        $this->ensureDirectory(dirname($path));
+
+        $out = @fopen($path, 'xb');
+
+        if ($out === false) {
+            throw new RuntimeException(sprintf('Could not open "%s" for writing.', $key));
+        }
 
         try {
-            $key = Key::fresh($directory, $this->detect($temporary));
+            fwrite($out, $head);
 
-            if (!rename($temporary, $this->path($key))) {
-                throw new RuntimeException(sprintf('Could not move an upload into place at "%s".', $key));
+            while (!$contents->eof()) {
+                fwrite($out, $contents->read(self::SNIFF));
             }
-        } finally {
-            if (is_file($temporary)) {
-                unlink($temporary);
-            }
+        } catch (Throwable $failure) {
+            fclose($out);
+            unlink($path);
+
+            throw $failure;
         }
+
+        fclose($out);
 
         return $key;
     }
@@ -67,7 +84,9 @@ class LocalStorage implements StorageInterface
 
     public function mimeType(string $key): string
     {
-        return $this->detect($this->existing($key));
+        $type = (new finfo(FILEINFO_MIME_TYPE))->file($this->existing($key));
+
+        return is_string($type) ? $type : 'application/octet-stream';
     }
 
     public function delete(string $key): void
@@ -80,7 +99,7 @@ class LocalStorage implements StorageInterface
     }
 
     /** Where a key lives on this machine. Only ever called with a checked key. */
-    protected function path(string $key): string
+    private function path(string $key): string
     {
         return $this->root . '/' . $key;
     }
@@ -96,44 +115,22 @@ class LocalStorage implements StorageInterface
         return $path;
     }
 
-    private function detect(string $path): string
+    private function sniff(string $bytes): string
     {
-        $type = (new finfo(FILEINFO_MIME_TYPE))->file($path);
+        $type = (new finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
 
-        return is_string($type) && $type !== '' ? $type : 'application/octet-stream';
+        return is_string($type) ? $type : 'application/octet-stream';
     }
 
+    /**
+     * Open to others for reading, as the files in it are by the umask: the web
+     * server reads the public disk as a user of its own.
+     */
     private function ensureDirectory(string $dir): void
     {
-        if (!is_dir($dir) && !mkdir($dir, 0o775, true) && !is_dir($dir)) {
+        // mkdir() fails on a directory that is already there, which is fine.
+        if (!@mkdir($dir, 0o775, true) && !is_dir($dir)) {
             throw new RuntimeException(sprintf('Could not create the directory "%s".', $dir));
-        }
-    }
-
-    private function copy(StreamInterface $contents, string $destination): void
-    {
-        $out = fopen($destination, 'xb');
-
-        if ($out === false) {
-            throw new RuntimeException(sprintf('Could not open "%s" for writing.', $destination));
-        }
-
-        try {
-            if ($contents->isSeekable()) {
-                $contents->rewind();
-            }
-
-            while (!$contents->eof()) {
-                $chunk = $contents->read(65536);
-
-                if ($chunk === '') {
-                    break;
-                }
-
-                fwrite($out, $chunk);
-            }
-        } finally {
-            fclose($out);
         }
     }
 }

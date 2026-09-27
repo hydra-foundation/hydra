@@ -91,6 +91,22 @@ final class StorageLinkCommandTest extends TestCase
         $this->output->assertError();
     }
 
+    public function test_a_public_disk_that_cannot_be_created_is_reported(): void
+    {
+        mkdir($this->base . '/storage', 0o775, true);
+        touch($this->target);
+
+        $this->assertSame(ExitCode::Failure, (new StorageLinkCommand($this->target . '/inside', $this->link))->execute(new ArrayInput, $this->output));
+        $this->output->assertError('Could not create the public disk');
+        $this->assertFalse(is_link($this->link));
+    }
+
+    public function test_a_link_that_cannot_be_made_is_reported(): void
+    {
+        $this->assertSame(ExitCode::Failure, (new StorageLinkCommand($this->target, $this->base . '/missing/storage'))->execute(new ArrayInput, $this->output));
+        $this->output->assertError('Could not create the link');
+    }
+
     private function link(): ExitCode
     {
         return (new StorageLinkCommand($this->target, $this->link))->execute(new ArrayInput, $this->output);

@@ -74,6 +74,15 @@ final class FilesystemServiceProviderTest extends TestCase
         $this->assertSame('/storage/' . $public, $disks->public()->url($public));
     }
 
+    public function test_trailing_slashes_on_the_paths_are_not_doubled(): void
+    {
+        $config = FilesystemConfig::fromEnvironment(new Environment(__DIR__), '/srv/app/storage/', '/srv/app/public/');
+
+        $this->assertSame('/srv/app/storage/uploads', $config->privateRoot);
+        $this->assertSame('/srv/app/storage/public', $config->publicRoot);
+        $this->assertSame('/srv/app/public/storage', $config->publicLink);
+    }
+
     public function test_the_public_url_can_point_elsewhere(): void
     {
         $env = $this->base . '/env';

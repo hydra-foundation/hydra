@@ -147,6 +147,108 @@ final class UploadRulesTest extends TestCase
         );
     }
 
+    public function test_a_real_upload_is_sniffed_from_its_file_on_disk(): void
+    {
+        // How PHP hands one over: a temporary file, not a string in memory.
+        $path = (string) tempnam(sys_get_temp_dir(), 'hydra-upload-');
+        file_put_contents($path, base64_decode(self::PNG));
+
+        try {
+            $upload = new Upload($path, 68, UPLOAD_ERR_OK, 'a.txt', 'text/plain');
+
+            $this->assertSame('image/png', MimeType::detect($upload));
+            $this->assertNull((new MimeType('image/png'))->validate($upload, $this->context));
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function test_a_message_of_the_module_s_own_replaces_the_listed_types(): void
+    {
+        $rule = (new MimeType('image/png'))->withMessage('A PNG, please.');
+
+        $this->assertSame('A PNG, please.', $rule->validate($this->sized(10), $this->context));
+        $this->assertSame('A PNG, please.', $rule->validate('not an upload', $this->context));
+    }
+
+    public function test_with_message_leaves_the_rule_it_was_called_on_alone(): void
+    {
+        $rule = new MimeType('image/png');
+        $rule->withMessage('A PNG, please.');
+
+        $this->assertSame('The file must be a PNG image.', $rule->validate($this->sized(10), $this->context));
+    }
+
+    public function test_the_types_are_matched_whatever_case_they_were_declared_in(): void
+    {
+        $this->assertNull((new MimeType('IMAGE/PNG'))->validate($this->png(), $this->context));
+    }
+
+    public function test_a_stream_already_read_to_its_end_is_sniffed_from_the_start(): void
+    {
+        $upload = $this->png();
+        $upload->getStream()->getContents();
+
+        $this->assertSame('image/png', MimeType::detect($upload));
+    }
+
+    public function test_the_sniff_leaves_the_stream_at_its_start(): void
+    {
+        $upload = $this->png();
+
+        MimeType::detect($upload);
+
+        $this->assertSame(0, $upload->getStream()->tell());
+        $this->assertSame(base64_decode(self::PNG), $upload->getStream()->getContents());
+    }
+
+    public function test_a_file_on_disk_leaves_its_stream_at_its_start_too(): void
+    {
+        $path = (string) tempnam(sys_get_temp_dir(), 'hydra-upload-');
+        file_put_contents($path, base64_decode(self::PNG));
+
+        try {
+            $upload = new Upload($path, 68, UPLOAD_ERR_OK, 'a.png', 'image/png');
+            $upload->getStream()->read(10);
+
+            MimeType::detect($upload);
+
+            $this->assertSame(0, $upload->getStream()->tell());
+        } finally {
+            unlink($path);
+        }
+    }
+
+    #[DataProvider('boundaries')]
+    public function test_the_unit_changes_exactly_at_a_kilobyte_and_a_megabyte(int $bytes, string $said): void
+    {
+        $this->assertSame("The file must be {$said} or smaller.", (new MaxFileSize($bytes))->validate($this->sized($bytes + 1), $this->context));
+    }
+
+    /** @return iterable<string, array{int, string}> */
+    public static function boundaries(): iterable
+    {
+        yield 'a byte short of a kilobyte' => [1023, '1023 bytes'];
+        yield 'a kilobyte' => [1024, '1 KB'];
+        yield 'a byte short of a megabyte' => [1024 * 1024 - 1, '1024 KB'];
+        yield 'a megabyte' => [1024 * 1024, '1 MB'];
+        yield 'a tenth over a megabyte' => [(int) (1.1 * 1024 * 1024), '1.1 MB'];
+    }
+
+    public function test_a_size_limit_can_say_it_its_own_way(): void
+    {
+        $this->assertSame('Too big.', (new MaxFileSize(10, 'Too big.'))->validate($this->sized(20), $this->context));
+    }
+
+    public function test_an_upload_check_can_say_it_its_own_way(): void
+    {
+        $rule = new UploadedFile('Pick a picture.');
+
+        $this->assertSame('Pick a picture.', $rule->validate($this->failed(UPLOAD_ERR_PARTIAL), $this->context));
+        $this->assertSame('Pick a picture.', $rule->validate('avatar.png', $this->context));
+        $this->assertNull($rule->validate($this->png(), $this->context));
+    }
+
     public function test_a_failed_upload_is_left_to_the_uploaded_file_rule(): void
     {
         // A partial upload has no bytes worth sniffing; saying "wrong type"

@@ -73,7 +73,7 @@ final class Disks
     /** @return array{0: string, 1: string} */
     private function split(string $qualified): array
     {
-        $parts = explode(':', $qualified, 2);
+        $parts = explode(':', $qualified);
 
         if (count($parts) !== 2) {
             throw InvalidKey::of($qualified);
