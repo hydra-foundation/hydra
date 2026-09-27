@@ -7,6 +7,7 @@ namespace Hydra\Admin\ViewModels;
 use DateTimeImmutable;
 use DateTimeZone;
 use Hydra\Admin\Blueprint;
+use Hydra\Admin\FileUrls;
 use Hydra\Admin\Field;
 use Hydra\Admin\Screens\ActionScreen;
 use Hydra\Admin\Screens\DeleteScreen;
@@ -36,6 +37,8 @@ final readonly class ShowViewModel
         private string $listQuery = '',
         /** The reader's now, against which a relative() field is measured. */
         private ?DateTimeImmutable $now = null,
+        /** Where an image field's files are fetched from. */
+        private ?FileUrls $files = null,
     ) {}
 
     /** @return list<Field> */
@@ -46,7 +49,7 @@ final readonly class ShowViewModel
 
     public function value(Field $field): string|HtmlView
     {
-        return $field->display(Surface::Show, $this->row, $this->zone, $this->now);
+        return $field->display(Surface::Show, $this->row, $this->zone, $this->now, $this->files);
     }
 
     /** Where Back leads: the list as the visitor had it when they opened this row. */

@@ -24,6 +24,7 @@ final class AvatarUsersModule implements ModuleInterface
             ->defaultSort('id', 'asc')
             ->fields(
                 Field::id()->sortable(),
+                Field::image('avatar')->fallbackIcon('person-circle'),
                 Field::text('username'),
             )
             ->screens(

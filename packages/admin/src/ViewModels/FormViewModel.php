@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Admin\ViewModels;
 
 use Hydra\Admin\Blueprint;
+use Hydra\Admin\FileUrls;
 use Hydra\Admin\Input;
 use Hydra\Admin\Screens\FormScreen;
 
@@ -33,6 +34,8 @@ final readonly class FormViewModel
          * without htmx to report the page it came from can find it too.
          */
         private string $listQuery = '',
+        /** Where a file control's stored file is fetched from, for its preview. */
+        private ?FileUrls $files = null,
     ) {}
 
     /** @return list<Input> */
@@ -92,6 +95,14 @@ final readonly class FormViewModel
         }
 
         return false;
+    }
+
+    /** The stored image a file control holds, to preview beside it; null when it holds none. */
+    public function preview(Input $input): ?string
+    {
+        $key = $this->hasFile($input) ? $this->value($input) : '';
+
+        return $key !== '' && $this->files?->isImage($key) ? $this->files->url($key) : null;
     }
 
     /** Whether a file control has a stored file, which is what the remove box would clear. */

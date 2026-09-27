@@ -94,6 +94,9 @@
                     </label>
                 </div>
             <?php elseif ($type === \Hydra\Admin\InputType::File): ?>
+                <?php if (($preview = $vm->preview($control)) !== null): ?>
+                    <img src="<?= $this->e($preview) ?>" alt="" class="admin-image d-block mb-2">
+                <?php endif ?>
                 <?php /* Never given a value: a browser will not fill a file
                    input, and an empty one means "keep the stored file". */ ?>
                 <input type="file"

@@ -37,6 +37,7 @@ final class Field
     private bool $grouped = false;
     private string $suffix = '';
     private bool $relative = false;
+    private ?string $fallbackIcon = null;
 
     /** @var array<string, int> keyed by Surface->value */
     private array $truncations = [];
@@ -105,6 +106,16 @@ final class Field
     public static function datetime(string $name): self
     {
         return new self($name, FieldType::DateTime);
+    }
+
+    /**
+     * A stored file key ("private:avatars/…"), shown as the image it names: a
+     * thumbnail in the list, larger on the row screen, and the key itself in
+     * an export, which is headed somewhere no admin URL resolves.
+     */
+    public static function image(string $name): self
+    {
+        return new self($name, FieldType::Image);
     }
 
     public function labelled(string $label): self
@@ -209,6 +220,31 @@ final class Field
         foreach ($this->surfacesFor($on === [] ? [Surface::List] : $on) as $surface) {
             $clone->truncations[$surface->value] = max(1, $length);
         }
+
+        return $clone;
+    }
+
+    /**
+     * A Bootstrap icon to show when there is no file: "person-circle" for a
+     * face that has not been uploaded. {@see emptyAs()} still wins where one
+     * is declared, since it was asked for by surface.
+     */
+    public function fallbackIcon(string $icon): self
+    {
+        if ($this->type !== FieldType::Image) {
+            throw new LogicException(sprintf(
+                'Admin field "%s" is a %s; only an image has a fallback icon.',
+                $this->name,
+                $this->type->value,
+            ));
+        }
+
+        if (preg_match('/^[a-z0-9-]+$/D', $icon) !== 1) {
+            throw new LogicException(sprintf('"%s" is not a Bootstrap icon name.', $icon));
+        }
+
+        $clone = clone $this;
+        $clone->fallbackIcon = $icon;
 
         return $clone;
     }
@@ -331,6 +367,9 @@ final class Field
      * a file that goes somewhere else should carry the one timezone everything
      * else in it is already in.
      *
+     * $files resolves an image's key to a URL; without it an image shows as
+     * its key.
+     *
      * @param array<string, mixed> $row
      */
     public function display(
@@ -338,6 +377,7 @@ final class Field
         array $row,
         ?DateTimeZone $zone = null,
         ?DateTimeImmutable $now = null,
+        ?FileUrls $files = null,
     ): string|HtmlView {
         $value = $row[$this->name] ?? null;
         $placeholder = $this->placeholders[$surface->value] ?? null;
@@ -350,6 +390,10 @@ final class Field
 
         if ($formatter !== null) {
             return $this->formatted($formatter($value, $row));
+        }
+
+        if ($this->type === FieldType::Image) {
+            return $this->picture($surface, is_scalar($value) ? (string) $value : '', $files);
         }
 
         if ($this->type === FieldType::Boolean) {
@@ -466,6 +510,36 @@ final class Field
         };
 
         return $ahead ? "in {$said}" : "{$said} ago";
+    }
+
+    /**
+     * The image a key names, the fallback icon when there is none, and the key
+     * as text when it names nothing a browser could fetch: a broken image
+     * says less than the value that caused it.
+     */
+    private function picture(Surface $surface, string $key, ?FileUrls $files): string|HtmlView
+    {
+        if ($surface === Surface::Export) {
+            return $key;
+        }
+
+        if ($key === '') {
+            return $this->fallbackIcon === null
+                ? ''
+                : new HtmlView(sprintf('<i class="bi bi-%s admin-thumb-empty" aria-hidden="true"></i>', $this->fallbackIcon));
+        }
+
+        $url = $files?->url($key);
+
+        if ($url === null) {
+            return $key;
+        }
+
+        return new HtmlView(sprintf(
+            '<img src="%s" alt="" class="%s" loading="lazy" decoding="async">',
+            $this->escaped($url),
+            $surface === Surface::Show ? 'admin-image' : 'admin-thumb',
+        ));
     }
 
     private function plural(int $count, string $unit): string

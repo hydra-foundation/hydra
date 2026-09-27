@@ -606,6 +606,7 @@ final class AdminController
                 $this->timezone->zone(),
                 $this->listState($request, $blueprint)->queryString($blueprint),
                 $this->clock->now(),
+                $this->files(),
             )],
         );
     }
@@ -724,6 +725,7 @@ final class AdminController
                 $countsToken,
                 $this->timezone->zone(),
                 $this->clock->now(),
+                $this->files(),
             )],
             toolbar: 'admin/partials/filters',
             status: $status,
@@ -881,6 +883,11 @@ final class AdminController
         }
     }
 
+    private function files(): FileUrls
+    {
+        return new FileUrls($this->registry->prefix(), $this->uploads?->disks());
+    }
+
     private function uploads(): Uploads
     {
         return $this->uploads ?? throw new LogicException(
@@ -920,6 +927,7 @@ final class AdminController
                 $values,
                 $errors,
                 $this->listState($request, $blueprint)->queryString($blueprint),
+                $this->files(),
             )],
             status: $status,
         );

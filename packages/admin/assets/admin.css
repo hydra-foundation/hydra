@@ -581,6 +581,41 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Images ------------------------------------------------------------------- */
+
+/* Square and cropped rather than scaled to fit: a column of faces should line
+   up whatever shape each upload was, and the sunk background shows through a
+   transparent one instead of the row behind it. */
+.admin-thumb,
+.admin-image {
+    display: inline-block;
+    object-fit: cover;
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+.admin-thumb {
+    width: 2rem;
+    height: 2rem;
+}
+
+.admin-image {
+    width: 6rem;
+    height: 6rem;
+}
+
+.admin-thumb-empty {
+    display: inline-block;
+    width: 2rem;
+    font-size: 1.75rem;
+    line-height: 1;
+    text-align: center;
+    color: var(--muted);
+    vertical-align: middle;
+}
+
 /* Dashboard ---------------------------------------------------------------- */
 
 .admin-tile {

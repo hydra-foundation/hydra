@@ -7,6 +7,7 @@ namespace Hydra\Admin\ViewModels;
 use DateTimeImmutable;
 use DateTimeZone;
 use Hydra\Admin\Blueprint;
+use Hydra\Admin\FileUrls;
 use Hydra\Admin\Field;
 use Hydra\Admin\Link;
 use Hydra\Admin\Page;
@@ -38,6 +39,8 @@ final readonly class ListViewModel
         public ?DateTimeZone $zone = null,
         /** The reader's now, against which a relative() field is measured. */
         public ?DateTimeImmutable $now = null,
+        /** Where an image field's files are fetched from. */
+        public ?FileUrls $files = null,
     ) {}
 
     public function url(): string
@@ -302,7 +305,7 @@ final readonly class ListViewModel
     /** @param array<string, mixed> $row */
     public function cell(Field $field, array $row): string|HtmlView
     {
-        return $field->display(Surface::List, $row, $this->zone, $this->now);
+        return $field->display(Surface::List, $row, $this->zone, $this->now, $this->files);
     }
 
     /** 'asc' or 'desc' when the table is ordered by this field, null otherwise. */
