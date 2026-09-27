@@ -15,12 +15,15 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Core\Versions;
+use Hydra\Filesystem\Contracts\PublicStorageInterface;
+use Hydra\Filesystem\Disks;
 use Hydra\Http\Responder;
 use Hydra\Http\Router;
 use Hydra\Validation\Validator;
 use Hydra\View\Contracts\ViewInterface;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Binds the admin services and, at boot, loads the module screens into the
@@ -79,6 +82,13 @@ final class AdminServiceProvider extends ServiceProvider
             );
         });
 
+        $container->singleton(Uploads::class, function () use ($container) {
+            return new Uploads(
+                $container->get(Disks::class),
+                $container->bound(LoggerInterface::class) ? $container->get(LoggerInterface::class) : null,
+            );
+        });
+
         $container->singleton(Renderer::class, function () use ($container) {
             return new Renderer(
                 $container->get(Responder::class),
@@ -118,6 +128,12 @@ final class AdminServiceProvider extends ServiceProvider
                 $container->bound(TimezoneInterface::class)
                     ? $container->get(TimezoneInterface::class)
                     : new FixedTimezone,
+                // Only once FilesystemServiceProvider has registered the disks,
+                // so an application with no file controls need not register it.
+                // Asked of the interface, not of Disks: an autowiring container
+                // calls any concrete class bound, and would build Disks from
+                // storage interfaces nobody bound.
+                $container->bound(PublicStorageInterface::class) ? $container->get(Uploads::class) : null,
             );
         });
 

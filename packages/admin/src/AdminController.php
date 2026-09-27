@@ -36,12 +36,16 @@ use Hydra\Http\ParsedBody;
 use Hydra\Http\Query;
 use Hydra\Http\Responder;
 use Hydra\Http\Status;
+use Hydra\Validation\Contracts\RuleInterface;
 use Hydra\Validation\Validator;
 use Generator;
+use LogicException;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
+use Throwable;
 
 /**
  * The shared handler behind the generated screen routes. It resolves the module
@@ -80,6 +84,12 @@ final class AdminController
          * stored in, which is what it saw before there was a setting at all.
          */
         private readonly TimezoneInterface $timezone = new FixedTimezone,
+        /**
+         * OPTIONAL, and last, for the same reason again: only a module with an
+         * {@see Input::file()} control needs somewhere to put a file, and the
+         * rest of the admin works the same whether any disk is bound or not.
+         */
+        private readonly ?Uploads $uploads = null,
     ) {}
 
     public function list(Request $request): Response
@@ -375,20 +385,29 @@ final class AdminController
             throw new NotFoundException;
         }
 
-        $submitted = $this->submitted($request, $screen);
-        $result = $this->validator->validate($submitted, $screen->rules());
+        [$submitted, $rules] = $this->submission($request, $screen, []);
+        $shown = $this->redisplayed($screen, $submitted, []);
+        $result = $this->validator->validate($submitted, $rules);
 
         if ($result->fails()) {
-            return $this->form($request, $blueprint, $screen, null, $submitted, $result->errors(), Status::UnprocessableEntity);
+            return $this->form($request, $blueprint, $screen, null, $shown, $result->errors(), Status::UnprocessableEntity);
         }
+
+        [$values, $stored] = $this->storeFiles($screen, $result->validated());
 
         try {
-            $id = $this->registry->createSource($blueprint)->create($result->validated());
+            $id = $this->registry->createSource($blueprint)->create($values);
         } catch (WriteRejected $rejected) {
-            return $this->form($request, $blueprint, $screen, null, $submitted, $rejected->errors(), Status::UnprocessableEntity);
+            $this->discard($stored);
+
+            return $this->form($request, $blueprint, $screen, null, $shown, $rejected->errors(), Status::UnprocessableEntity);
+        } catch (Throwable $failure) {
+            $this->discard($stored);
+
+            throw $failure;
         }
 
-        $this->events?->dispatch(new RowCreated($blueprint->slug, $id, $result->validated()));
+        $this->events?->dispatch(new RowCreated($blueprint->slug, $id, $values));
 
         return $this->written($request, $blueprint, $id);
     }
@@ -418,22 +437,32 @@ final class AdminController
             return $this->gone($request, $blueprint);
         }
 
-        $submitted = $this->submitted($request, $screen);
-        $result = $this->validator->validate($submitted, $screen->rules());
+        [$submitted, $rules] = $this->submission($request, $screen, $before);
+        $shown = $this->redisplayed($screen, $submitted, $before);
+        $result = $this->validator->validate($submitted, $rules);
 
         if ($result->fails()) {
-            return $this->form($request, $blueprint, $screen, $id, $submitted, $result->errors(), Status::UnprocessableEntity);
+            return $this->form($request, $blueprint, $screen, $id, $shown, $result->errors(), Status::UnprocessableEntity);
         }
+
+        [$values, $stored] = $this->storeFiles($screen, $result->validated());
 
         try {
-            $source->update($id, $result->validated());
+            $source->update($id, $values);
         } catch (WriteRejected $rejected) {
-            return $this->form($request, $blueprint, $screen, $id, $submitted, $rejected->errors(), Status::UnprocessableEntity);
+            $this->discard($stored);
+
+            return $this->form($request, $blueprint, $screen, $id, $shown, $rejected->errors(), Status::UnprocessableEntity);
+        } catch (Throwable $failure) {
+            $this->discard($stored);
+
+            throw $failure;
         }
 
-        $this->events?->dispatch(new RowUpdated($blueprint->slug, $id, $result->validated(), $before));
+        $this->retire($screen, $values, $before);
+        $this->events?->dispatch(new RowUpdated($blueprint->slug, $id, $values, $before));
 
-        $saved = $source->find($id) ?? $submitted;
+        $saved = $source->find($id) ?? $shown;
 
         if (ParsedBody::fromRequest($request)->string('_action') === 'apply') {
             return $this->form($request, $blueprint, $screen, $id, $saved, notice: Notice::saved());
@@ -712,14 +741,147 @@ final class AdminController
         $values = [];
 
         foreach ($screen->controls() as $control) {
-            // A file is not in the parsed body at all; until the admin has
-            // somewhere to store one, an empty file control leaves the column be.
+            // A file is not in the parsed body at all; submission() reads it
+            // from the uploaded files.
             if (!$control->isReadonly() && !$control->isFile()) {
                 $values[$control->name()] = $control->submittedValue($input);
             }
         }
 
         return $values;
+    }
+
+    /**
+     * The submission and the rules to check it against, file controls
+     * included. A file control is decided before validation, because what it
+     * means depends on what is already stored:
+     *
+     * - a file was chosen: the upload is the value, and every rule applies;
+     * - the remove box is ticked: the value is null, so a required control
+     *   refuses to be emptied;
+     * - neither, with a file already stored: nothing changes, so the control
+     *   is left out of both the values and the rules, and a required one
+     *   does not demand the file be uploaded again;
+     * - neither, with nothing stored: null, for Required to judge.
+     *
+     * @param array<string, mixed> $before the row as stored, or [] for a create
+     * @return array{0: array<string, mixed>, 1: array<string, list<RuleInterface>>}
+     */
+    private function submission(Request $request, FormScreen $screen, array $before): array
+    {
+        $values = $this->submitted($request, $screen);
+        $rules = $screen->rules();
+        $files = $request->getUploadedFiles();
+        $body = ParsedBody::fromRequest($request);
+
+        foreach ($screen->controls() as $control) {
+            if (!$control->isFile() || $control->isReadonly()) {
+                continue;
+            }
+
+            $name = $control->name();
+            $upload = $files[$name] ?? null;
+            $stored = $before[$name] ?? null;
+
+            if ($upload instanceof UploadedFileInterface && $upload->getError() !== UPLOAD_ERR_NO_FILE) {
+                $values[$name] = $upload;
+            } elseif ($control->isRemovable() && Flag::of($body->string($control->removeName()))) {
+                $values[$name] = null;
+            } elseif (is_string($stored) && $stored !== '') {
+                unset($rules[$name]);
+            } else {
+                $values[$name] = null;
+            }
+        }
+
+        return [$values, $rules];
+    }
+
+    /**
+     * What a refused form shows again. An upload cannot be put back in a file
+     * input, so a file control shows what is stored, which keeps the remove
+     * box on offer beside it.
+     *
+     * @param array<string, mixed> $submitted
+     * @param array<string, mixed> $before
+     * @return array<string, mixed>
+     */
+    private function redisplayed(FormScreen $screen, array $submitted, array $before): array
+    {
+        foreach ($screen->controls() as $control) {
+            if ($control->isFile()) {
+                $submitted[$control->name()] = $before[$control->name()] ?? null;
+            }
+        }
+
+        return $submitted;
+    }
+
+    /**
+     * The validated values with each upload swapped for the key it is now
+     * stored under, and the keys stored, so a write that then fails can take
+     * them with it.
+     *
+     * @param array<string, mixed> $validated
+     * @return array{0: array<string, mixed>, 1: list<string>}
+     */
+    private function storeFiles(FormScreen $screen, array $validated): array
+    {
+        $stored = [];
+
+        foreach ($screen->controls() as $control) {
+            $upload = $validated[$control->name()] ?? null;
+
+            if (!$control->isFile() || !$upload instanceof UploadedFileInterface) {
+                continue;
+            }
+
+            try {
+                $validated[$control->name()] = $stored[] = $this->uploads()->storeFor($control, $upload);
+            } catch (Throwable $failure) {
+                $this->discard($stored);
+
+                throw $failure;
+            }
+        }
+
+        return [$validated, $stored];
+    }
+
+    /**
+     * Delete the files a successful write stopped pointing at: the old one
+     * when a file was replaced, and the removed one when it was cleared.
+     *
+     * @param array<string, mixed> $written
+     * @param array<string, mixed> $before
+     */
+    private function retire(FormScreen $screen, array $written, array $before): void
+    {
+        foreach ($screen->controls() as $control) {
+            $name = $control->name();
+
+            if ($control->isFile()
+                && array_key_exists($name, $written)
+                && ($before[$name] ?? null) !== $written[$name]) {
+                $this->uploads?->delete($before[$name] ?? null);
+            }
+        }
+    }
+
+    /** @param list<string> $keys */
+    private function discard(array $keys): void
+    {
+        foreach ($keys as $key) {
+            $this->uploads?->delete($key);
+        }
+    }
+
+    private function uploads(): Uploads
+    {
+        return $this->uploads ?? throw new LogicException(
+            'A module has a file control, but the admin has nowhere to store a file. '
+            . 'Register Hydra\\Filesystem\\FilesystemServiceProvider ahead of the AdminServiceProvider.',
+        );
     }
 
     /**

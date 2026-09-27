@@ -16,6 +16,13 @@ use Hydra\Admin\Events\RowCreated;
 use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\CrudUserSource;
+use Hydra\Admin\Tests\Support\AvatarUsersModule;
+use Hydra\Admin\Tests\Support\TemporaryDisks;
+use Hydra\Filesystem\Contracts\PublicStorageInterface;
+use Hydra\Filesystem\Disks;
+use LogicException;
+use Nyholm\Psr7\Stream;
+use Nyholm\Psr7\UploadedFile;
 use Hydra\Admin\Tests\Support\CrudUsersModule;
 use Hydra\Admin\Tests\Support\UsersModule;
 use Hydra\Authorization\Contracts\GateInterface;
@@ -164,6 +171,45 @@ final class AdminServiceProviderTest extends TestCase
 
         $this->assertFalse($container->bound(EventDispatcherInterface::class));
 
+        $container->get(AdminController::class)->store($this->write('/admin/users/new', ['username' => 'linus']));
+
+        $this->assertSame('linus', $source->find('6')['username'] ?? null);
+    }
+
+    public function test_the_controller_stores_files_on_the_disks_the_application_bound(): void
+    {
+        $disks = new TemporaryDisks;
+        $container = $this->container([
+            AvatarUsersModule::class => new AvatarUsersModule,
+            CrudUserSource::class => $source = new CrudUserSource,
+            Disks::class => $disks->disks,
+            PublicStorageInterface::class => $disks->disks->public(),
+        ]);
+
+        (new AdminServiceProvider([AvatarUsersModule::class]))->register($container);
+        $request = $this->write('/admin/users/new', ['username' => 'linus'])->withUploadedFiles([
+            'avatar' => new UploadedFile(Stream::create(base64_decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+            )), 67, UPLOAD_ERR_OK, 'me.png', 'image/png'),
+        ]);
+        $container->get(AdminController::class)->store($request);
+
+        $this->assertStringStartsWith('private:avatars/', (string) ($source->find('6')['avatar'] ?? ''));
+        $this->assertSame(1, $disks->count());
+        $disks->remove();
+    }
+
+    public function test_a_disks_class_the_container_could_autowire_is_not_taken_for_bound_disks(): void
+    {
+        // What PHP-DI does with a concrete class nobody registered: calls it
+        // bound, and then fails to build it. The controller must not ask.
+        $container = $this->container([
+            CrudUsersModule::class => new CrudUsersModule,
+            CrudUserSource::class => $source = new CrudUserSource,
+        ]);
+        $container->singleton(Disks::class, static fn () => throw new LogicException('Disks was built.'));
+
+        (new AdminServiceProvider([CrudUsersModule::class]))->register($container);
         $container->get(AdminController::class)->store($this->write('/admin/users/new', ['username' => 'linus']));
 
         $this->assertSame('linus', $source->find('6')['username'] ?? null);

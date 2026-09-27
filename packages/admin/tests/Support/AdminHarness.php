@@ -14,6 +14,7 @@ use Hydra\Admin\FixedTimezone;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Navigation;
 use Hydra\Admin\Renderer;
+use Hydra\Admin\Uploads;
 use Hydra\Core\Security\Signer;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Csrf\CsrfGuard;
@@ -56,6 +57,7 @@ final class AdminHarness
         string $prefix = '/admin',
         /** The zone the visitor reads in. UTC unless a test is about zones. */
         private readonly TimezoneInterface $timezone = new FixedTimezone,
+        ?Uploads $uploads = null,
     ) {
         $psr17 = new Psr17Factory;
         $session = new ArraySessionStore;
@@ -90,6 +92,7 @@ final class AdminHarness
             $this->events,
             $this->clock,
             $this->timezone,
+            $uploads,
         );
     }
 
