@@ -16,4 +16,5 @@ enum InputType: string
     case Select = 'select';
     case Radios = 'radios';
     case Checkbox = 'checkbox';
+    case File = 'file';
 }

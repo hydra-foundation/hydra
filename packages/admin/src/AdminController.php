@@ -712,7 +712,9 @@ final class AdminController
         $values = [];
 
         foreach ($screen->controls() as $control) {
-            if (!$control->isReadonly()) {
+            // A file is not in the parsed body at all; until the admin has
+            // somewhere to store one, an empty file control leaves the column be.
+            if (!$control->isReadonly() && !$control->isFile()) {
                 $values[$control->name()] = $control->submittedValue($input);
             }
         }

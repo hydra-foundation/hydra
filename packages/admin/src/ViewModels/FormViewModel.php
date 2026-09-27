@@ -79,6 +79,27 @@ final readonly class FormViewModel
         return $input->isChecked($this->values);
     }
 
+    /**
+     * A file travels only in a multipart body, so a form holding a file
+     * control has to be sent as one, by the browser and by htmx alike.
+     */
+    public function isMultipart(): bool
+    {
+        foreach ($this->controls() as $control) {
+            if ($control->isFile()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Whether a file control has a stored file, which is what the remove box would clear. */
+    public function hasFile(Input $input): bool
+    {
+        return $input->isFile() && $this->value($input) !== '';
+    }
+
     public function hasErrors(): bool
     {
         return $this->errors !== [];

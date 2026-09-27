@@ -9,6 +9,7 @@
       action="<?= $this->e($vm->action()) ?>"
       hx-nonce="<?= $this->e($this->cspNonce()) ?>"
       hx-post="<?= $this->e($vm->action()) ?>"
+      <?php if ($vm->isMultipart()): ?>enctype="multipart/form-data" hx-encoding="multipart/form-data"<?php endif ?>
       hx-target="#admin-frame"
       hx-swap="innerHTML">
     <?= $this->csrf() ?>
@@ -92,6 +93,25 @@
                         <?php endif ?>
                     </label>
                 </div>
+            <?php elseif ($type === \Hydra\Admin\InputType::File): ?>
+                <?php /* Never given a value: a browser will not fill a file
+                   input, and an empty one means "keep the stored file". */ ?>
+                <input type="file"
+                       id="<?= $this->e($id) ?>"
+                       name="<?= $this->e($control->name()) ?>"
+                       class="form-control<?= $invalid ?>"
+                       <?php if ($control->accepted() !== []): ?>accept="<?= $this->e(implode(',', $control->accepted())) ?>"<?php endif ?>
+                       <?= $control->isReadonly() ? 'disabled' : '' ?>>
+                <?php if ($control->isRemovable() && !$control->isReadonly() && $vm->hasFile($control)): ?>
+                    <div class="form-check mt-2">
+                        <input type="checkbox"
+                               id="<?= $this->e($id) ?>-remove"
+                               name="<?= $this->e($control->removeName()) ?>"
+                               class="form-check-input"
+                               value="1">
+                        <label class="form-check-label" for="<?= $this->e($id) ?>-remove">Remove the current file</label>
+                    </div>
+                <?php endif ?>
             <?php elseif ($type === \Hydra\Admin\InputType::Textarea): ?>
                 <textarea id="<?= $this->e($id) ?>"
                           name="<?= $this->e($control->name()) ?>"

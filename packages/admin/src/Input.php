@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Hydra\Admin;
 
+use Hydra\Filesystem\Exceptions\InvalidKey;
+use Hydra\Filesystem\Key;
 use Hydra\Http\FieldReader;
 use Hydra\Validation\Contracts\RuleInterface;
 use Hydra\Validation\Rules\Accepted;
+use Hydra\Validation\Rules\MaxFileSize;
+use Hydra\Validation\Rules\MimeType;
 use Hydra\Validation\Rules\Nullable;
 use Hydra\Validation\Rules\Required;
+use Hydra\Validation\Rules\UploadedFile;
 use LogicException;
 
 /**
@@ -23,6 +28,13 @@ final class Input
     private bool $readonly = false;
     private bool $required = false;
     private bool $switch = false;
+
+    private ?string $directory = null;
+    private bool $public = false;
+    private bool $removable = false;
+
+    /** @var list<string> */
+    private array $accepted = [];
 
     /** @var list<RuleInterface> */
     private array $rules = [];
@@ -77,6 +89,16 @@ final class Input
     public static function checkbox(string $name): self
     {
         return new self($name, InputType::Checkbox);
+    }
+
+    /**
+     * A file. The source never sees the upload: the admin stores it and hands
+     * the source the qualified key it was stored under ("private:avatars/…"),
+     * a string like any other column.
+     */
+    public static function file(string $name): self
+    {
+        return new self($name, InputType::File);
     }
 
     public function labelled(string $label): self
@@ -147,6 +169,54 @@ final class Input
         return $clone;
     }
 
+    /**
+     * The directory on the disk to store into. Private unless $public: a file
+     * on the public disk is served to anyone who has its URL.
+     */
+    public function storedIn(string $directory, bool $public = false): self
+    {
+        $clone = $this->onlyFile(__FUNCTION__);
+
+        try {
+            $clone->directory = Key::valid($directory);
+        } catch (InvalidKey $invalid) {
+            throw new LogicException(sprintf('Input "%s": %s', $this->name, $invalid->getMessage()), 0, $invalid);
+        }
+
+        $clone->public = $public;
+
+        return $clone;
+    }
+
+    /**
+     * The types to take, checked against the bytes on the server. The same
+     * list goes to the browser as accept=, which only narrows the file picker.
+     */
+    public function accepts(string ...$types): self
+    {
+        $clone = $this->onlyFile(__FUNCTION__)->rules(new MimeType(...$types));
+        $clone->accepted = array_values($types);
+
+        return $clone;
+    }
+
+    public function maxSize(int $bytes): self
+    {
+        return $this->onlyFile(__FUNCTION__)->rules(new MaxFileSize($bytes));
+    }
+
+    /**
+     * Offer a box that clears the stored file. Without one, a file can only
+     * be replaced, since an empty file input means "keep what is there".
+     */
+    public function removable(bool $removable = true): self
+    {
+        $clone = $this->onlyFile(__FUNCTION__);
+        $clone->removable = $removable;
+
+        return $clone;
+    }
+
     public function name(): string
     {
         return $this->name;
@@ -188,6 +258,38 @@ final class Input
         return $this->switch;
     }
 
+    public function isFile(): bool
+    {
+        return $this->type === InputType::File;
+    }
+
+    public function directory(): string
+    {
+        return $this->directory ?? $this->name;
+    }
+
+    public function isPublic(): bool
+    {
+        return $this->public;
+    }
+
+    /** @return list<string> */
+    public function accepted(): array
+    {
+        return $this->accepted;
+    }
+
+    public function isRemovable(): bool
+    {
+        return $this->removable;
+    }
+
+    /** The name the remove box posts under. */
+    public function removeName(): string
+    {
+        return $this->name . '_remove';
+    }
+
     /**
      * The rules to check this submission against. An optional control leads
      * with {@see Nullable}, so a length rule on an optional password means "if
@@ -197,7 +299,11 @@ final class Input
      */
     public function ruleSet(): array
     {
-        return $this->required ? $this->rules : [new Nullable, ...$this->rules];
+        // A file control checks the upload arrived whole before anything asks
+        // about its size or type, so a failed upload is reported as that.
+        $rules = $this->isFile() ? [new UploadedFile, ...$this->rules] : $this->rules;
+
+        return $this->required ? $rules : [new Nullable, ...$rules];
     }
 
     /**
@@ -242,5 +348,20 @@ final class Input
         }
 
         return trim($body->string($this->name));
+    }
+
+    /** A modifier that only a file control has any meaning for. */
+    private function onlyFile(string $method): self
+    {
+        if ($this->type !== InputType::File) {
+            throw new LogicException(sprintf(
+                'Input "%s" is a %s; %s() is a file control\'s.',
+                $this->name,
+                $this->type->value,
+                $method,
+            ));
+        }
+
+        return clone $this;
     }
 }
