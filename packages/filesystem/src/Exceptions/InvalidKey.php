@@ -15,6 +15,16 @@ final class InvalidKey extends InvalidArgumentException
 {
     public static function of(string $key): self
     {
-        return new self(sprintf('"%s" is not a path inside the disk.', trim((string) json_encode($key), '"')));
+        return new self(sprintf('"%s" is not a path inside the disk.', self::quoted($key)));
+    }
+
+    public static function unknownDisk(string $name): self
+    {
+        return new self(sprintf('There is no disk named "%s".', self::quoted($name)));
+    }
+
+    private static function quoted(string $value): string
+    {
+        return trim((string) json_encode($value, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE), '"');
     }
 }

@@ -24,7 +24,7 @@ final class LocalStorageTest extends StorageContractTestCase
 
     protected function tearDown(): void
     {
-        self::remove($this->root);
+        TemporaryDirectory::remove($this->root);
     }
 
     protected function storage(): StorageInterface
@@ -65,24 +65,5 @@ final class LocalStorageTest extends StorageContractTestCase
         $this->storage()->put('avatars', $this->png());
 
         $this->assertFalse($this->storage()->exists('avatars'));
-    }
-
-    private static function remove(string $path): void
-    {
-        if (is_link($path) || is_file($path)) {
-            unlink($path);
-
-            return;
-        }
-
-        if (!is_dir($path)) {
-            return;
-        }
-
-        foreach (array_diff(scandir($path), ['.', '..']) as $entry) {
-            self::remove($path . '/' . $entry);
-        }
-
-        rmdir($path);
     }
 }
