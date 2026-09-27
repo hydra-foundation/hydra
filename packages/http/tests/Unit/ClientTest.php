@@ -15,6 +15,8 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Nyholm\Psr7\Stream;
+use Nyholm\Psr7\UploadedFile;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
@@ -58,6 +60,24 @@ final class ClientTest extends TestCase
         $this->assertSame(['username' => 'will'], $this->last()->getParsedBody());
         $this->assertSame('username=will', (string) $this->last()->getBody());
         $this->assertSame('application/x-www-form-urlencoded', $this->last()->getHeaderLine('Content-Type'));
+    }
+
+    public function test_files_ride_along_with_a_post_as_a_multipart_form_would_carry_them(): void
+    {
+        $avatar = new UploadedFile(Stream::create('png bytes'), 9, UPLOAD_ERR_OK, 'me.png', 'image/png');
+
+        $this->client()->withFiles(['avatar' => $avatar])->post('/admin/users/2/edit', ['username' => 'grace']);
+
+        $this->assertSame(['avatar' => $avatar], $this->last()->getUploadedFiles());
+        $this->assertSame(['username' => 'grace'], $this->last()->getParsedBody());
+        $this->assertStringStartsWith('multipart/form-data', $this->last()->getHeaderLine('Content-Type'));
+    }
+
+    public function test_a_client_without_files_sends_none(): void
+    {
+        $this->client()->post('/login', ['username' => 'will']);
+
+        $this->assertSame([], $this->last()->getUploadedFiles());
     }
 
     public function test_other_methods_leave_parsing_to_the_application(): void

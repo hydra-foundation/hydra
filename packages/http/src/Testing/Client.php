@@ -11,6 +11,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
@@ -33,6 +34,9 @@ final class Client
     private int $redirects = 0;
 
     private bool $prepared = true;
+
+    /** @var array<string, UploadedFileInterface> */
+    private array $files = [];
 
     /** @param list<RequestPreparer> $preparers */
     public function __construct(
@@ -122,6 +126,21 @@ final class Client
         parse_str($request->getUri()->getQuery(), $query);
 
         return $request->withQueryParams($query);
+    }
+
+    /**
+     * Send these files with each request that has a body, the way a browser
+     * sends a form holding a file input: multipart, the fields parsed as
+     * usual, and the files where PHP puts them, in getUploadedFiles().
+     *
+     * @param array<string, UploadedFileInterface> $files by input name
+     */
+    public function withFiles(array $files): self
+    {
+        $client = clone $this;
+        $client->files = $files;
+
+        return $client;
     }
 
     public function htmx(?string $target = null): self
@@ -248,6 +267,16 @@ final class Client
 
             if ($method === 'POST') {
                 $request = $request->withParsedBody($body);
+            }
+
+            // PHP parses a multipart POST itself and leaves the raw body empty,
+            // so there is no body to encode: the fields are the parsed body,
+            // the files are the uploaded files, and the header says which.
+            if ($this->files !== []) {
+                $request = $request
+                    ->withHeader('Content-Type', 'multipart/form-data; boundary=hydra-test-client')
+                    ->withBody($this->streams->createStream(''))
+                    ->withUploadedFiles($this->files);
             }
         }
 
