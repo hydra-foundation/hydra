@@ -3,14 +3,15 @@
 <?php /** @var string $content */ ?>
 <?php /** @var string|null $footer */ ?>
 <?php /** @var string|null $banner */ ?>
+<?php /** @var string|null $account who is signed in, as the application draws it */ ?>
 <?php /* The two ids the admin swaps against are declared here and in frame.php,
    beside the hx-targets that name them. Renaming one means renaming its targets
    and Renderer's constant with it; ShippedViewsTest holds them together. */ ?>
 <div class="admin">
-    <?= $this->partial('admin/partials/topbar') ?>
+    <?= $this->partial('admin/partials/topbar', ['account' => $account ?? '']) ?>
 
     <div class="admin-layout">
-        <?= $this->partial('admin/partials/sidebar', ['screen' => $screen]) ?>
+        <?= $this->partial('admin/partials/sidebar', ['screen' => $screen, 'account' => $account ?? '']) ?>
         <div class="admin-main">
             <?php if (($banner ?? '') !== ''): ?>
                 <div class="admin-banner"><?= $banner ?></div>

@@ -172,6 +172,43 @@
     padding-top: var(--s-4);
 }
 
+/* Who is signed in, as the application draws it: above Sign out on the rail,
+   taking over the push to the bottom that Sign out has on its own. */
+.admin-account {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.admin-sidebar .admin-account {
+    margin-top: auto;
+    padding: var(--s-4) var(--s-2) 0;
+}
+
+.admin-sidebar .admin-account + .admin-signout {
+    margin-top: 0;
+    padding-top: var(--s-2);
+}
+
+.admin-account a {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    min-width: 0;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.admin-account a:hover {
+    color: var(--accent);
+}
+
+.admin-account span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .admin-signout .btn {
     --bs-btn-color: var(--muted);
     --bs-btn-bg: transparent;
@@ -1811,6 +1848,15 @@
 
     .admin-topbar .admin-brand {
         margin: 0;
+    }
+
+    /* The picture alone at the far end; the name is in the drawer. */
+    .admin-topbar .admin-account {
+        margin-left: auto;
+    }
+
+    .admin-topbar .admin-account span {
+        display: none;
     }
 
     /* The rail becomes a drawer. It keeps its own scroll, so the number of

@@ -1,4 +1,5 @@
 <?php /** @var \Hydra\View\Template $this */ ?>
+<?php /** @var string $account */ ?>
 <?php /* The narrow-screen counterpart to the sidebar, which at that width is a
    drawer rather than a rail. It carries no screen name of its own: only the
    frame is swapped on navigation, so anything stateful here would go stale
@@ -12,6 +13,10 @@
     </button>
 
     <a class="admin-brand" href="/admin">Hydra</a>
+
+    <?php if (($account ?? '') !== ''): ?>
+        <div class="admin-account"><?= $account ?></div>
+    <?php endif ?>
 </div>
 
 <?php /* Sits outside the drawer so a tap anywhere off it closes it. It stays in
