@@ -57,6 +57,9 @@
         <testsuite name="event">
             <directory>packages/event/tests</directory>
         </testsuite>
+        <testsuite name="filesystem">
+            <directory>packages/filesystem/tests</directory>
+        </testsuite>
         <testsuite name="http">
             <directory>packages/http/tests</directory>
         </testsuite>
@@ -116,6 +119,7 @@
             <directory>packages/csrf/src</directory>
             <directory>packages/database/src</directory>
             <directory>packages/event/src</directory>
+            <directory>packages/filesystem/src</directory>
             <directory>packages/http/src</directory>
             <directory>packages/kernel/src</directory>
             <directory>packages/log/src</directory>

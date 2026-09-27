@@ -44,6 +44,7 @@ jobs:
           - csrf
           - database
           - event
+          - filesystem
           - http
           - kernel
           - log
