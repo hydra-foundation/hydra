@@ -177,9 +177,9 @@ final class FileSourceTest extends TestCase
 
     public function test_find_is_null_for_an_id_naming_no_file(): void
     {
-        $this->assertNull($this->source->find('private~docs~' . str_repeat('0', 32) . '.png'));
+        $this->assertNull($this->source->find(FileId::of('private:docs/' . str_repeat('0', 32) . '.png')));
         $this->assertNull($this->source->find('not-an-id'));
-        $this->assertNull($this->source->find('private~..~etc~passwd'));
+        $this->assertNull($this->source->find(rtrim(strtr(base64_encode('private:../etc/passwd'), '+/', '-_'), '=')));
     }
 
     public function test_an_orphan_can_be_deleted(): void

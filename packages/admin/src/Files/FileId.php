@@ -9,42 +9,45 @@ use Hydra\Filesystem\Exceptions\InvalidKey;
 use Hydra\Filesystem\Key;
 
 /**
- * A stored file as a row id. The admin puts a row's id in one path segment,
- * and a qualified key has a colon and slashes in it, which an encoded slash
- * would not survive (plenty of servers refuse %2F). Both become "~", which no
- * key can contain, so the id reads back unambiguously:
- * "private:avatars/ab12.png" is "private~avatars~ab12.png".
+ * A stored file as a row id: the qualified key in base64url, unpadded.
+ *
+ * The admin puts a row's id in one path segment, and the id has to survive
+ * two things on the way. A qualified key has slashes in it, and an encoded
+ * slash is refused by plenty of servers. It also ends in an extension, and a
+ * web server's static-file rules (nginx's "location ~* \.(?:jpg|png)$", say)
+ * answer a path ending in one without ever asking PHP, which makes a show
+ * screen at /admin/files/<id>.jpg a 404. Base64url is letters, digits, "-" and
+ * "_", so it has neither problem. It is opaque, and a row is clicked, not
+ * typed.
  */
 final class FileId
 {
-    private const SEPARATOR = '~';
-
     private function __construct() {}
 
     /** @throws InvalidKey when $qualified is not a key on one of the disks */
     public static function of(string $qualified): string
     {
-        [$disk, $key] = self::split($qualified) ?? throw InvalidKey::of($qualified);
+        self::split($qualified) ?? throw InvalidKey::of($qualified);
 
-        return $disk . self::SEPARATOR . str_replace('/', self::SEPARATOR, $key);
+        return rtrim(strtr(base64_encode($qualified), '+/', '-_'), '=');
     }
 
     /** The qualified key an id names, or null when it names none. */
     public static function qualified(string $id): ?string
     {
-        if (str_contains($id, ':') || str_contains($id, '/')) {
+        if (preg_match('/^[A-Za-z0-9_-]+$/D', $id) !== 1) {
             return null;
         }
 
-        $parts = explode(self::SEPARATOR, $id, 2);
+        $qualified = base64_decode(strtr($id, '-_', '+/'), true);
 
-        if (count($parts) !== 2) {
+        // One spelling per file: an id that decodes but is not what of() would
+        // write (trailing bits set, say) is not that file's id.
+        if ($qualified === false || self::split($qualified) === null || self::of($qualified) !== $id) {
             return null;
         }
 
-        $qualified = $parts[0] . ':' . str_replace(self::SEPARATOR, '/', $parts[1]);
-
-        return self::split($qualified) === null ? null : $qualified;
+        return $qualified;
     }
 
     /** @return array{string, string}|null */
