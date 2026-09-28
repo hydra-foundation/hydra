@@ -72,6 +72,7 @@ final class FileSourceTest extends TestCase
         $this->assertSame([
             'id' => FileId::of($avatar),
             'key' => $avatar,
+            'preview' => $avatar,
             'download' => $avatar,
             'disk' => 'private',
             'name' => 'Grace Portrait.png',
@@ -83,7 +84,7 @@ final class FileSourceTest extends TestCase
             'uses' => 1,
             'used_by' => [['label' => 'Users #2 · avatar', 'url' => '/admin/users/2']],
         ], $rows[2]);
-        $this->assertSame(['orphan', 'text', 'private', basename($orphan)], [$rows[1]['status'], $rows[1]['kind'], $rows[1]['disk'], $rows[1]['name']]);
+        $this->assertSame(['orphan', 'text', 'private', basename($orphan), null], [$rows[1]['status'], $rows[1]['kind'], $rows[1]['disk'], $rows[1]['name'], $rows[1]['preview']]);
         $this->assertSame(['new', 'public'], [$rows[0]['status'], $rows[0]['disk']]);
     }
 

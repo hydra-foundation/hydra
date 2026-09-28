@@ -198,6 +198,10 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
         return [
             'id' => FileId::of($qualified),
             'key' => $qualified,
+            // The key again, for an image field: only an image has a preview,
+            // and anything else shows the field's icon rather than a broken
+            // picture.
+            'preview' => self::kind($file->mimeType) === 'image' ? $qualified : null,
             'download' => $qualified,
             'disk' => $disk,
             'name' => $name ?? basename($file->key),
