@@ -334,6 +334,12 @@ final class Field
         return $clone;
     }
 
+    /** The column {@see nameFrom()} reads the kept name from, if it was called. */
+    public function nameColumn(): ?string
+    {
+        return $this->nameColumn;
+    }
+
     public function name(): string
     {
         return $this->name;
