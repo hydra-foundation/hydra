@@ -248,7 +248,7 @@ final class AdminServiceProvider extends ServiceProvider
     {
         return [[
             'method' => 'GET',
-            'path' => rtrim($this->prefix, '/') . '/files',
+            'path' => rtrim($this->prefix, '/') . FileUrls::PATH,
             'handler' => [FileController::class, 'show'],
             'middleware' => $this->middleware,
             'name' => 'admin.file',

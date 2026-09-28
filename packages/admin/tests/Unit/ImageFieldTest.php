@@ -35,7 +35,7 @@ final class ImageFieldTest extends TestCase
 
     public function test_a_private_key_is_fetched_through_the_admin(): void
     {
-        $this->assertSame('/admin/files?key=' . rawurlencode(self::KEY), $this->urls->url(self::KEY));
+        $this->assertSame('/admin/file?key=' . rawurlencode(self::KEY), $this->urls->url(self::KEY));
     }
 
     public function test_a_public_key_is_fetched_from_the_web_server(): void
@@ -54,7 +54,7 @@ final class ImageFieldTest extends TestCase
     {
         $urls = new FileUrls('/admin');
 
-        $this->assertSame('/admin/files?key=' . rawurlencode(self::KEY), $urls->url(self::KEY));
+        $this->assertSame('/admin/file?key=' . rawurlencode(self::KEY), $urls->url(self::KEY));
         $this->assertNull($urls->url('public:blog/a.png'));
     }
 
@@ -75,7 +75,7 @@ final class ImageFieldTest extends TestCase
         $html = $this->html(Field::image('avatar'), Surface::List, ['avatar' => self::KEY]);
 
         $this->assertStringContainsString('<img', $html);
-        $this->assertStringContainsString('src="/admin/files?key=' . htmlspecialchars(rawurlencode(self::KEY)) . '"', $html);
+        $this->assertStringContainsString('src="/admin/file?key=' . htmlspecialchars(rawurlencode(self::KEY)) . '"', $html);
         $this->assertStringContainsString('class="admin-thumb"', $html);
         $this->assertStringContainsString('alt=""', $html);
     }
@@ -162,7 +162,7 @@ final class ImageFieldTest extends TestCase
 
         $form = (string) $admin->controller->edit($admin->request('GET', '/admin/users/2/edit'))->getBody();
 
-        $this->assertStringContainsString('src="/admin/files?key=' . htmlspecialchars(rawurlencode(self::KEY)) . '"', $form);
+        $this->assertStringContainsString('src="/admin/file?key=' . htmlspecialchars(rawurlencode(self::KEY)) . '"', $form);
     }
 
     /** @param array<string, mixed> $row */

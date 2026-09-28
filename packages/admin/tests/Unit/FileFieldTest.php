@@ -46,7 +46,7 @@ final class FileFieldTest extends TestCase
     public function test_a_private_url_carries_the_name_to_download_under(): void
     {
         $this->assertSame(
-            '/admin/files?key=' . rawurlencode(self::KEY) . '&name=Quarterly%20Report.pdf',
+            '/admin/file?key=' . rawurlencode(self::KEY) . '&name=Quarterly%20Report.pdf',
             $this->urls->url(self::KEY, 'Quarterly Report.pdf'),
         );
     }
@@ -64,7 +64,7 @@ final class FileFieldTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'href="' . htmlspecialchars('/admin/files?key=' . rawurlencode(self::KEY) . '&name=Quarterly%20Report.pdf') . '"',
+            'href="' . htmlspecialchars('/admin/file?key=' . rawurlencode(self::KEY) . '&name=Quarterly%20Report.pdf') . '"',
             $html,
         );
         $this->assertStringContainsString('Quarterly Report.pdf</a>', $html);

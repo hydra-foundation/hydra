@@ -118,7 +118,7 @@ final class AdminServiceProviderTest extends TestCase
 
         $this->assertCount(1, $files);
         $this->assertSame('GET', $files[0]['method']);
-        $this->assertSame('/admin/files', $files[0]['path']);
+        $this->assertSame('/admin/file', $files[0]['path']);
         $this->assertSame(['RequireSignIn'], $files[0]['middleware']);
         $this->assertLessThan(
             array_search($this->moduleRoutes($routes)[0], $routes, true),

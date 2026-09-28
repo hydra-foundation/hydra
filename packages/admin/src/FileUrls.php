@@ -19,6 +19,12 @@ final readonly class FileUrls
 {
     private const IMAGES = ['jpg', 'png', 'gif', 'webp', 'avif'];
 
+    /**
+     * Where the admin serves a private file, under its prefix. One file, so
+     * singular, and not "/files": that is the Files module's list.
+     */
+    public const PATH = '/file';
+
     public function __construct(
         private string $prefix,
         private ?Disks $disks = null,
@@ -63,7 +69,7 @@ final readonly class FileUrls
 
     private function privateUrl(string $qualified, ?string $name): string
     {
-        $url = rtrim($this->prefix, '/') . '/files?key=' . rawurlencode($qualified);
+        $url = rtrim($this->prefix, '/') . self::PATH . '?key=' . rawurlencode($qualified);
 
         return $name === null || $name === '' ? $url : $url . '&name=' . rawurlencode($name);
     }

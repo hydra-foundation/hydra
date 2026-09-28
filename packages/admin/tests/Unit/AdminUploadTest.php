@@ -311,7 +311,7 @@ final class AdminUploadTest extends TestCase
         $this->assertStringContainsString('Current file:', $html);
         $this->assertStringContainsString('>My Photo.png</a>', $html);
         $this->assertStringContainsString(
-            htmlspecialchars('/admin/files?key=' . rawurlencode($key) . '&name=My%20Photo.png'),
+            htmlspecialchars('/admin/file?key=' . rawurlencode($key) . '&name=My%20Photo.png'),
             $html,
         );
     }

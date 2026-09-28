@@ -156,7 +156,7 @@ final class FileControllerTest extends TestCase
         $this->expectException(NotFoundException::class);
 
         (new FileController(new Psr17Factory))->show(
-            (new Psr17Factory)->createServerRequest('GET', '/admin/files')->withQueryParams(['key' => 'private:a/b.png']),
+            (new Psr17Factory)->createServerRequest('GET', '/admin/file')->withQueryParams(['key' => 'private:a/b.png']),
         );
     }
 
@@ -173,7 +173,7 @@ final class FileControllerTest extends TestCase
         $query = $name === null ? ['key' => $key] : ['key' => $key, 'name' => $name];
 
         return $this->controller->show(
-            (new Psr17Factory)->createServerRequest('GET', '/admin/files')->withQueryParams($query),
+            (new Psr17Factory)->createServerRequest('GET', '/admin/file')->withQueryParams($query),
         );
     }
 }
