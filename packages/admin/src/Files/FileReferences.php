@@ -14,6 +14,7 @@ use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Filesystem\Disks;
 use Hydra\Filesystem\Exceptions\InvalidKey;
+use Hydra\Filesystem\StoredFile;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -83,13 +84,11 @@ final class FileReferences
             $referenced[$reference->key] = true;
         }
 
-        $cutoff = $this->clock->now()->getTimestamp() - $this->graceSeconds;
-
         foreach ([Disks::PRIVATE, Disks::PUBLIC] as $disk) {
             foreach ($this->disks->get($disk)->list() as $file) {
                 $qualified = $this->disks->qualify($disk, $file->key);
 
-                if (!isset($referenced[$qualified]) && $file->modifiedAt->getTimestamp() <= $cutoff) {
+                if (!isset($referenced[$qualified]) && !$this->isNew($file)) {
                     yield new Orphan($qualified, $file);
                 }
             }
@@ -116,6 +115,15 @@ final class FileReferences
                 yield $reference;
             }
         }
+    }
+
+    /**
+     * Whether a file is still inside the grace period: too young to be called
+     * an orphan whatever points at it, since its row may not be written yet.
+     */
+    public function isNew(StoredFile $file): bool
+    {
+        return $file->modifiedAt->getTimestamp() > $this->clock->now()->getTimestamp() - $this->graceSeconds;
     }
 
     /** @return iterable<Reference> */
