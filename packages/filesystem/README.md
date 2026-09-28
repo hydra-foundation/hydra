@@ -25,5 +25,7 @@ beside it:
   at the type level rather than in production.
 
 `StorageInterface` resolves to the private disk, so the default is the safe
-one. A driver of your own proves itself against
+one. `list()` walks a disk, or one directory on it, and lazily yields each
+file's key, size, detected type and modified time. It yields only keys that the
+disk's other methods accept. A driver of your own proves itself against
 `Hydra\Filesystem\Testing\StorageContractTestCase`.
