@@ -46,28 +46,16 @@ final class Responder
     }
 
     /**
-     * A body the browser saves rather than renders.
-     *
-     * Both spellings of the name are sent. The quoted one is what every client
-     * has always read, and it carries only characters a header can hold
-     * literally: a name is attacker-influenced often enough (a row's title, a
-     * module's slug) that the quote and the newline inside it are worth
-     * spending a transliteration on. filename* is RFC 5987 and carries the name
-     * as written for the clients that prefer it, which is every current one.
+     * A body the browser saves rather than renders, under $filename. How the
+     * name is made safe for the header is {@see ContentDisposition}'s to say.
      */
     public function download(
         string $body,
         string $filename,
         string $contentType = 'application/octet-stream',
     ): ResponseInterface {
-        $ascii = trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '_', $filename), '_');
-
         return $this->make($body, Status::Ok, $contentType)
-            ->withHeader('Content-Disposition', sprintf(
-                'attachment; filename="%s"; filename*=UTF-8\'\'%s',
-                $ascii === '' ? 'download' : $ascii,
-                rawurlencode($filename),
-            ))
+            ->withHeader('Content-Disposition', ContentDisposition::header(ContentDisposition::ATTACHMENT, $filename))
             ->withHeader('Content-Length', (string) strlen($body));
     }
 
