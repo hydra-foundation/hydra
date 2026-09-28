@@ -133,6 +133,7 @@
             <directory>packages/throttle/src</directory>
             <directory>packages/validation/src</directory>
             <directory>packages/view/src</directory>
+            <directory>tools/changes/src</directory>
         </include>
         <!--
             The contract cases in src/Testing are abstract TestCase subclasses a

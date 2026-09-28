@@ -83,7 +83,8 @@
             "Hydra\\SymfonyConsole\\": "packages/symfony-console/src",
             "Hydra\\Throttle\\": "packages/throttle/src",
             "Hydra\\Validation\\": "packages/validation/src",
-            "Hydra\\View\\": "packages/view/src"
+            "Hydra\\View\\": "packages/view/src",
+            "Hydra\\Tools\\Changes\\": "tools/changes/src"
         }
     },
     "autoload-dev": {

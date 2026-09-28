@@ -2,7 +2,7 @@
 #
 # Parse every PHP file in the tree with the interpreter running this script.
 #
-#   bin/syntax.sh                  # packages, bin and tests
+#   bin/syntax.sh                  # packages, bin, tests and tools/changes
 #   bin/syntax.sh packages/admin   # one directory
 #   PHP=php8.2 bin/syntax.sh       # a particular interpreter
 #
@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
-[ ${#ROOTS[@]} -gt 0 ] || ROOTS=(packages bin tests)
+[ ${#ROOTS[@]} -gt 0 ] || ROOTS=(packages bin tests tools/changes/src)
 
 # php -l reports on stdout and says nothing worth reading when a file is fine,
 # so each one goes through a wrapper that prints only on the way out.
