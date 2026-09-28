@@ -9,16 +9,20 @@ declare(strict_types=1);
  *   php bin/changes.php list
  *   php bin/changes.php release <x.y.z> --title "Faces" [--no-edit]
  *   php bin/changes.php check
+ *   php bin/changes.php migrate ../hydra-frontend/public/docs/changelog.html
  *
  * Each change adds changes/unreleased/<slug>.md in its own commit. Before a
  * tag, `release` collects them into changes/<x.y.z>.md, opens it for the
  * intro, and deletes them. `check` parses everything; release.sh runs it.
+ * `migrate` was the one-off that split the old hand-written changelog page
+ * into release files.
  * --dir=<path> points at another changes/ directory (the tests use it).
  */
 
 use Hydra\Tools\Changes\Collector;
 use Hydra\Tools\Changes\Fragment;
 use Hydra\Tools\Changes\InvalidChangeFile;
+use Hydra\Tools\Changes\Migrator;
 use Hydra\Tools\Changes\ReleaseFile;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -28,6 +32,7 @@ const USAGE = <<<'TXT'
            changes.php list
            changes.php release <x.y.z> --title "…" [--no-edit]
            changes.php check
+           changes.php migrate <changelog.html>
 
     TXT;
 
@@ -98,7 +103,7 @@ function fragments(string $dir): array
 }
 
 [$positional, $options] = arguments(array_slice($argv, 1));
-$dir = rtrim((string) ($options['dir'] ?? __DIR__ . '/../changes'), '/');
+$dir = rtrim((string) ($options['dir'] ?? dirname(__DIR__) . '/changes'), '/');
 $command = $positional[0] ?? null;
 
 switch ($command) {
@@ -209,6 +214,35 @@ switch ($command) {
             array_keys($counts),
             $counts,
         )) . " parse.\n";
+        break;
+
+    case 'migrate':
+        $page = $positional[1] ?? fail("which page?\n" . USAGE);
+        $html = is_file($page) ? file_get_contents($page) : false;
+        if ($html === false) {
+            fail("cannot read $page");
+        }
+
+        try {
+            $releases = Migrator::split($html);
+        } catch (UnexpectedValueException | InvalidArgumentException $e) {
+            fail("$page: {$e->getMessage()}");
+        }
+
+        // All or nothing: a half-migrated directory is harder to reason
+        // about than one that was refused.
+        $taken = array_filter(array_map(static fn (ReleaseFile $r): string => "$dir/$r->version.md", $releases), 'file_exists');
+        if ($taken !== []) {
+            fail("refusing to overwrite:\n  " . implode("\n  ", $taken));
+        }
+
+        foreach ($releases as $release) {
+            if (file_put_contents("$dir/$release->version.md", $release->render()) === false) {
+                fail("could not write $dir/$release->version.md");
+            }
+        }
+
+        echo 'Wrote ' . count($releases) . " release files, {$releases[0]->version} back to " . $releases[count($releases) - 1]->version . ".\n";
         break;
 
     default:

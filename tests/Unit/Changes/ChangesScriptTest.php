@@ -181,6 +181,21 @@ final class ChangesScriptTest extends TestCase
         $this->assertStringContainsString('1 fragment and 0 release files parse', $out);
     }
 
+    public function test_migrate_writes_a_release_file_per_release_and_never_overwrites(): void
+    {
+        [$status, $out] = $this->script(['migrate', __DIR__ . '/fixtures/changelog.html']);
+
+        $this->assertSame(0, $status);
+        $this->assertStringContainsString('Wrote 3 release files, 0.9.16 back to 0.4.0', $out);
+        $this->assertSame('Hardening pass', ReleaseFile::fromFile("$this->dir/0.5.0.md")->title);
+        $this->assertSame(0, $this->script(['check'])[0]);
+
+        [$status, , $err] = $this->script(['migrate', __DIR__ . '/fixtures/changelog.html']);
+
+        $this->assertSame(1, $status);
+        $this->assertStringContainsString('refusing to overwrite', $err);
+    }
+
     public function test_an_unknown_command_prints_usage(): void
     {
         [$status, , $err] = $this->script(['frobnicate']);
