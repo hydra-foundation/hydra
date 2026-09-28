@@ -6,4 +6,4 @@ Private files are served at `GET /admin/file?key=…`, singular, to match the ro
 
 ### Upgrading
 
-Links built with `FileUrls`, including every `Field::image()` and `Field::file()`, follow on their own. Code or templates that hard-coded `/admin/files?key=` must use `FileUrls`, or the new path. The old path does not redirect. For a signed-in non-admin it now answers 403.
+Links built with `FileUrls`, including every `Field::image()` and `Field::file()`, follow on their own. Code or templates that hard-coded `/admin/files?key=` must use `FileUrls`, or the new path. The old path does not redirect: it is whatever the application puts at `/admin/files`, which in the skeleton is the admin-only Files module.
