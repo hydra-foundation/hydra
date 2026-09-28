@@ -9,7 +9,7 @@ declare(strict_types=1);
  *   php bin/changes.php list
  *   php bin/changes.php release <x.y.z> --title "Faces" [--no-edit]
  *   php bin/changes.php check
- *   php bin/changes.php migrate ../hydra-frontend/public/docs/changelog.html
+ *   php bin/changes.php migrate ../wiki/public/docs/changelog.html
  *
  * Each change adds changes/unreleased/<slug>.md in its own commit. Before a
  * tag, `release` collects them into changes/<x.y.z>.md, opens it for the
