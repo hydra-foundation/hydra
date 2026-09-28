@@ -68,4 +68,15 @@ final class FilenameTest extends TestCase
         $this->assertSame(Filename::MAX_BYTES, strlen($kept));
         $this->assertStringEndsWith('.png', $kept);
     }
+
+    public function test_a_long_name_whose_last_dot_starts_no_real_extension_is_simply_cut(): void
+    {
+        // Past 16 bytes it is part of the name, not an extension worth saving
+        // at the expense of the rest.
+        $name = str_repeat('a', 300) . '.' . str_repeat('b', 20);
+
+        $kept = Filename::clean($name, 'application/x-unknown');
+
+        $this->assertSame(str_repeat('a', Filename::MAX_BYTES), $kept);
+    }
 }

@@ -7,12 +7,14 @@ namespace Hydra\Filesystem\Tests\Unit;
 use Hydra\Filesystem\Contracts\StorageInterface;
 use Hydra\Filesystem\Exceptions\InvalidKey;
 use Hydra\Filesystem\LocalPublicStorage;
+use Hydra\Filesystem\StoredFile;
 use Hydra\Filesystem\Testing\StorageContractTestCase;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Psr\Http\Message\StreamFactoryInterface;
 
 #[CoversClass(LocalPublicStorage::class)]
+#[CoversClass(StoredFile::class)]
 final class LocalPublicStorageTest extends StorageContractTestCase
 {
     private string $root;

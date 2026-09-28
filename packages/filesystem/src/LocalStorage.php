@@ -166,11 +166,9 @@ class LocalStorage implements StorageInterface
                 continue;
             }
 
+            // A file deleted between the stat and here still gets its row: a
+            // listing is a snapshot, as it is for one deleted a moment later.
             $type = @$types->file($path);
-
-            if ($type === false && !is_file($path)) {
-                continue;
-            }
 
             yield new StoredFile(
                 substr($path, strlen($this->root) + 1),

@@ -6,6 +6,7 @@ namespace Hydra\Filesystem\Tests\Unit;
 
 use Hydra\Filesystem\Contracts\StorageInterface;
 use Hydra\Filesystem\LocalStorage;
+use Hydra\Filesystem\StoredFile;
 use Hydra\Filesystem\Testing\StorageContractTestCase;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -13,6 +14,7 @@ use PHPUnit\Framework\Attributes\RequiresFunction;
 use Psr\Http\Message\StreamFactoryInterface;
 
 #[CoversClass(LocalStorage::class)]
+#[CoversClass(StoredFile::class)]
 final class LocalStorageTest extends StorageContractTestCase
 {
     private string $root;
