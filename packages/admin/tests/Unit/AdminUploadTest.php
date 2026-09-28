@@ -227,6 +227,113 @@ final class AdminUploadTest extends TestCase
         $disks->remove();
     }
 
+    public function test_the_name_an_upload_arrived_under_is_kept_beside_its_key(): void
+    {
+        $this->update('2', ['username' => 'grace'], ['avatar' => $this->png('My Photo.png')]);
+
+        $this->assertSame('My Photo.png', $this->source->find('2')['avatar_name'] ?? null);
+    }
+
+    public function test_the_kept_name_agrees_with_the_bytes_not_the_claim(): void
+    {
+        $this->update('2', ['username' => 'grace'], ['avatar' => $this->png('evil.php')]);
+
+        $this->assertSame('evil.php.png', $this->source->find('2')['avatar_name'] ?? null);
+    }
+
+    public function test_a_create_keeps_the_name_too(): void
+    {
+        $request = $this->admin->request('POST', '/admin/users/new', [], ['username' => 'linus'])
+            ->withUploadedFiles(['avatar' => $this->png('linus.png')]);
+
+        $this->admin->controller->store($request);
+
+        $this->assertSame('linus.png', $this->source->find((string) ($this->source->nextId - 1))['avatar_name'] ?? null);
+    }
+
+    public function test_removing_the_file_clears_its_name(): void
+    {
+        $this->seed('2', 'old.png');
+
+        $this->update('2', ['username' => 'grace', 'avatar_remove' => '1'], ['avatar' => $this->nothing()]);
+
+        $row = $this->source->find('2') ?? [];
+        $this->assertArrayHasKey('avatar_name', $row);
+        $this->assertNull($row['avatar_name']);
+    }
+
+    public function test_leaving_the_file_alone_leaves_its_name_alone(): void
+    {
+        $this->seed('2', 'old.png');
+
+        $this->update('2', ['username' => 'grace'], ['avatar' => $this->nothing()]);
+
+        $this->assertSame('old.png', $this->source->find('2')['avatar_name'] ?? null);
+    }
+
+    public function test_the_name_column_cannot_be_posted_directly(): void
+    {
+        $this->seed('2', 'old.png');
+
+        $this->update('2', ['username' => 'grace', 'avatar_name' => 'forged.exe']);
+
+        $this->assertSame('old.png', $this->source->find('2')['avatar_name'] ?? null);
+    }
+
+    public function test_a_control_that_does_not_keep_names_writes_no_name_column(): void
+    {
+        $disks = new TemporaryDisks;
+        $source = new CrudUserSource;
+        $admin = new AdminHarness(
+            [PublicCoverModule::class => new PublicCoverModule, CrudUserSource::class => $source],
+            [PublicCoverModule::class],
+            uploads: new Uploads($disks->disks),
+        );
+
+        $admin->controller->update(
+            $admin->request('POST', '/admin/users/2/edit', [], ['username' => 'grace'])
+                ->withUploadedFiles(['cover' => $this->png()]),
+        );
+
+        $this->assertSame(['cover'], array_values(array_filter(
+            array_keys($source->find('2') ?? []),
+            static fn (string $column): bool => str_starts_with($column, 'cover'),
+        )));
+        $disks->remove();
+    }
+
+    public function test_the_edit_form_names_the_current_file_and_links_to_it(): void
+    {
+        $key = $this->seed('2', 'My Photo.png');
+
+        $html = (string) $this->admin->controller->edit($this->admin->request('GET', '/admin/users/2/edit'))->getBody();
+
+        $this->assertStringContainsString('Current file:', $html);
+        $this->assertStringContainsString('>My Photo.png</a>', $html);
+        $this->assertStringContainsString(
+            htmlspecialchars('/admin/files?key=' . rawurlencode($key) . '&name=My%20Photo.png'),
+            $html,
+        );
+    }
+
+    public function test_the_edit_form_falls_back_to_the_key_for_a_file_with_no_kept_name(): void
+    {
+        $key = $this->seed('2');
+
+        $html = (string) $this->admin->controller->edit($this->admin->request('GET', '/admin/users/2/edit'))->getBody();
+
+        $this->assertStringContainsString('>' . basename($key) . '</a>', $html);
+    }
+
+    public function test_a_refused_form_still_names_the_current_file(): void
+    {
+        $this->seed('2', 'My Photo.png');
+
+        $response = $this->update('2', ['username' => ''], ['avatar' => $this->nothing()]);
+
+        $this->assertStringContainsString('>My Photo.png</a>', (string) $response->getBody());
+    }
+
     public function test_deleting_a_row_deletes_its_file(): void
     {
         $key = $this->seed('2');
@@ -298,13 +405,13 @@ final class AdminUploadTest extends TestCase
     }
 
     /** A stored avatar on row $id, put there the way an earlier save would have. */
-    private function seed(string $id): string
+    private function seed(string $id, ?string $name = null): string
     {
         $key = $this->disks->disks->qualify(
             Disks::PRIVATE,
             $this->disks->disks->private()->put('avatars', Stream::create(base64_decode(self::PNG))),
         );
-        $this->source->update($id, ['avatar' => $key]);
+        $this->source->update($id, ['avatar' => $key, 'avatar_name' => $name]);
 
         return $key;
     }
@@ -316,11 +423,11 @@ final class AdminUploadTest extends TestCase
         return $disk->exists($key);
     }
 
-    private function png(): UploadedFile
+    private function png(string $name = 'me.png'): UploadedFile
     {
         $bytes = base64_decode(self::PNG);
 
-        return new UploadedFile(Stream::create($bytes), strlen($bytes), UPLOAD_ERR_OK, 'me.png', 'image/png');
+        return new UploadedFile(Stream::create($bytes), strlen($bytes), UPLOAD_ERR_OK, $name, 'image/png');
     }
 
     /** What a browser sends for a file input nobody touched. */

@@ -59,6 +59,20 @@ final class FileInputTest extends TestCase
         $this->assertSame('avatar_remove', Input::file('avatar')->removeName());
     }
 
+    public function test_a_file_control_keeps_no_name_unless_it_says_so(): void
+    {
+        $this->assertNull(Input::file('avatar')->nameColumn());
+        $this->assertSame('avatar_name', Input::file('avatar')->keepsName()->nameColumn());
+        $this->assertSame('avatar_filename', Input::file('avatar')->keepsName('avatar_filename')->nameColumn());
+    }
+
+    public function test_the_name_cannot_go_in_the_column_that_holds_the_key(): void
+    {
+        $this->expectException(LogicException::class);
+
+        Input::file('avatar')->keepsName('avatar');
+    }
+
     #[DataProvider('fileOnly')]
     public function test_a_file_modifier_on_another_control_is_a_mistake(callable $modify): void
     {
@@ -74,6 +88,7 @@ final class FileInputTest extends TestCase
         yield 'accepts' => [static fn (Input $input): Input => $input->accepts('image/png')];
         yield 'maxSize' => [static fn (Input $input): Input => $input->maxSize(10)];
         yield 'removable' => [static fn (Input $input): Input => $input->removable()];
+        yield 'keepsName' => [static fn (Input $input): Input => $input->keepsName()];
     }
 
     public function test_a_directory_that_is_not_a_path_inside_the_disk_is_refused_on_declaration(): void

@@ -38,6 +38,7 @@ final class Field
     private string $suffix = '';
     private bool $relative = false;
     private ?string $fallbackIcon = null;
+    private ?string $nameColumn = null;
 
     /** @var array<string, int> keyed by Surface->value */
     private array $truncations = [];
@@ -116,6 +117,16 @@ final class Field
     public static function image(string $name): self
     {
         return new self($name, FieldType::Image);
+    }
+
+    /**
+     * A stored file key, shown as a link that downloads it: the file's kept
+     * name when the field reads one ({@see nameFrom()}), its key's last part
+     * when not. An export carries the key, as an image's does.
+     */
+    public static function file(string $name): self
+    {
+        return new self($name, FieldType::File);
     }
 
     public function labelled(string $label): self
@@ -245,6 +256,27 @@ final class Field
 
         $clone = clone $this;
         $clone->fallbackIcon = $icon;
+
+        return $clone;
+    }
+
+    /**
+     * The column holding the name the file was uploaded under, the one an
+     * {@see Input::keepsName()} writes: a file's link reads as it and downloads
+     * under it, and an image is described by it. The source has to read it.
+     */
+    public function nameFrom(string $column): self
+    {
+        if ($this->type !== FieldType::Image && $this->type !== FieldType::File) {
+            throw new LogicException(sprintf(
+                'Admin field "%s" is a %s; only an image or a file has a name to read.',
+                $this->name,
+                $this->type->value,
+            ));
+        }
+
+        $clone = clone $this;
+        $clone->nameColumn = $column;
 
         return $clone;
     }
@@ -392,8 +424,14 @@ final class Field
             return $this->formatted($formatter($value, $row));
         }
 
-        if ($this->type === FieldType::Image) {
-            return $this->picture($surface, is_scalar($value) ? (string) $value : '', $files);
+        if ($this->type === FieldType::Image || $this->type === FieldType::File) {
+            $key = is_scalar($value) ? (string) $value : '';
+            $kept = $this->nameColumn === null ? null : ($row[$this->nameColumn] ?? null);
+            $kept = is_string($kept) && $kept !== '' ? $kept : null;
+
+            return $this->type === FieldType::Image
+                ? $this->picture($surface, $key, $kept, $files)
+                : $this->download($surface, $key, $kept, $files);
         }
 
         if ($this->type === FieldType::Boolean) {
@@ -517,7 +555,7 @@ final class Field
      * as text when it names nothing a browser could fetch: a broken image
      * says less than the value that caused it.
      */
-    private function picture(Surface $surface, string $key, ?FileUrls $files): string|HtmlView
+    private function picture(Surface $surface, string $key, ?string $name, ?FileUrls $files): string|HtmlView
     {
         if ($surface === Surface::Export) {
             return $key;
@@ -536,9 +574,34 @@ final class Field
         }
 
         return new HtmlView(sprintf(
-            '<img src="%s" alt="" class="%s" loading="lazy" decoding="async">',
+            '<img src="%s" alt="%s" class="%s" loading="lazy" decoding="async">',
             $this->escaped($url),
+            $this->escaped($name ?? ''),
             $surface === Surface::Show ? 'admin-image' : 'admin-thumb',
+        ));
+    }
+
+    /**
+     * A link that downloads the file a key names, reading as the name it was
+     * uploaded under. Nothing for no file, and the key as text when it names
+     * nothing a browser could fetch, as for an image.
+     */
+    private function download(Surface $surface, string $key, ?string $name, ?FileUrls $files): string|HtmlView
+    {
+        if ($surface === Surface::Export || $key === '') {
+            return $key;
+        }
+
+        $url = $files?->url($key, $name);
+
+        if ($url === null) {
+            return $key;
+        }
+
+        return new HtmlView(sprintf(
+            '<a href="%s" class="admin-file" download><i class="bi bi-file-earmark" aria-hidden="true"></i> %s</a>',
+            $this->escaped($url),
+            $this->escaped($name ?? basename($key)),
         ));
     }
 

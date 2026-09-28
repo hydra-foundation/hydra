@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Admin;
 
 use Hydra\Filesystem\Disks;
+use Hydra\Filesystem\Filename;
 use Psr\Http\Message\UploadedFileInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -42,6 +43,19 @@ final class Uploads
     public function storeFor(Input $control, UploadedFileInterface $upload): string
     {
         return $this->store($upload, $control->directory(), $control->isPublic());
+    }
+
+    /**
+     * The name to keep for an upload now stored under $qualified: what the
+     * client called it, cleaned, with an extension that agrees with the type
+     * the disk found in the stored bytes rather than the one the client sent.
+     * Null when the client sent no name worth keeping.
+     */
+    public function nameFor(UploadedFileInterface $upload, string $qualified): ?string
+    {
+        [$disk, $key] = $this->disks->locate($qualified);
+
+        return Filename::clean($upload->getClientFilename(), $disk->mimeType($key));
     }
 
     /**

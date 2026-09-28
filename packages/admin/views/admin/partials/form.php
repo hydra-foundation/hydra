@@ -97,6 +97,16 @@
                 <?php if (($preview = $vm->preview($control)) !== null): ?>
                     <img src="<?= $this->e($preview) ?>" alt="" class="admin-image d-block mb-2">
                 <?php endif ?>
+                <?php if (($stored = $vm->storedName($control)) !== null): ?>
+                    <p class="form-text mt-0 mb-2">
+                        Current file:
+                        <?php if (($download = $vm->download($control)) !== null): ?>
+                            <a href="<?= $this->e($download) ?>" class="admin-file" download><?= $this->e($stored) ?></a>
+                        <?php else: ?>
+                            <strong><?= $this->e($stored) ?></strong>
+                        <?php endif ?>
+                    </p>
+                <?php endif ?>
                 <?php /* Never given a value: a browser will not fill a file
                    input, and an empty one means "keep the stored file". */ ?>
                 <input type="file"

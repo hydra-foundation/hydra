@@ -105,6 +105,33 @@ final readonly class FormViewModel
         return $key !== '' && $this->files?->isImage($key) ? $this->files->url($key) : null;
     }
 
+    /**
+     * What the stored file is called: the name it was uploaded under when the
+     * control keeps one, its key's last part when not. Null with no file.
+     */
+    public function storedName(Input $input): ?string
+    {
+        if (!$this->hasFile($input)) {
+            return null;
+        }
+
+        return $this->keptName($input) ?? basename($this->value($input));
+    }
+
+    /** Where the stored file downloads from, under its kept name; null with no file or no URL. */
+    public function download(Input $input): ?string
+    {
+        return $this->hasFile($input) ? $this->files?->url($this->value($input), $this->keptName($input)) : null;
+    }
+
+    private function keptName(Input $input): ?string
+    {
+        $column = $input->nameColumn();
+        $name = $column === null ? null : ($this->values[$column] ?? null);
+
+        return is_string($name) && $name !== '' ? $name : null;
+    }
+
     /** Whether a file control has a stored file, which is what the remove box would clear. */
     public function hasFile(Input $input): bool
     {

@@ -46,7 +46,7 @@ final class FileControllerTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(base64_decode(self::PNG), (string) $response->getBody());
         $this->assertSame('image/png', $response->getHeaderLine('Content-Type'));
-        $this->assertSame('inline', $response->getHeaderLine('Content-Disposition'));
+        $this->assertStringStartsWith('inline;', $response->getHeaderLine('Content-Disposition'));
         $this->assertSame((string) strlen(base64_decode(self::PNG)), $response->getHeaderLine('Content-Length'));
     }
 
@@ -70,7 +70,7 @@ final class FileControllerTest extends TestCase
     {
         $response = $this->get($this->private('files', "just a note\n"));
 
-        $this->assertSame('attachment', $response->getHeaderLine('Content-Disposition'));
+        $this->assertStringStartsWith('attachment;', $response->getHeaderLine('Content-Disposition'));
     }
 
     public function test_an_svg_is_never_rendered_even_though_it_is_an_image(): void
@@ -79,7 +79,45 @@ final class FileControllerTest extends TestCase
 
         $response = $this->get($this->private('files', $svg));
 
-        $this->assertSame('attachment', $response->getHeaderLine('Content-Disposition'));
+        $this->assertStringStartsWith('attachment;', $response->getHeaderLine('Content-Disposition'));
+    }
+
+    public function test_a_file_is_saved_under_the_name_it_was_uploaded_as(): void
+    {
+        $response = $this->get($this->private('avatars', base64_decode(self::PNG)), 'My Photo.png');
+
+        $this->assertSame(
+            'inline; filename="My_Photo.png"; filename*=UTF-8\'\'My%20Photo.png',
+            $response->getHeaderLine('Content-Disposition'),
+        );
+    }
+
+    public function test_a_name_cannot_claim_to_be_something_the_bytes_are_not(): void
+    {
+        $disposition = $this->get($this->private('avatars', base64_decode(self::PNG)), 'evil.php')
+            ->getHeaderLine('Content-Disposition');
+
+        $this->assertStringContainsString("filename*=UTF-8''evil.php.png", $disposition);
+    }
+
+    public function test_a_name_cannot_break_out_of_the_header(): void
+    {
+        $disposition = $this->get($this->private('files', "just a note\n"), "a\r\nX-Evil: 1.txt")
+            ->getHeaderLine('Content-Disposition');
+
+        $this->assertStringNotContainsString("\r", $disposition);
+        $this->assertStringNotContainsString("\n", $disposition);
+        $this->assertStringContainsString("filename*=UTF-8''aX-Evil%3A%201.txt", $disposition);
+    }
+
+    public function test_with_no_name_kept_a_file_is_saved_under_its_key(): void
+    {
+        $key = $this->private('avatars', base64_decode(self::PNG));
+
+        $this->assertStringContainsString(
+            'filename="' . basename($key) . '"',
+            $this->get($key)->getHeaderLine('Content-Disposition'),
+        );
     }
 
     public function test_a_public_file_is_not_served_here(): void
@@ -130,10 +168,12 @@ final class FileControllerTest extends TestCase
         );
     }
 
-    private function get(string $key): ResponseInterface
+    private function get(string $key, ?string $name = null): ResponseInterface
     {
+        $query = $name === null ? ['key' => $key] : ['key' => $key, 'name' => $name];
+
         return $this->controller->show(
-            (new Psr17Factory)->createServerRequest('GET', '/admin/files')->withQueryParams(['key' => $key]),
+            (new Psr17Factory)->createServerRequest('GET', '/admin/files')->withQueryParams($query),
         );
     }
 }

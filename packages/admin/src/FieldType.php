@@ -18,4 +18,5 @@ enum FieldType: string
     case Boolean = 'boolean';
     case DateTime = 'datetime';
     case Image = 'image';
+    case File = 'file';
 }

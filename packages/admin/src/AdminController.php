@@ -818,6 +818,10 @@ final class AdminController
         foreach ($screen->controls() as $control) {
             if ($control->isFile()) {
                 $submitted[$control->name()] = $before[$control->name()] ?? null;
+
+                if (($nameColumn = $control->nameColumn()) !== null) {
+                    $submitted[$nameColumn] = $before[$nameColumn] ?? null;
+                }
             }
         }
 
@@ -829,6 +833,11 @@ final class AdminController
      * stored under, and the keys stored, so a write that then fails can take
      * them with it.
      *
+     * A control that keeps its file's name gets that column too, and always
+     * alongside the key: a new file brings its name, a cleared one clears it,
+     * and a file left alone leaves both columns out, so the two never drift
+     * apart.
+     *
      * @param array<string, mixed> $validated
      * @return array{0: array<string, mixed>, 1: list<string>}
      */
@@ -837,14 +846,29 @@ final class AdminController
         $stored = [];
 
         foreach ($screen->controls() as $control) {
-            $upload = $validated[$control->name()] ?? null;
+            $name = $control->name();
 
-            if (!$control->isFile() || !$upload instanceof UploadedFileInterface) {
+            if (!$control->isFile() || !array_key_exists($name, $validated)) {
+                continue;
+            }
+
+            $upload = $validated[$name];
+            $nameColumn = $control->nameColumn();
+
+            if (!$upload instanceof UploadedFileInterface) {
+                if ($nameColumn !== null) {
+                    $validated[$nameColumn] = null;
+                }
+
                 continue;
             }
 
             try {
-                $validated[$control->name()] = $stored[] = $this->uploads()->storeFor($control, $upload);
+                $validated[$name] = $stored[] = $this->uploads()->storeFor($control, $upload);
+
+                if ($nameColumn !== null) {
+                    $validated[$nameColumn] = $this->uploads()->nameFor($upload, $validated[$name]);
+                }
             } catch (Throwable $failure) {
                 $this->discard($stored);
 

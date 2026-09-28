@@ -12,7 +12,7 @@ use Hydra\Admin\Screens\DeleteScreen;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\ShowScreen;
 
-/** Users with a picture: one file control, on the create and edit forms alike. */
+/** Users with a picture: one file control, on the create and edit forms alike, that keeps the name it was uploaded as. */
 final class AvatarUsersModule implements ModuleInterface
 {
     public function define(): Definition
@@ -24,7 +24,7 @@ final class AvatarUsersModule implements ModuleInterface
             ->defaultSort('id', 'asc')
             ->fields(
                 Field::id()->sortable(),
-                Field::image('avatar')->fallbackIcon('person-circle'),
+                Field::image('avatar')->fallbackIcon('person-circle')->nameFrom('avatar_name'),
                 Field::text('username'),
             )
             ->screens(
@@ -48,6 +48,7 @@ final class AvatarUsersModule implements ModuleInterface
             ->accepts('image/png', 'image/jpeg')
             ->maxSize(1024)
             ->removable()
+            ->keepsName()
             ->help('PNG or JPEG, up to 1 KB.');
     }
 }

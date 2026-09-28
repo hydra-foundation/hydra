@@ -32,6 +32,7 @@ final class Input
     private ?string $directory = null;
     private bool $public = false;
     private bool $removable = false;
+    private ?string $nameColumn = null;
 
     /** @var list<string> */
     private array $accepted = [];
@@ -217,6 +218,27 @@ final class Input
         return $clone;
     }
 
+    /**
+     * Keep the name the file was uploaded under, in $column beside the key
+     * ("{name}_name" when none is given). The source is handed it on the same
+     * write as the key, so it has to be a column the source writes. Without
+     * this, the name is not kept and a download is called what its key is.
+     */
+    public function keepsName(?string $column = null): self
+    {
+        $clone = $this->onlyFile(__FUNCTION__);
+        $clone->nameColumn = $column ?? $this->name . '_name';
+
+        if ($clone->nameColumn === $this->name) {
+            throw new LogicException(sprintf(
+                'Input "%s" cannot keep its file\'s name in the column that holds its key.',
+                $this->name,
+            ));
+        }
+
+        return $clone;
+    }
+
     public function name(): string
     {
         return $this->name;
@@ -282,6 +304,12 @@ final class Input
     public function isRemovable(): bool
     {
         return $this->removable;
+    }
+
+    /** Where the uploaded file's name is kept, or null when it is not. */
+    public function nameColumn(): ?string
+    {
+        return $this->nameColumn;
     }
 
     /** The name the remove box posts under. */

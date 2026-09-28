@@ -6,6 +6,8 @@ namespace Hydra\Admin;
 
 use Hydra\Filesystem\Exceptions\FileNotFound;
 use Hydra\Filesystem\Exceptions\InvalidKey;
+use Hydra\Filesystem\Filename;
+use Hydra\Http\ContentDisposition;
 use Hydra\Http\Exceptions\NotFoundException;
 use Hydra\Http\Query;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -21,6 +23,11 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  * The key is a query parameter rather than a path. It holds slashes, which a
  * route parameter does not match, and it ends in ".png", which a web server's
  * static-file rules answer with a 404 before PHP is ever asked.
+ *
+ * So is the name a download is saved under, when one was kept: the route has
+ * the key and no row to look it up in. Anyone who edits it renames only their
+ * own copy, and it is cleaned again here, against the type the disk finds, so
+ * what it claims to be is still what it is.
  */
 final class FileController
 {
@@ -38,7 +45,8 @@ final class FileController
 
     public function show(Request $request): Response
     {
-        $qualified = Query::fromRequest($request)->string('key');
+        $query = Query::fromRequest($request);
+        $qualified = $query->string('key');
         $disks = $this->uploads?->disks() ?? throw new NotFoundException;
 
         try {
@@ -59,7 +67,10 @@ final class FileController
             ->withBody($stream)
             ->withHeader('Content-Type', $type)
             ->withHeader('Content-Length', (string) $size)
-            ->withHeader('Content-Disposition', in_array($type, self::INLINE, true) ? 'inline' : 'attachment')
+            ->withHeader('Content-Disposition', ContentDisposition::header(
+                in_array($type, self::INLINE, true) ? ContentDisposition::INLINE : ContentDisposition::ATTACHMENT,
+                Filename::clean($query->string('name'), $type) ?? basename($key),
+            ))
             ->withHeader('X-Content-Type-Options', 'nosniff')
             // Should a browser render it anyway, as a page it can do nothing.
             ->withHeader('Content-Security-Policy', "default-src 'none'; sandbox")

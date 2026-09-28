@@ -24,13 +24,18 @@ final readonly class FileUrls
         private ?Disks $disks = null,
     ) {}
 
-    public function url(string $qualified): ?string
+    /**
+     * $name is what the file was uploaded as, when it was kept. A private file
+     * is downloaded under it; a public one is the web server's to serve, at a
+     * URL made of its key alone.
+     */
+    public function url(string $qualified, ?string $name = null): ?string
     {
         try {
             if ($this->disks !== null) {
                 [$disk, $key] = $this->disks->locate($qualified);
 
-                return $disk instanceof PublicStorageInterface ? $disk->url($key) : $this->privateUrl($qualified);
+                return $disk instanceof PublicStorageInterface ? $disk->url($key) : $this->privateUrl($qualified, $name);
             }
 
             // With no disks bound, a private key still names the admin's
@@ -38,7 +43,7 @@ final readonly class FileUrls
             if (str_starts_with($qualified, Disks::PRIVATE . ':')) {
                 Key::valid(substr($qualified, strlen(Disks::PRIVATE) + 1));
 
-                return $this->privateUrl($qualified);
+                return $this->privateUrl($qualified, $name);
             }
         } catch (InvalidKey) {
         }
@@ -56,8 +61,10 @@ final readonly class FileUrls
         return in_array(strtolower(pathinfo($qualified, PATHINFO_EXTENSION)), self::IMAGES, true);
     }
 
-    private function privateUrl(string $qualified): string
+    private function privateUrl(string $qualified, ?string $name): string
     {
-        return rtrim($this->prefix, '/') . '/files?key=' . rawurlencode($qualified);
+        $url = rtrim($this->prefix, '/') . '/files?key=' . rawurlencode($qualified);
+
+        return $name === null || $name === '' ? $url : $url . '&name=' . rawurlencode($name);
     }
 }
