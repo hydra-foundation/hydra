@@ -279,39 +279,22 @@ if [ -f "$DIR/hydra/$NOTES" ]; then
     fi
 fi
 
-# The documentation site is hand-written static HTML with no build step, and
-# every stylesheet and script is referenced as ?v=<first 8 of the file's md5>.
-# That key is kept by hand, so it drifts in one direction only and in silence:
-# an edited asset published under its old key is served from cache, so the page
-# looks right to whoever just wrote it and stale to everybody who had visited
-# before. search.js drifted across v0.5.5 and shipped a search index no
-# returning reader ever saw.
+# The documentation site is built: bin/wiki renders its content/ and this
+# repository's changes/ into public/, which is committed and served as it
+# stands. A source edited without a rebuild, or a page edited in public/ where
+# the next build will overwrite it, is published wrong or not at all, and in
+# silence. --check builds elsewhere and names every file that would change.
 #
 # A warning rather than a refusal. The wiki is neither of the repositories
 # being tagged, it is live whatever this script decides, and a release that is
 # otherwise correct should not be held for it.
-WIKI="${HYDRA_WIKI_DIR:-$DIR/wiki}/public"
+WIKI_DIR="${HYDRA_WIKI_DIR:-$DIR/wiki}"
+WIKI="$WIKI_DIR/public"
 
-if [ -d "$WIKI" ] && command -v md5sum >/dev/null 2>&1; then
-    stale=()
-
-    while IFS= read -r ref; do
-        asset="${ref%%\?v=*}"
-        key="${ref##*\?v=}"
-
-        if [ ! -f "$WIKI/$asset" ]; then
-            stale+=("$asset is referenced but not there")
-            continue
-        fi
-
-        actual=$(md5sum "$WIKI/$asset" | cut -c1-8)
-        [ "$key" = "$actual" ] || stale+=("$asset: pages say ?v=$key, the file is $actual")
-    done < <(grep -rhoE '[A-Za-z0-9_/.-]+\.(css|js)\?v=[0-9a-f]+' --include='*.html' "$WIKI" | sort -u)
-
-    if [ ${#stale[@]} -gt 0 ]; then
-        printf '\nWiki cache keys are stale — returning readers are served the old file:\n' >&2
-        printf '  - %s\n' "${stale[@]}" >&2
-        printf 'Fix under %s; the release is not blocked by this.\n' "$WIKI" >&2
+if [ -x "$WIKI_DIR/bin/wiki" ]; then
+    if ! stale=$("$WIKI_DIR/bin/wiki" build --check --hydra="$DIR/hydra" 2>&1); then
+        printf '\nThe wiki is out of date with its sources:\n%s\n' "$stale" >&2
+        printf 'Run bin/wiki build in %s and commit it; the release is not blocked by this.\n' "$WIKI_DIR" >&2
     fi
 fi
 
@@ -331,7 +314,7 @@ echo "Plan for $TAG:"
 n=$([ "$DO_MINOR" -eq 1 ] && echo 1 || echo 0)
 echo "  $((n + 1)). tag hydra $TAG and push $BRANCH + tag"
 echo "  $((n + 2)). the split workflow regenerates the ${#PACKAGES[@]} package repos at $TAG"
-echo "  $((n + 3)). wait for Packagist to index all ${#PACKAGES[@]} at $TAG, then write version.json$([ "$DO_SECURITY" -eq 1 ] && echo " marking it a security fix")"
+echo "  $((n + 3)). wait for Packagist to index all ${#PACKAGES[@]} at $TAG, then write version.json$([ "$DO_SECURITY" -eq 1 ] && echo " marking it a security fix") and rebuild the wiki"
 echo "  $((n + 4)). refresh app's lock onto $TAG and verify the skeleton against it"
 echo "  $((n + 5)). commit the lock, tag app $TAG and push"
 
@@ -403,11 +386,26 @@ done
 
 # What the admin's update check reads. Not before Packagist has the tag, or
 # every install is told to upgrade to a release composer cannot find yet.
+#
+# The wiki is rebuilt at the same moment: its changelog shows a release only
+# once version.json names it, so the notes and the feed go out together. It is
+# left uncommitted; publishing it is the steps printed at the end.
+WIKI_BUILT=0
 if [ -d "$WIKI" ]; then
-    php "$DIR/hydra/bin/version-feed.php" "$WIKI/version.json" "$VERSION" \
-        $([ "$DO_SECURITY" -eq 1 ] && echo --security) \
-        && echo "  version.json names $TAG" \
-        || echo "warning: version.json was not updated; installs will not hear of $TAG" >&2
+    if php "$DIR/hydra/bin/version-feed.php" "$WIKI/version.json" "$VERSION" \
+        $([ "$DO_SECURITY" -eq 1 ] && echo --security); then
+        echo "  version.json names $TAG"
+        if [ ! -x "$WIKI_DIR/bin/wiki" ]; then
+            echo "warning: no bin/wiki in $WIKI_DIR; the wiki was not rebuilt" >&2
+        elif "$WIKI_DIR/bin/wiki" build --hydra="$DIR/hydra" >/dev/null; then
+            WIKI_BUILT=1
+            echo "  the wiki is rebuilt with $TAG's notes"
+        else
+            echo "warning: bin/wiki build failed; the wiki does not show $TAG yet" >&2
+        fi
+    else
+        echo "warning: version.json was not updated; installs will not hear of $TAG" >&2
+    fi
 else
     echo "warning: no wiki at $WIKI; version.json was not updated" >&2
 fi
@@ -461,3 +459,16 @@ The skeleton still ships no composer.lock: .gitattributes marks it
 export-ignore, so create-project resolves the constraints fresh. The tracked
 lock is what this checkout and app's CI install from, and it is now current.
 EOF
+
+if [ "$WIKI_BUILT" -eq 1 ]; then
+    cat <<EOF
+
+The wiki is rebuilt but not published; nothing here pushes it. In $WIKI_DIR:
+
+  git add -A && git commit -m "docs: $TAG"
+  merge it into main and push
+  git pull on prod, where Caddy serves public/ as committed
+
+Until then, installs are told of $TAG and its notes are not up yet.
+EOF
+fi

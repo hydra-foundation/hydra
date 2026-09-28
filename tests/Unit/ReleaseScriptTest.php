@@ -36,9 +36,6 @@ final class ReleaseScriptTest extends TestCase
 
     private const WITH_AN_ADDITION = '<?php namespace Acme; final class Thing { public function kept(): void {} public function dropped(): void {} public function added(): void {} }';
 
-    /** The fixture wiki's one asset, so a test can state the key its bytes actually hash to. */
-    private const ASSET = "(function () { 'use strict'; }());\n";
-
     private string $dir;
 
     protected function setUp(): void
@@ -111,32 +108,36 @@ final class ReleaseScriptTest extends TestCase
         );
     }
 
-    public function test_a_stale_wiki_cache_key_warns_without_blocking_the_release(): void
+    public function test_a_wiki_out_of_date_with_its_sources_warns_without_blocking_the_release(): void
     {
         $this->commit(self::WITH_AN_ADDITION);
-        $this->wiki('deadbeef');
+        $this->wiki(stale: true);
 
         [$status, $output] = $this->release('0.5.1');
 
-        $this->assertStringContainsString('Wiki cache keys are stale', $output);
-        $this->assertStringContainsString('pages say ?v=deadbeef', $output);
+        $this->assertStringContainsString('The wiki is out of date with its sources:', $output);
+        $this->assertStringContainsString('bin/wiki build would change 1 file', $output);
+        $this->assertStringContainsString('docs/mail.html', $output);
+        // Asked about this monorepo's changes/, not whatever sits beside the wiki.
+        $this->assertSame("build --check --hydra={$this->dir}/hydra\n", file_get_contents($this->dir . '/wiki-args'));
 
         // The whole point of the check being a warning: the wiki is neither
-        // repository being tagged, so a drifted key must not cost a release
-        // that is otherwise correct.
+        // repository being tagged, so a page out of date must not cost a
+        // release that is otherwise correct.
         $this->assertSame(0, $status, $output);
         $this->assertStringContainsString('Dry run — nothing written.', $output);
     }
 
-    public function test_a_wiki_whose_keys_match_says_nothing(): void
+    public function test_a_wiki_up_to_date_says_nothing(): void
     {
         $this->commit(self::WITH_AN_ADDITION);
-        $this->wiki(substr(md5(self::ASSET), 0, 8));
+        $this->wiki(stale: false);
 
         [$status, $output] = $this->release('0.5.1');
 
         $this->assertSame(0, $status, $output);
-        $this->assertStringNotContainsString('Wiki cache keys', $output);
+        $this->assertStringNotContainsString('The wiki is out of date', $output);
+        $this->assertStringContainsString('then write version.json and rebuild the wiki', $output);
     }
 
     public function test_a_dirty_working_tree_is_refused(): void
@@ -289,20 +290,18 @@ final class ReleaseScriptTest extends TestCase
     }
 
     /**
-     * A documentation site of one page and one script, with the page naming
-     * the script under $key. The real site keeps that key by hand, which is
-     * the whole reason the gate looks at it.
+     * A wiki whose bin/wiki answers --check one way or the other, as the real
+     * one does, and writes down what it was asked.
      */
-    private function wiki(string $key): void
+    private function wiki(bool $stale): void
     {
-        mkdir($this->dir . '/wiki/public/assets/js', 0o775, true);
-        mkdir($this->dir . '/wiki/public/docs', 0o775, true);
+        mkdir($this->dir . '/wiki/public', 0o775, true);
+        mkdir($this->dir . '/wiki/bin', 0o775, true);
 
-        file_put_contents($this->dir . '/wiki/public/assets/js/search.js', self::ASSET);
-        file_put_contents(
-            $this->dir . '/wiki/public/docs/index.html',
-            sprintf('<script src="/assets/js/search.js?v=%s" defer></script>', $key),
-        );
+        $answer = $stale
+            ? "echo ' [ERROR] public/ is out of date: bin/wiki build would change 1 file.'\necho ' * docs/mail.html'\nexit 1"
+            : "echo ' [OK] public/ is up to date with its sources.'";
+        $this->script($this->dir . '/wiki/bin/wiki', "#!/bin/sh\necho \"\$*\" > {$this->arg($this->dir . '/wiki-args')}\n{$answer}\n");
     }
 
     /**
