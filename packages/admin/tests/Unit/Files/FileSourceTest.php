@@ -153,7 +153,7 @@ final class FileSourceTest extends TestCase
 
         $page = $this->source->page(new Criteria(filters: ['disk' => 'public']));
 
-        $this->assertSame('2 files · 3 KB (private 2 KB, public 1 KB)', $page->note);
+        $this->assertSame('2 files · 3.0KB (private 2.0KB, public 1.0KB)', $page->note);
     }
 
     public function test_an_empty_storage_lists_nothing(): void
@@ -161,7 +161,7 @@ final class FileSourceTest extends TestCase
         $page = $this->source->page(new Criteria);
 
         $this->assertSame([], $page->rows);
-        $this->assertSame('0 files · 0 B (private 0 B, public 0 B)', $page->note);
+        $this->assertSame('0 files · 0B (private 0B, public 0B)', $page->note);
     }
 
     public function test_find_answers_one_file_with_what_uses_it(): void

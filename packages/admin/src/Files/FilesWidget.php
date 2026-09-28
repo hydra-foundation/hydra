@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Files;
 
-use Hydra\Admin\Bytes;
+use Hydra\Admin\Widgets\Readable;
 use Hydra\Admin\Contracts\PresenterInterface;
 use Hydra\Admin\ModuleRegistry;
 
@@ -36,19 +36,19 @@ final class FilesWidget implements PresenterInterface
         foreach ($summary['disks'] as $disk => $tally) {
             $total += $tally['files'];
             $bytes += $tally['bytes'];
-            $disks[] = ['disk' => $disk, 'files' => $tally['files'], 'size' => Bytes::human($tally['bytes'])];
+            $disks[] = ['disk' => $disk, 'files' => $tally['files'], 'size' => Readable::bytes($tally['bytes'])];
         }
 
         return [
             'files' => $total,
-            'size' => Bytes::human($bytes),
+            'size' => Readable::bytes($bytes),
             'disks' => $disks,
             'orphans' => $summary['orphans'],
             'url' => $root,
             'orphansUrl' => $root === null ? null : $root . '?status=' . FileSource::ORPHAN,
             'newest' => array_map(fn (array $row): array => [
                 'name' => (string) $row['name'],
-                'size' => Bytes::human((int) $row['size']),
+                'size' => Readable::bytes((int) $row['size']),
                 'modified_at' => (string) $row['modified_at'],
                 'url' => $blueprint === null ? null : $this->modules->rowUrl($blueprint, 'show', (string) $row['id']),
             ], $summary['newest']),

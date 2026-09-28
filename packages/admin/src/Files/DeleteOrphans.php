@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Files;
 
-use Hydra\Admin\Bytes;
+use Hydra\Admin\Widgets\Readable;
 use Hydra\Admin\Contracts\ModuleActionInterface;
 use Hydra\Filesystem\Disks;
 use Psr\Log\LoggerInterface;
@@ -73,7 +73,7 @@ final class DeleteOrphans implements ModuleActionInterface
             'Deleted %d orphaned %s (%s).',
             $deleted,
             $deleted === 1 ? 'file' : 'files',
-            Bytes::human($bytes),
+            Readable::bytes($bytes),
         );
 
         return $failed === 0 ? $message : $message . sprintf(' %d could not be deleted; the log says why.', $failed);

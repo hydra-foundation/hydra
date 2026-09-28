@@ -63,10 +63,10 @@ final class FilesWidgetTest extends TestCase
         $view = $this->widget->present();
 
         $this->assertSame(3, $view['files']);
-        $this->assertSame('3.5 KB', $view['size']);
+        $this->assertSame('3.5KB', $view['size']);
         $this->assertSame([
-            ['disk' => 'private', 'files' => 2, 'size' => '3 KB'],
-            ['disk' => 'public', 'files' => 1, 'size' => '512 B'],
+            ['disk' => 'private', 'files' => 2, 'size' => '3.0KB'],
+            ['disk' => 'public', 'files' => 1, 'size' => '512B'],
         ], $view['disks']);
         $this->assertSame(1, $view['orphans']);
         $this->assertSame('/admin/files?status=orphan', $view['orphansUrl']);
@@ -86,7 +86,7 @@ final class FilesWidgetTest extends TestCase
         $this->assertCount(5, $newest);
         $this->assertSame(array_map(basename(...), array_reverse(array_slice($keys, 2))), array_column($newest, 'name'));
         $this->assertSame('/admin/files/' . FileId::of($keys[6]), $newest[0]['url']);
-        $this->assertSame('6 B', $newest[0]['size']);
+        $this->assertSame('6B', $newest[0]['size']);
         $this->assertSame((string) ($this->clock->now()->getTimestamp() - self::DAY), $newest[0]['modified_at']);
     }
 
@@ -94,7 +94,7 @@ final class FilesWidgetTest extends TestCase
     {
         $view = $this->widget->present();
 
-        $this->assertSame([0, '0 B', 0, []], [$view['files'], $view['size'], $view['orphans'], $view['newest']]);
+        $this->assertSame([0, '0B', 0, []], [$view['files'], $view['size'], $view['orphans'], $view['newest']]);
     }
 
     private function store(string $disk, int $age, string $bytes): string

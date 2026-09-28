@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Files;
 
-use Hydra\Admin\Bytes;
+use Hydra\Admin\Widgets\Readable;
 use Hydra\Admin\Contracts\DeleteSourceInterface;
 use Hydra\Admin\Contracts\DescribesColumnsInterface;
 use Hydra\Admin\Contracts\FileHolderInterface;
@@ -69,9 +69,9 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
             '%d %s · %s (private %s, public %s)',
             count($rows),
             count($rows) === 1 ? 'file' : 'files',
-            Bytes::human(array_sum($bytes)),
-            Bytes::human($bytes[Disks::PRIVATE]),
-            Bytes::human($bytes[Disks::PUBLIC]),
+            Readable::bytes(array_sum($bytes)),
+            Readable::bytes($bytes[Disks::PRIVATE]),
+            Readable::bytes($bytes[Disks::PUBLIC]),
         );
 
         $rows = array_values(array_filter($rows, static fn (array $row): bool => self::matches($row, $criteria)));

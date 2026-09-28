@@ -50,7 +50,7 @@ final class DeleteOrphansTest extends TestCase
 
         $message = $this->action()->run();
 
-        $this->assertSame('Deleted 2 orphaned files (1.5 KB).', $message);
+        $this->assertSame('Deleted 2 orphaned files (1.5KB).', $message);
         $this->assertFalse($this->exists($private));
         $this->assertFalse($this->exists($public));
     }
@@ -59,7 +59,7 @@ final class DeleteOrphansTest extends TestCase
     {
         $this->store(Disks::PRIVATE, 2 * self::DAY, 'a');
 
-        $this->assertSame('Deleted 1 orphaned file (1 B).', $this->action()->run());
+        $this->assertSame('Deleted 1 orphaned file (1B).', $this->action()->run());
     }
 
     public function test_a_referenced_file_and_a_new_one_are_kept(): void
@@ -85,7 +85,7 @@ final class DeleteOrphansTest extends TestCase
 
         $this->assertTrue($this->exists($taken), 'A file a row took up after the orphans were found was deleted.');
         $this->assertFalse($this->exists($orphan));
-        $this->assertSame('Deleted 1 orphaned file (6 B).', $message);
+        $this->assertSame('Deleted 1 orphaned file (6B).', $message);
         $this->assertSame(2, $holder->reads);
     }
 
@@ -106,7 +106,7 @@ final class DeleteOrphansTest extends TestCase
 
         $message = (new DeleteOrphans($references, $disks, $log))->run();
 
-        $this->assertSame('Deleted 1 orphaned file (6 B). 1 could not be deleted; the log says why.', $message);
+        $this->assertSame('Deleted 1 orphaned file (6B). 1 could not be deleted; the log says why.', $message);
         $this->assertTrue($this->exists($private));
         $this->assertFalse($this->exists($public));
         $this->assertSame(['Could not delete an orphaned file.'], $log->warnings);
