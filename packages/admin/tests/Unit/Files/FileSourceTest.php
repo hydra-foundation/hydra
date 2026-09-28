@@ -129,7 +129,8 @@ final class FileSourceTest extends TestCase
 
         $byName = array_column($this->rows(sort: 'name', direction: 'asc'), 'name');
         $sorted = $byName;
-        sort($sorted);
+        // Natural order, the way a person reads "file 9" before "file 10".
+        usort($sorted, strnatcasecmp(...));
         $this->assertSame($sorted, $byName);
     }
 
@@ -244,6 +245,13 @@ final class FileSourceTest extends TestCase
         $this->assertSame(422, $response->getStatusCode());
         $this->assertStringContainsString('Users #2 · avatar still uses this file.', (string) $response->getBody());
         $this->assertTrue($this->exists($avatar));
+    }
+
+    public function test_it_describes_exactly_the_columns_its_rows_have(): void
+    {
+        $this->store(Disks::PRIVATE, 'docs', self::DAY);
+
+        $this->assertSame(array_keys($this->rows()[0]), $this->source->describe()->columns);
     }
 
     /**

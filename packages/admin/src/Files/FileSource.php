@@ -6,6 +6,7 @@ namespace Hydra\Admin\Files;
 
 use Hydra\Admin\Bytes;
 use Hydra\Admin\Contracts\DeleteSourceInterface;
+use Hydra\Admin\Contracts\DescribesColumnsInterface;
 use Hydra\Admin\Contracts\FileHolderInterface;
 use Hydra\Admin\Contracts\RowSourceInterface;
 use Hydra\Admin\Contracts\SourceInterface;
@@ -13,6 +14,7 @@ use Hydra\Admin\Criteria;
 use Hydra\Admin\Exceptions\WriteRejected;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Page;
+use Hydra\Admin\SourceDescription;
 use Hydra\Filesystem\Disks;
 use Hydra\Filesystem\StoredFile;
 
@@ -28,11 +30,17 @@ use Hydra\Filesystem\StoredFile;
  * A file in use is never deleted from here: the row that uses it is where it
  * goes, and that row's own form already takes the file with it.
  */
-final class FileSource implements SourceInterface, RowSourceInterface, DeleteSourceInterface, FileHolderInterface
+final class FileSource implements SourceInterface, RowSourceInterface, DeleteSourceInterface, FileHolderInterface, DescribesColumnsInterface
 {
     public const IN_USE = 'in_use';
     public const ORPHAN = 'orphan';
     public const NEW = 'new';
+
+    /** Every column a row has, in the order {@see row()} builds them. */
+    public const COLUMNS = [
+        'id', 'key', 'preview', 'download', 'disk', 'name', 'type', 'kind',
+        'size', 'modified_at', 'status', 'uses', 'used_by',
+    ];
 
     /** @var array<string, true> */
     private const ARCHIVES = [
@@ -143,6 +151,19 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
         // Not through Uploads, which logs a failure and carries on: here a
         // failure has to reach the admin, who asked for exactly this.
         $disk->delete($key);
+    }
+
+    /** For admin:check. There is no table: the "table" is the two disks. */
+    public function describe(): SourceDescription
+    {
+        return new SourceDescription(
+            table: 'disks',
+            columns: self::COLUMNS,
+            sortable: ['name', 'size', 'modified_at', 'uses'],
+            searchable: ['name', 'key'],
+            filterable: ['disk', 'kind', 'status'],
+            defaultSort: 'modified_at',
+        );
     }
 
     /**
