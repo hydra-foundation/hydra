@@ -7,7 +7,9 @@ namespace Hydra\Admin\Tests\Unit\Files;
 use Hydra\Admin\Contracts\FileHolderInterface;
 use Hydra\Admin\Contracts\ModuleInterface;
 use Hydra\Admin\Extractor;
+use DateTimeImmutable;
 use Hydra\Admin\Files\FileReferences;
+use Hydra\Admin\Files\Orphan;
 use Hydra\Admin\Files\Reference;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Tests\Support\ArraySource;
@@ -21,22 +23,33 @@ use Hydra\Admin\Tests\Support\NoFilesModule;
 use Hydra\Admin\Tests\Support\TemporaryDisks;
 use Hydra\Admin\Tests\Support\UnnumberedModule;
 use Hydra\Core\Testing\FakeContainer;
+use Hydra\Core\Testing\FrozenClock;
+use Hydra\Filesystem\Disks;
+use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 #[CoversClass(FileReferences::class)]
 #[CoversClass(Reference::class)]
+#[CoversClass(Orphan::class)]
 final class FileReferencesTest extends TestCase
 {
     private const AVATAR = 'private:avatars/0123456789abcdef0123456789abcdef.png';
     private const MANUAL = 'private:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.pdf';
     private const COVER = 'public:covers/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png';
 
+    private const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+    private const DAY = 86_400;
+
     private TemporaryDisks $disks;
+    private FrozenClock $clock;
 
     protected function setUp(): void
     {
         $this->disks = new TemporaryDisks;
+        $this->clock = new FrozenClock(new DateTimeImmutable('@' . time()));
     }
 
     protected function tearDown(): void
@@ -148,6 +161,151 @@ final class FileReferencesTest extends TestCase
         $this->assertEquals([new Reference(self::MANUAL, 'unnumbered', null, 'doc', null)], $references);
     }
 
+    public function test_to_answers_every_reference_to_one_key(): void
+    {
+        $files = $this->files([DocumentsModule::class => new DocumentsModule], [
+            'documents.source' => new ArraySource([
+                ['id' => 1, 'attachment' => self::MANUAL, 'attachment_name' => 'Manual.pdf'],
+                ['id' => 2, 'attachment' => self::MANUAL],
+                ['id' => 3, 'cover' => self::COVER],
+            ]),
+        ]);
+
+        $this->assertEquals([
+            new Reference(self::MANUAL, 'documents', '1', 'attachment', 'Manual.pdf'),
+            new Reference(self::MANUAL, 'documents', '2', 'attachment', null),
+        ], $files->to(self::MANUAL));
+        $this->assertSame([], $files->to('private:docs/cccccccccccccccccccccccccccccccc.pdf'));
+    }
+
+    public function test_an_unreferenced_file_past_the_grace_period_is_an_orphan(): void
+    {
+        $key = $this->stored(Disks::PRIVATE, 'docs', self::DAY + 1);
+
+        $orphans = $this->orphans($this->files([], []));
+
+        $this->assertSame([$key], array_map(static fn (Orphan $orphan): string => $orphan->qualified, $orphans));
+        $this->assertSame(substr($key, strlen('private:')), $orphans[0]->file->key);
+        $this->assertSame('image/png', $orphans[0]->file->mimeType);
+    }
+
+    public function test_a_file_exactly_the_grace_period_old_is_an_orphan_and_one_second_younger_is_not(): void
+    {
+        $old = $this->stored(Disks::PRIVATE, 'docs', self::DAY);
+        $this->stored(Disks::PRIVATE, 'docs', self::DAY - 1);
+
+        $this->assertSame([$old], $this->qualified($this->orphans($this->files([], []))));
+    }
+
+    public function test_a_file_stored_moments_ago_is_not_an_orphan_yet(): void
+    {
+        // A form stores its file before its row is written: every upload is
+        // briefly referenced by nothing.
+        $this->stored(Disks::PRIVATE, 'avatars', 0);
+
+        $this->assertSame([], $this->orphans($this->files([], [])));
+    }
+
+    public function test_a_referenced_file_is_never_an_orphan_however_old(): void
+    {
+        $key = $this->stored(Disks::PRIVATE, 'docs', 365 * self::DAY);
+
+        $files = $this->files([DocumentsModule::class => new DocumentsModule], [
+            'documents.source' => new ArraySource([['id' => 1, 'attachment' => $key]]),
+        ]);
+
+        $this->assertSame([], $this->orphans($files));
+    }
+
+    public function test_both_disks_are_walked_and_keys_are_compared_with_their_disk(): void
+    {
+        $private = $this->stored(Disks::PRIVATE, 'covers', 2 * self::DAY);
+        $public = $this->stored(Disks::PUBLIC, 'covers', 2 * self::DAY);
+        // The private file's key, but on the public disk: not the same file.
+        $elsewhere = 'public:' . substr($private, strlen('private:'));
+
+        $files = $this->files([], [], [new HoldingSource([new Reference($elsewhere, 'BlogImages')])]);
+
+        $this->assertEqualsCanonicalizing([$private, $public], $this->qualified($this->orphans($files)));
+    }
+
+    public function test_the_grace_period_can_be_set(): void
+    {
+        $key = $this->stored(Disks::PRIVATE, 'docs', 3601);
+        $registry = new ModuleRegistry(new FakeContainer([]), []);
+
+        $files = new FileReferences($registry, $this->disks->disks, $this->clock, graceSeconds: 3600);
+
+        $this->assertSame([$key], $this->qualified($this->orphans($files)));
+    }
+
+    public function test_a_source_that_cannot_be_read_stops_the_search_before_any_orphan(): void
+    {
+        $this->stored(Disks::PRIVATE, 'docs', 2 * self::DAY);
+        $files = $this->files([DocumentsModule::class => new DocumentsModule], [
+            'documents.source' => new ExplodingSource,
+        ]);
+
+        $this->assertNothingYieldedBeforeFailing($files);
+    }
+
+    public function test_a_holder_that_fails_stops_the_search_before_any_orphan(): void
+    {
+        $this->stored(Disks::PRIVATE, 'docs', 2 * self::DAY);
+        $failing = new class implements FileHolderInterface {
+            public function references(): iterable
+            {
+                yield new Reference('private:docs/dddddddddddddddddddddddddddddddd.pdf', 'first');
+
+                throw new RuntimeException('The holder failed partway.');
+            }
+        };
+
+        $this->assertNothingYieldedBeforeFailing($this->files([], [], [$failing]));
+    }
+
+    private function assertNothingYieldedBeforeFailing(FileReferences $files): void
+    {
+        $yielded = [];
+
+        try {
+            foreach ($files->orphans() as $orphan) {
+                $yielded[] = $orphan;
+            }
+
+            $this->fail('An incomplete set of references was used to find orphans.');
+        } catch (RuntimeException $failure) {
+            $this->assertNotSame('An incomplete set of references was used to find orphans.', $failure->getMessage());
+        }
+
+        $this->assertSame([], $yielded);
+    }
+
+    /** A PNG on the disk, $age seconds old by its modified time. Returns its qualified key. */
+    private function stored(string $disk, string $directory, int $age): string
+    {
+        $key = $this->disks->disks->get($disk)->put($directory, (new Psr17Factory)->createStream(base64_decode(self::PNG)));
+        touch($this->disks->root . '/' . $disk . '/' . $key, $this->clock->now()->getTimestamp() - $age);
+        clearstatcache();
+
+        return $this->disks->disks->qualify($disk, $key);
+    }
+
+    /** @return list<Orphan> */
+    private function orphans(FileReferences $files): array
+    {
+        return iterator_to_array($files->orphans(), false);
+    }
+
+    /**
+     * @param list<Orphan> $orphans
+     * @return list<string>
+     */
+    private function qualified(array $orphans): array
+    {
+        return array_map(static fn (Orphan $orphan): string => $orphan->qualified, $orphans);
+    }
+
     /**
      * @param array<class-string<ModuleInterface>, ModuleInterface> $modules
      * @param array<string, object> $services
@@ -168,6 +326,6 @@ final class FileReferencesTest extends TestCase
     {
         $registry = new ModuleRegistry(new FakeContainer([...$modules, ...$services]), array_keys($modules));
 
-        return new FileReferences($registry, $this->disks->disks, $holders);
+        return new FileReferences($registry, $this->disks->disks, $this->clock, $holders);
     }
 }

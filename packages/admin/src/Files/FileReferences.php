@@ -14,6 +14,7 @@ use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Filesystem\Disks;
 use Hydra\Filesystem\Exceptions\InvalidKey;
+use Psr\Clock\ClockInterface;
 
 /**
  * Which rows point at which stored files, found by reading them: every column a
@@ -23,12 +24,77 @@ use Hydra\Filesystem\Exceptions\InvalidKey;
  */
 final class FileReferences
 {
+    /**
+     * How long a file referenced by nothing is given before it is called an
+     * orphan. A form stores its file before the row that points at it is
+     * written, so every upload is briefly referenced by nothing; one whose
+     * request died in between is still found, a day later.
+     */
+    public const GRACE_SECONDS = 86_400;
+
     /** @param list<FileHolderInterface> $holders the application's own, beyond its modules */
     public function __construct(
         private readonly ModuleRegistry $modules,
         private readonly Disks $disks,
+        private readonly ClockInterface $clock,
         private readonly array $holders = [],
+        private readonly int $graceSeconds = self::GRACE_SECONDS,
     ) {}
+
+    /**
+     * What points at one qualified key. Every reference is read to answer it,
+     * which is fine for a screen about one file and no way to answer many.
+     *
+     * @return list<Reference>
+     */
+    public function to(string $qualified): array
+    {
+        $found = [];
+
+        foreach ($this->all() as $reference) {
+            if ($reference->key === $qualified) {
+                $found[] = $reference;
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * Files on either disk that nothing points at and that are at least the
+     * grace period old.
+     *
+     * An orphan is something that may be deleted, so this fails closed: every
+     * reference is read before the first file is looked at, and a module or
+     * holder that cannot be read throws before any orphan is yielded. A
+     * partial set of references would turn files in use into orphans.
+     *
+     * An orphan is a candidate, not a verdict: a row written after the
+     * references were read points at a file this still yields. Whatever deletes
+     * one asks {@see to()} again first.
+     *
+     * @return Generator<int, Orphan>
+     */
+    public function orphans(): Generator
+    {
+        $referenced = [];
+
+        foreach ($this->all() as $reference) {
+            $referenced[$reference->key] = true;
+        }
+
+        $cutoff = $this->clock->now()->getTimestamp() - $this->graceSeconds;
+
+        foreach ([Disks::PRIVATE, Disks::PUBLIC] as $disk) {
+            foreach ($this->disks->get($disk)->list() as $file) {
+                $qualified = $this->disks->qualify($disk, $file->key);
+
+                if (!isset($referenced[$qualified]) && $file->modifiedAt->getTimestamp() <= $cutoff) {
+                    yield new Orphan($qualified, $file);
+                }
+            }
+        }
+    }
 
     /**
      * Every reference from every module and holder. A value that names no file
