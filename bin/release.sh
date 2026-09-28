@@ -76,6 +76,19 @@ run_checked() {
     return 1
 }
 
+# The wiki's own suite, run where the wiki is. Its tests build from this
+# repository's changes/ and read version.json, so a release is exactly when
+# they can start failing: 0.9.17 broke three that had the release count
+# written down. Warns rather than refuses, for the reason the stale check
+# gives; what it protects is the publishing step, which is by hand.
+wiki_tests() {
+    [ -x "$WIKI_DIR/vendor/bin/phpunit" ] || {
+        echo "warning: no vendor/bin/phpunit in $WIKI_DIR; the wiki's tests were not run" >&2
+        return 0
+    }
+    run_checked "wiki: phpunit" "$WIKI_DIR" ./vendor/bin/phpunit
+}
+
 usage() {
     # The comment block under the shebang, so editing the header cannot
     # desynchronise --help from it.
@@ -296,6 +309,10 @@ if [ -x "$WIKI_DIR/bin/wiki" ]; then
         printf '\nThe wiki is out of date with its sources:\n%s\n' "$stale" >&2
         printf 'Run bin/wiki build in %s and commit it; the release is not blocked by this.\n' "$WIKI_DIR" >&2
     fi
+
+    echo "Running the wiki's tests ..."
+    wiki_tests \
+        || printf 'The wiki fails its tests before the release; the release is not blocked by this.\n' >&2
 fi
 
 if [ ${#problems[@]} -gt 0 ]; then
@@ -391,6 +408,7 @@ done
 # once version.json names it, so the notes and the feed go out together. It is
 # left uncommitted; publishing it is the steps printed at the end.
 WIKI_BUILT=0
+WIKI_TESTED=0
 if [ -d "$WIKI" ]; then
     if php "$DIR/hydra/bin/version-feed.php" "$WIKI/version.json" "$VERSION" \
         $([ "$DO_SECURITY" -eq 1 ] && echo --security); then
@@ -400,6 +418,12 @@ if [ -d "$WIKI" ]; then
         elif "$WIKI_DIR/bin/wiki" build --hydra="$DIR/hydra" >/dev/null; then
             WIKI_BUILT=1
             echo "  the wiki is rebuilt with $TAG's notes"
+            if wiki_tests; then
+                WIKI_TESTED=1
+                echo "  the wiki passes its tests with $TAG"
+            else
+                echo "warning: the wiki fails its tests with $TAG; do not publish it until they pass" >&2
+            fi
         else
             echo "warning: bin/wiki build failed; the wiki does not show $TAG yet" >&2
         fi
@@ -459,6 +483,15 @@ The skeleton still ships no composer.lock: .gitattributes marks it
 export-ignore, so create-project resolves the constraints fresh. The tracked
 lock is what this checkout and app's CI install from, and it is now current.
 EOF
+
+if [ "$WIKI_BUILT" -eq 1 ] && [ "$WIKI_TESTED" -eq 0 ]; then
+    cat <<EOF
+
+The wiki is rebuilt but FAILS ITS TESTS (the output is above). Fix them in
+$WIKI_DIR and run ./vendor/bin/phpunit until it passes, then publish it as
+below. Publishing it as it is ships a site its own suite refuses.
+EOF
+fi
 
 if [ "$WIKI_BUILT" -eq 1 ]; then
     cat <<EOF
