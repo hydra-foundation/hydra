@@ -72,6 +72,16 @@ final class ReleaseFileTest extends TestCase
         }
     }
 
+    public function test_an_unwritten_intro_is_refused(): void
+    {
+        $release = new ReleaseFile('0.9.17', 'Faces', '2026-09-28', false, ReleaseFile::PLACEHOLDER_INTRO . "\n\n## The admin\n\n- A note.");
+
+        $this->expectException(InvalidChangeFile::class);
+        $this->expectExceptionMessage(self::FILE . ':7: the intro is still the placeholder');
+
+        ReleaseFile::parse($release->render(), self::FILE);
+    }
+
     public function test_the_constructor_refuses_what_parse_would(): void
     {
         $this->expectException(\InvalidArgumentException::class);

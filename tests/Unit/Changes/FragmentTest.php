@@ -83,6 +83,38 @@ final class FragmentTest extends TestCase
         }
     }
 
+    public function test_the_untouched_template_is_refused_at_each_placeholder(): void
+    {
+        $template = Fragment::template();
+
+        foreach ([
+            [$template, 2, 'section is still the placeholder'],
+            [str_replace(Fragment::PLACEHOLDER_SECTION, 'The admin', $template), 5, 'the note is still the placeholder'],
+            [str_replace([Fragment::PLACEHOLDER_SECTION, Fragment::PLACEHOLDER_NOTE], ['The admin', 'A note.'], $template), 7, '### Upgrading is still the placeholder'],
+        ] as [$text, $line, $message]) {
+            try {
+                Fragment::parse($text, self::FILE);
+                $this->fail("Expected: $message");
+            } catch (InvalidChangeFile $e) {
+                $this->assertSame($line, $e->lineNumber);
+                $this->assertStringContainsString($message, $e->getMessage());
+            }
+        }
+    }
+
+    public function test_a_filled_in_template_parses(): void
+    {
+        $text = str_replace(
+            [Fragment::PLACEHOLDER_NOTE, "\n\n### Upgrading\n\n" . Fragment::PLACEHOLDER_UPGRADING],
+            ['A note.', ''],
+            Fragment::template('Validation', 'fixed'),
+        );
+
+        $fragment = Fragment::parse($text, self::FILE);
+
+        $this->assertSame(['Validation', 'fixed', 'A note.', null], [$fragment->section, $fragment->kind, $fragment->note, $fragment->upgrading]);
+    }
+
     public function test_a_slug_that_is_not_kebab_case_is_refused(): void
     {
         $this->expectException(InvalidChangeFile::class);

@@ -13,6 +13,13 @@ namespace Hydra\Tools\Changes;
  */
 final class ReleaseFile
 {
+    /**
+     * What `bin/changes.php release` writes above the notes. `parse()` refuses
+     * a file still holding it, so `check`, and with it the release preflight,
+     * fails until the intro is written.
+     */
+    public const PLACEHOLDER_INTRO = 'Intro: what this release is, and why the number is the number.';
+
     private const KEYS = ['version', 'title', 'date', 'security'];
     private const VERSION = '/^\d+\.\d+\.\d+$/';
 
@@ -72,6 +79,11 @@ final class ReleaseFile
         $security = $fields['security'] ?? 'false';
         if ($security !== 'true' && $security !== 'false') {
             throw new InvalidChangeFile($file, $lines['security'], "security must be true or false, not '$security'");
+        }
+
+        $at = strpos($matter->body, self::PLACEHOLDER_INTRO);
+        if ($at !== false) {
+            throw new InvalidChangeFile($file, $matter->bodyLine + substr_count($matter->body, "\n", 0, $at), 'the intro is still the placeholder; say what the release is and why the number is the number');
         }
 
         return new self($version, $fields['title'], $fields['date'], $security === 'true', $matter->body);

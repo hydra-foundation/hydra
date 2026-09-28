@@ -18,7 +18,15 @@ final class Fragment
      */
     public const KINDS = ['security', 'removed', 'changed', 'added', 'fixed'];
 
-    private const SLUG = '/^[a-z0-9]+(-[a-z0-9]+)*$/';
+    /**
+     * What `bin/changes.php new` writes. `parse()` refuses each one, so a
+     * template nobody filled in fails `check` instead of shipping as a note.
+     */
+    public const PLACEHOLDER_SECTION = 'Which part of Hydra';
+    public const PLACEHOLDER_NOTE = 'What changed, for whom, in a sentence or two.';
+    public const PLACEHOLDER_UPGRADING = 'What a consumer has to do, or delete this heading.';
+
+    public const SLUG = '/^[a-z0-9]+(-[a-z0-9]+)*$/';
     private const UPGRADING = '/^###[ \t]+Upgrading[ \t]*$/m';
 
     public function __construct(
@@ -28,6 +36,14 @@ final class Fragment
         public readonly string $note,
         public readonly ?string $upgrading = null,
     ) {}
+
+    public static function template(?string $section = null, string $kind = 'added'): string
+    {
+        return FrontMatter::render(
+            ['section' => $section ?? self::PLACEHOLDER_SECTION, 'kind' => $kind],
+            self::PLACEHOLDER_NOTE . "\n\n### Upgrading\n\n" . self::PLACEHOLDER_UPGRADING,
+        );
+    }
 
     public static function fromFile(string $path): self
     {
@@ -62,6 +78,9 @@ final class Fragment
         if (!in_array($fields['kind'], self::KINDS, true)) {
             throw new InvalidChangeFile($file, $matter->lines['kind'], "'{$fields['kind']}' is not a kind; use one of " . implode(', ', self::KINDS));
         }
+        if ($fields['section'] === self::PLACEHOLDER_SECTION) {
+            throw new InvalidChangeFile($file, $matter->lines['section'], 'section is still the placeholder; name it (The admin, Validation, …)');
+        }
 
         [$note, $upgrading] = self::split($matter, $file);
 
@@ -87,6 +106,9 @@ final class Fragment
         if ($note === '') {
             throw new InvalidChangeFile($file, $matter->bodyLine, 'no note: say what changed, in a sentence or two, under the front matter');
         }
+        if ($note === self::PLACEHOLDER_NOTE) {
+            throw new InvalidChangeFile($file, $matter->bodyLine, 'the note is still the placeholder; say what changed');
+        }
         if ($offsets === []) {
             return [$note, null];
         }
@@ -96,6 +118,9 @@ final class Fragment
         $upgrading = $end === false ? '' : trim(substr($body, $end));
         if ($upgrading === '') {
             throw new InvalidChangeFile($file, $lineOf($offsets[0]), '### Upgrading is empty; say what a consumer has to do, or drop the heading');
+        }
+        if ($upgrading === self::PLACEHOLDER_UPGRADING) {
+            throw new InvalidChangeFile($file, $lineOf($offsets[0]), '### Upgrading is still the placeholder; fill it in, or delete the heading');
         }
 
         return [$note, $upgrading];
