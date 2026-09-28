@@ -3,7 +3,8 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.9.16 — Faces** (filesystem, file uploads, avatars).
+Last shipped: **0.10.0 — Files** (`StorageInterface::list()`, file references,
+the Files module). Before it, **0.9.17 — Names** (original filenames).
 
 ## Principles
 
@@ -46,46 +47,14 @@ This is a gate on every milestone, not a milestone of its own.
 
 ## Default admin modules
 
-The admin the skeleton ships today: Dashboard, Users, Activity, Audit, Jobs,
-Failed jobs, Scheduler, Scheduled runs, Logs, System health, Settings.
+The admin the skeleton ships today: Dashboard, Users, Files, Activity, Audit,
+Jobs, Failed jobs, Scheduler, Scheduled runs, Logs, System health, Settings.
 
 These modules are Hydra's own: every app has users, files, tokens and mail,
 and needs to see them. The next ones, in priority order. Each one says what
 the framework has to grow before the module can exist.
 
-### 1. Files
-
-See every file the app has stored and how much space it takes.
-
-- **List**: thumbnail or type icon, original name, type, size, disk
-  (private/public), modified at. Filter by disk and type, search by name.
-- **Show**: preview, download under the original name, which row points at
-  it.
-- **Delete**: warns when a row still points at the file.
-- **Orphans**: files no row points at any more (a failed cleanup, a crash
-  mid-write), with a bulk delete.
-- **Dashboard widget**: file count and bytes used per disk, and the latest
-  files.
-
-Needs, in order:
-
-1. **Original filenames** (spec: `SPEC-original-filenames.md`). The name goes
-   in a column beside the key, opted into with `Input::file()->keepsName()`.
-   `filesystem` does not change shape. This lands on its own, before the
-   module, since a name not kept at upload is gone for good.
-2. **`StorageInterface::list()`**: walk a disk and return each file's key,
-   size, MIME type and modified time. Added to the storage contract test case.
-3. **References**: collect the keys, and names, held by every `Input::file()`
-   column the registered modules declare, and compare with what `list()`
-   returns. That answers "which row points at it" and finds the orphans, with
-   no registry.
-
-Later, if it is ever needed: a `files` table recording each upload for cheap
-paging and `SUM(size)`. Worth it only with a remote disk such as S3, where
-listing is slow and billed. It lives in `admin`, so `filesystem` stays free of
-the database.
-
-### 2. API tokens
+### 1. API tokens
 
 Every issued token across all users: name, owner, abilities, last used,
 expires. Revoke one, or all of a user's.
@@ -95,7 +64,7 @@ Needs: `ApiTokens` already stores them; the module is a source over that table.
 Why here: a leaked token is the most urgent thing an admin needs to kill, and
 the data already exists.
 
-### 3. Rate limits
+### 2. Rate limits
 
 Keys currently throttled or locked out (failed sign-ins, say), with time left,
 and a way to clear one.
@@ -105,7 +74,7 @@ Needs: `RateLimiter` to enumerate its keys, or a record of lockouts.
 Why here: a locked-out user is a support call today, with no way to answer it
 from the admin.
 
-### 4. Sessions
+### 3. Sessions
 
 Who is signed in, from where, since when. Revoke a session, or sign a user out
 everywhere.
@@ -116,7 +85,7 @@ cannot; a database store can.
 Why here: "sign out everywhere" pairs with token revocation, but it needs a new
 store first.
 
-### 5. Mail
+### 4. Mail
 
 A log of sent mail (to, subject, transport, sent at, failure), a preview of
 each message, and a "send a test email" action.
@@ -127,7 +96,7 @@ mail package stays storage-free).
 Why here: password reset and email verification both depend on mail arriving,
 and nothing shows whether it did.
 
-### 6. Migrations
+### 5. Migrations
 
 Read-only: which migrations have run, when, and which are pending.
 
@@ -135,7 +104,7 @@ Needs: `MigrationRunner` status as data rather than console output only.
 
 Why here: small and read-only; what you check after a deploy.
 
-### 7. Cache
+### 6. Cache
 
 Which store is in use, whether it is healthy, and a flush. Forget a single key.
 
@@ -143,7 +112,7 @@ Needs: nothing much; `CacheHealthCheck` and `StoreInterface` cover it.
 
 Why here: small, and flushing is already a console job.
 
-### 8. Roles and permissions
+### 7. Roles and permissions
 
 Assign roles to users, and see which abilities a role grants.
 
@@ -161,8 +130,8 @@ that shows it working, and the features built on it belong to apps.
 
 ### M1. Tidy: finish what is half there
 
-- Original filenames, `StorageInterface::list()`, references, and the Files
-  module.
+- **Done:** original filenames (0.9.17); `StorageInterface::list()`, file
+  references and the Files module (0.10.0).
 - **Uncouple pagination from the admin.** Paging only exists inside
   `Hydra\Admin` today: `Page` holds the rows and total, and `Criteria` mixes
   the page and per-page with sort, filters, search and filter links. An API
@@ -258,6 +227,12 @@ What any app that takes money needs:
 ## Framework backlog
 
 Building blocks with a case of their own and no milestone yet:
+
+- **A `files` table**, recording each upload for cheap paging and `SUM(size)`
+  in the Files module. Today every list page walks both disks and every file
+  column, which is about 400 ms at ten thousand files. Worth it only with a
+  remote disk such as S3, where listing is slow and billed. It would live in
+  `admin`, so `filesystem` stays free of the database.
 
 - **Sendfile**: `Responder` hands a file to nginx with `X-Accel-Redirect`,
   and nginx answers `Range` and `304` itself. A PHP `206 Partial Content`
