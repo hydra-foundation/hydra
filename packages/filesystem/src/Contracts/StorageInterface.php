@@ -6,6 +6,7 @@ namespace Hydra\Filesystem\Contracts;
 
 use Hydra\Filesystem\Exceptions\FileNotFound;
 use Hydra\Filesystem\Exceptions\InvalidKey;
+use Hydra\Filesystem\StoredFile;
 use Psr\Http\Message\StreamInterface;
 
 /**
@@ -43,4 +44,23 @@ interface StorageInterface
 
     /** A key with nothing behind it is already deleted, so that is not an error. */
     public function delete(string $key): void;
+
+    /**
+     * Every file on the disk, or under $directory ("avatars", "blog/2026") at
+     * any depth. Lazy, so a disk of any size is walked without being held in
+     * memory, and in no promised order: a caller that wants one sorts.
+     *
+     * Only keys {@see \Hydra\Filesystem\Key} accepts come back, so each one
+     * works with every other method here. Anything else on the disk (a
+     * .gitignore, a file copied in by hand with a space in its name) is
+     * skipped rather than reported. A directory with nothing in it, or that
+     * does not exist, yields nothing.
+     *
+     * The directory is checked on the call, before anything is opened, not on
+     * the first iteration.
+     *
+     * @return iterable<StoredFile>
+     * @throws InvalidKey when the directory is not a path inside the disk
+     */
+    public function list(?string $directory = null): iterable;
 }

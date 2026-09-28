@@ -4,12 +4,21 @@ declare(strict_types=1);
 
 namespace Hydra\Filesystem;
 
+use DateTimeImmutable;
+use DateTimeZone;
+use FilesystemIterator;
 use finfo;
+use Generator;
 use Hydra\Filesystem\Contracts\StorageInterface;
 use Hydra\Filesystem\Exceptions\FileNotFound;
+use Hydra\Filesystem\Exceptions\InvalidKey;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
+use RecursiveCallbackFilterIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use RuntimeException;
+use SplFileInfo;
 use Throwable;
 
 /**
@@ -98,6 +107,11 @@ class LocalStorage implements StorageInterface
         }
     }
 
+    public function list(?string $directory = null): iterable
+    {
+        return $this->walk($directory === null ? $this->root : $this->path(Key::valid($directory)), $directory);
+    }
+
     /** Where a key lives on this machine. Only ever called with a checked key. */
     private function path(string $key): string
     {
@@ -113,6 +127,88 @@ class LocalStorage implements StorageInterface
         }
 
         return $path;
+    }
+
+    /**
+     * Symlinks are never followed, not even the directory asked for: one could
+     * lead out of the root. A name Key would refuse is not descended into, so a
+     * hidden directory costs nothing, and a file that goes away mid-walk (a
+     * delete() racing the listing) is passed over rather than thrown about.
+     *
+     * @return Generator<int, StoredFile>
+     */
+    private function walk(string $base, ?string $directory): Generator
+    {
+        if (!is_dir($base) || ($directory !== null && $this->throughLink($directory))) {
+            return;
+        }
+
+        $entries = new RecursiveIteratorIterator(
+            new RecursiveCallbackFilterIterator(
+                new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS),
+                static fn (SplFileInfo $entry): bool => !$entry->isLink() && self::isKey($entry->getFilename()),
+            ),
+            RecursiveIteratorIterator::LEAVES_ONLY,
+            RecursiveIteratorIterator::CATCH_GET_CHILD,
+        );
+        $types = new finfo(FILEINFO_MIME_TYPE);
+        $utc = new DateTimeZone('UTC');
+
+        /** @var SplFileInfo $entry */
+        foreach ($entries as $entry) {
+            $path = $entry->getPathname();
+
+            try {
+                if (!$entry->isFile()) {
+                    continue;
+                }
+
+                $size = $entry->getSize();
+                $modified = $entry->getMTime();
+            } catch (RuntimeException) {
+                continue;
+            }
+
+            $type = @$types->file($path);
+
+            if ($type === false && !is_file($path)) {
+                continue;
+            }
+
+            yield new StoredFile(
+                substr($path, strlen($this->root) + 1),
+                (int) $size,
+                is_string($type) ? $type : 'application/octet-stream',
+                (new DateTimeImmutable('@' . $modified))->setTimezone($utc),
+            );
+        }
+    }
+
+    /** Whether any directory on the way down to $directory is a symlink. */
+    private function throughLink(string $directory): bool
+    {
+        $path = $this->root;
+
+        foreach (explode('/', $directory) as $segment) {
+            $path .= '/' . $segment;
+
+            if (is_link($path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function isKey(string $key): bool
+    {
+        try {
+            Key::valid($key);
+
+            return true;
+        } catch (InvalidKey) {
+            return false;
+        }
     }
 
     private function sniff(string $bytes): string

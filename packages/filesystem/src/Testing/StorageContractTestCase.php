@@ -8,6 +8,7 @@ use Hydra\Filesystem\Contracts\StorageInterface;
 use Hydra\Filesystem\Exceptions\FileNotFound;
 use Hydra\Filesystem\Exceptions\InvalidKey;
 use Hydra\Filesystem\Key;
+use Hydra\Filesystem\StoredFile;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -140,6 +141,83 @@ abstract class StorageContractTestCase extends TestCase
         $this->storage()->size('avatars/' . str_repeat('0', 32) . '.png');
     }
 
+    public function test_an_empty_disk_lists_nothing(): void
+    {
+        $this->assertSame([], $this->listed());
+    }
+
+    public function test_every_stored_file_is_listed_once_as_its_other_methods_describe_it(): void
+    {
+        $png = $this->storage()->put('avatars', $this->png());
+        $text = $this->storage()->put('blog/2026', $this->streams()->createStream("A post.\n"));
+
+        $listed = $this->listed();
+
+        $this->assertEqualsCanonicalizing([$png, $text], array_keys($listed));
+
+        foreach ([$png, $text] as $key) {
+            $this->assertSame($this->storage()->size($key), $listed[$key]->size);
+            $this->assertSame($this->storage()->mimeType($key), $listed[$key]->mimeType);
+        }
+    }
+
+    public function test_a_listed_file_was_modified_when_it_was_stored_and_says_so_in_utc(): void
+    {
+        $before = time();
+        $key = $this->storage()->put('avatars', $this->png());
+        $after = time();
+
+        $listed = $this->listed();
+        $this->assertArrayHasKey($key, $listed);
+        $modified = $listed[$key]->modifiedAt;
+
+        $this->assertGreaterThanOrEqual($before, $modified->getTimestamp());
+        $this->assertLessThanOrEqual($after, $modified->getTimestamp());
+        $this->assertSame(0, $modified->getOffset());
+    }
+
+    public function test_a_listing_is_limited_to_its_directory_at_any_depth(): void
+    {
+        $post = $this->storage()->put('blog/2026', $this->png());
+        $this->storage()->put('avatars', $this->png());
+
+        $this->assertSame([$post], array_keys($this->listed('blog')));
+        $this->assertSame([$post], array_keys($this->listed('blog/2026')));
+    }
+
+    public function test_a_directory_matches_whole_segments_only(): void
+    {
+        $this->storage()->put('blog-old', $this->png());
+
+        $this->assertSame([], $this->listed('blog'));
+    }
+
+    public function test_a_directory_never_written_to_lists_nothing(): void
+    {
+        $this->storage()->put('avatars', $this->png());
+
+        $this->assertSame([], $this->listed('invoices'));
+    }
+
+    public function test_a_deleted_file_is_not_listed(): void
+    {
+        $kept = $this->storage()->put('avatars', $this->png());
+        $gone = $this->storage()->put('avatars', $this->png());
+
+        $this->storage()->delete($gone);
+
+        $this->assertSame([$kept], array_keys($this->listed()));
+    }
+
+    #[DataProvider('invalidKeys')]
+    public function test_a_directory_outside_the_disk_is_refused_by_list_before_it_is_walked(string $directory): void
+    {
+        $this->expectException(InvalidKey::class);
+
+        // Not iterated: a lazy listing must still refuse on the call.
+        $this->storage()->list($directory);
+    }
+
     #[DataProvider('invalidKeys')]
     public function test_a_key_outside_the_disk_is_refused_by_every_method(string $key): void
     {
@@ -175,6 +253,25 @@ abstract class StorageContractTestCase extends TestCase
         yield 'trailing slash' => ['avatars/'];
         yield 'hidden file' => ['avatars/.htaccess'];
         yield 'space' => ['avatars/x y.png'];
+    }
+
+    /**
+     * A listing by key, failing on a key listed twice or anything that is not
+     * a StoredFile.
+     *
+     * @return array<string, StoredFile>
+     */
+    protected function listed(?string $directory = null): array
+    {
+        $files = [];
+
+        foreach ($this->storage()->list($directory) as $file) {
+            $this->assertInstanceOf(StoredFile::class, $file);
+            $this->assertArrayNotHasKey($file->key, $files, "{$file->key} was listed twice.");
+            $files[$file->key] = $file;
+        }
+
+        return $files;
     }
 
     protected function png(): StreamInterface
