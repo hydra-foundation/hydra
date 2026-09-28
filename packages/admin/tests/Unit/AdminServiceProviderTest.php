@@ -8,6 +8,10 @@ use Hydra\Admin\AdminController;
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Admin\AssetController;
 use Hydra\Admin\FileController;
+use Hydra\Admin\Contracts\FileHolderInterface;
+use Hydra\Admin\Files\FileReferences;
+use Hydra\Admin\Files\Reference;
+use Hydra\Admin\Tests\Support\HoldingSource;
 use Hydra\Admin\Chrome;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Admin\Navigation;
@@ -245,6 +249,57 @@ final class AdminServiceProviderTest extends TestCase
         $container->get(AdminController::class)->store($this->write('/admin/users/new', ['username' => 'linus']));
 
         $this->assertSame('linus', $source->find('6')['username'] ?? null);
+    }
+
+    public function test_file_references_read_the_modules_and_the_holders_the_application_listed(): void
+    {
+        $disks = new TemporaryDisks;
+        $users = new CrudUserSource;
+        $users->update('2', ['avatar' => 'private:avatars/0123456789abcdef0123456789abcdef.png', 'avatar_name' => 'Grace.png']);
+        $blog = new Reference('public:blog/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png', 'BlogImages');
+        $container = $this->container([
+            AvatarUsersModule::class => new AvatarUsersModule,
+            CrudUserSource::class => $users,
+            HoldingSource::class => new HoldingSource([$blog]),
+            Disks::class => $disks->disks,
+            PublicStorageInterface::class => $disks->disks->public(),
+        ]);
+
+        (new AdminServiceProvider([AvatarUsersModule::class], fileHolders: [HoldingSource::class]))->register($container);
+        $references = $container->get(FileReferences::class);
+
+        $this->assertEquals(
+            [new Reference('private:avatars/0123456789abcdef0123456789abcdef.png', 'users', '2', 'avatar', 'Grace.png')],
+            $references->to('private:avatars/0123456789abcdef0123456789abcdef.png'),
+        );
+        $this->assertEquals([$blog], $references->to($blog->key));
+        $disks->remove();
+    }
+
+    public function test_file_references_without_disks_say_which_provider_is_missing(): void
+    {
+        $container = $this->container();
+        (new AdminServiceProvider([UsersModule::class]))->register($container);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Register Hydra\\Filesystem\\FilesystemServiceProvider ahead of the AdminServiceProvider.');
+
+        $container->get(FileReferences::class);
+    }
+
+    public function test_a_listed_file_holder_that_is_not_one_is_refused_by_name(): void
+    {
+        $disks = new TemporaryDisks;
+        $container = $this->container([
+            Disks::class => $disks->disks,
+            PublicStorageInterface::class => $disks->disks->public(),
+        ]);
+        (new AdminServiceProvider([UsersModule::class], fileHolders: [ArraySource::class]))->register($container);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(ArraySource::class . ' must implement ' . FileHolderInterface::class);
+
+        $container->get(FileReferences::class);
     }
 
     /** @param array<string, string> $body */

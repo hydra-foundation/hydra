@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Hydra\Admin;
 
+use Hydra\Admin\Contracts\FileHolderInterface;
 use Hydra\Admin\Contracts\ModuleInterface;
 use Hydra\Admin\Contracts\TimezoneInterface;
+use Hydra\Admin\Files\FileReferences;
 use Hydra\Admin\Updates\HttpReleaseFeed;
 use Hydra\Admin\Updates\UpdateCheck;
 use Hydra\Authorization\Contracts\GateInterface;
@@ -21,6 +23,7 @@ use Hydra\Http\Responder;
 use Hydra\Http\Router;
 use Hydra\Validation\Validator;
 use Hydra\View\Contracts\ViewInterface;
+use LogicException;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -35,11 +38,14 @@ final class AdminServiceProvider extends ServiceProvider
     /**
      * @param list<class-string<ModuleInterface>> $modules
      * @param list<class-string> $middleware
+     * @param list<class-string<FileHolderInterface>> $fileHolders what holds file keys outside the modules: a
+     *        file one of these leaves out is one the Files module calls an orphan
      */
     public function __construct(
         private readonly array $modules,
         private readonly string $prefix = '/admin',
         private readonly array $middleware = [],
+        private readonly array $fileHolders = [],
     ) {}
 
     /**
@@ -87,6 +93,39 @@ final class AdminServiceProvider extends ServiceProvider
             return new Uploads(
                 $container->get(Disks::class),
                 $container->bound(LoggerInterface::class) ? $container->get(LoggerInterface::class) : null,
+            );
+        });
+
+        $container->singleton(FileReferences::class, function () use ($container) {
+            // Asked of the interface, as the controller's uploads are: see there.
+            if (!$container->bound(PublicStorageInterface::class)) {
+                throw new LogicException(
+                    'File references read the disks, and none are registered. '
+                    . 'Register Hydra\\Filesystem\\FilesystemServiceProvider ahead of the AdminServiceProvider.',
+                );
+            }
+
+            $holders = [];
+
+            foreach ($this->fileHolders as $class) {
+                $holder = $container->get($class);
+
+                if (!$holder instanceof FileHolderInterface) {
+                    throw new LogicException(sprintf(
+                        '%s must implement %s to be listed in the AdminServiceProvider\'s fileHolders.',
+                        $class,
+                        FileHolderInterface::class,
+                    ));
+                }
+
+                $holders[] = $holder;
+            }
+
+            return new FileReferences(
+                $container->get(ModuleRegistry::class),
+                $container->get(Disks::class),
+                $container->bound(ClockInterface::class) ? $container->get(ClockInterface::class) : new SystemClock,
+                $holders,
             );
         });
 
