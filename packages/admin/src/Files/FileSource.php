@@ -55,22 +55,7 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
 
     public function page(Criteria $criteria): Page
     {
-        $uses = [];
-
-        foreach ($this->references->all() as $reference) {
-            $uses[$reference->key][] = $reference;
-        }
-
-        $rows = [];
-        $bytes = [Disks::PRIVATE => 0, Disks::PUBLIC => 0];
-
-        foreach ($bytes as $disk => $_) {
-            foreach ($this->disks->get($disk)->list() as $file) {
-                $qualified = $this->disks->qualify($disk, $file->key);
-                $rows[] = $this->row($disk, $qualified, $file, $uses[$qualified] ?? []);
-                $bytes[$disk] += $file->size;
-            }
-        }
+        [$rows, $bytes] = $this->listing();
 
         $note = sprintf(
             '%d %s · %s (private %s, public %s)',
@@ -85,6 +70,37 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
         self::sort($rows, $criteria);
 
         return new Page(array_slice($rows, $criteria->offset(), $criteria->perPage), count($rows), $criteria, $note);
+    }
+
+    /**
+     * The storage at a glance, from the same one read a page makes: files and
+     * bytes per disk, how many are orphans, and the newest few.
+     *
+     * @return array{
+     *     disks: array<string, array{files: int, bytes: int}>,
+     *     orphans: int,
+     *     newest: list<array<string, mixed>>,
+     * }
+     */
+    public function summary(int $newest = 5): array
+    {
+        [$rows, $bytes] = $this->listing();
+        $disks = [];
+
+        foreach ($bytes as $disk => $total) {
+            $disks[$disk] = [
+                'files' => count(array_filter($rows, static fn (array $row): bool => $row['disk'] === $disk)),
+                'bytes' => $total,
+            ];
+        }
+
+        self::sort($rows, new Criteria(sort: 'modified_at', direction: 'desc'));
+
+        return [
+            'disks' => $disks,
+            'orphans' => count(array_filter($rows, static fn (array $row): bool => $row['status'] === self::ORPHAN)),
+            'newest' => array_slice($rows, 0, max(0, $newest)),
+        ];
     }
 
     public function find(string $id): ?array
@@ -137,6 +153,34 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
     public function references(): iterable
     {
         return [];
+    }
+
+    /**
+     * Every file on both disks as a row, and the bytes on each disk: both disks
+     * listed and every reference read, once.
+     *
+     * @return array{list<array<string, mixed>>, array<string, int>}
+     */
+    private function listing(): array
+    {
+        $uses = [];
+
+        foreach ($this->references->all() as $reference) {
+            $uses[$reference->key][] = $reference;
+        }
+
+        $rows = [];
+        $bytes = [Disks::PRIVATE => 0, Disks::PUBLIC => 0];
+
+        foreach ($bytes as $disk => $_) {
+            foreach ($this->disks->get($disk)->list() as $file) {
+                $qualified = $this->disks->qualify($disk, $file->key);
+                $rows[] = $this->row($disk, $qualified, $file, $uses[$qualified] ?? []);
+                $bytes[$disk] += $file->size;
+            }
+        }
+
+        return [$rows, $bytes];
     }
 
     /**
