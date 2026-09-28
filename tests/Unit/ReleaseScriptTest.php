@@ -195,6 +195,73 @@ final class ReleaseScriptTest extends TestCase
         );
     }
 
+    public function test_a_release_without_notes_is_told_to_collect_the_waiting_ones(): void
+    {
+        $this->commit(self::WITH_AN_ADDITION);
+        $this->unnote('0.5.1');
+        $this->fragment('a-thing');
+
+        [$status, $output] = $this->release('0.5.1');
+
+        $this->assertSame(1, $status, $output);
+        $this->assertStringContainsString('no changes/0.5.1.md — collect the 1 unreleased note(s)', $output);
+        $this->assertStringContainsString('php bin/changes.php release 0.5.1 --title', $output);
+    }
+
+    public function test_a_release_without_notes_or_fragments_is_told_to_write_them(): void
+    {
+        $this->commit(self::WITH_AN_ADDITION);
+        $this->unnote('0.5.1');
+
+        [$status, $output] = $this->release('0.5.1');
+
+        $this->assertSame(1, $status, $output);
+        $this->assertStringContainsString('no changes/0.5.1.md and nothing in changes/unreleased/', $output);
+        $this->assertStringContainsString('php bin/changes.php new <slug>', $output);
+    }
+
+    public function test_a_note_left_out_of_the_release_is_refused(): void
+    {
+        $this->commit(self::WITH_AN_ADDITION);
+        $this->fragment('late-arrival');
+
+        [$status, $output] = $this->release('0.5.1');
+
+        $this->assertSame(1, $status, $output);
+        $this->assertStringContainsString('changes/unreleased/ still holds 1 note(s) that changes/0.5.1.md leaves out', $output);
+    }
+
+    public function test_notes_that_do_not_parse_are_refused_with_what_is_wrong(): void
+    {
+        // The intro left as the placeholder is the likeliest way here: the
+        // notes were collected with --no-edit and never finished.
+        $this->commit(self::WITH_AN_ADDITION);
+        $this->note('0.5.1', intro: "Intro: what this release is, and why the number is the number.");
+
+        [$status, $output] = $this->release('0.5.1');
+
+        $this->assertSame(1, $status, $output);
+        $this->assertStringContainsString('0.5.1.md:8: the intro is still the placeholder', $output);
+        $this->assertStringContainsString('the release notes do not parse', $output);
+    }
+
+    public function test_notes_and_flag_disagreeing_on_security_warns_without_blocking(): void
+    {
+        $this->commit(self::WITH_AN_ADDITION);
+
+        [$status, $output] = $this->release('0.5.1', '--security');
+
+        $this->assertSame(0, $status, $output);
+        $this->assertStringContainsString('changes/0.5.1.md says security: false, but --security was given', $output);
+
+        $this->note('0.5.1', security: true);
+
+        [$status, $output] = $this->release('0.5.1', '--security');
+
+        $this->assertSame(0, $status, $output);
+        $this->assertStringNotContainsString('says security', $output);
+    }
+
     public function test_a_minor_inside_the_current_series_is_refused(): void
     {
         [$status, $output] = $this->release('0.5.1', '--minor');
@@ -238,6 +305,33 @@ final class ReleaseScriptTest extends TestCase
         );
     }
 
+    /**
+     * The release notes for $version, committed, replacing any already there.
+     */
+    private function note(string $version, bool $security = false, string $intro = 'Intro.'): void
+    {
+        file_put_contents(
+            "{$this->dir}/hydra/changes/{$version}.md",
+            sprintf("---\nversion: %s\ntitle: Test\ndate: 2026-09-28\nsecurity: %s\n---\n\n%s\n\n## Things\n\n- A thing.\n", $version, $security ? 'true' : 'false', $intro),
+        );
+        $this->git('hydra', 'add -A');
+        $this->git('hydra', 'commit --quiet -m notes');
+    }
+
+    private function unnote(string $version): void
+    {
+        $this->git('hydra', "rm --quiet changes/{$version}.md");
+        $this->git('hydra', 'commit --quiet -m unnote');
+    }
+
+    /** One unreleased note, committed, as a feature commit would carry it. */
+    private function fragment(string $slug): void
+    {
+        file_put_contents("{$this->dir}/hydra/changes/unreleased/{$slug}.md", "---\nsection: Things\nkind: added\n---\nA thing.\n");
+        $this->git('hydra', 'add -A');
+        $this->git('hydra', 'commit --quiet -m fragment');
+    }
+
     /** @return array{int, string} */
     private function release(string ...$args): array
     {
@@ -271,8 +365,25 @@ final class ReleaseScriptTest extends TestCase
 
         // The real tools: the gate is only as good as what it calls, and a
         // fixture copy of them would be a second implementation to keep true.
-        foreach (['api-surface.php', 'api-diff.php'] as $tool) {
+        foreach (['api-surface.php', 'api-diff.php', 'changes.php'] as $tool) {
             copy(__DIR__ . '/../../bin/' . $tool, $this->dir . '/hydra/bin/' . $tool);
+        }
+        // changes.php loads its classes through the monorepo's autoloader;
+        // the fixture's vendor/ hands it this checkout's.
+        file_put_contents(
+            $this->dir . '/hydra/vendor/autoload.php',
+            '<?php return require ' . var_export(realpath(__DIR__ . '/../../vendor/autoload.php'), true) . ';',
+        );
+
+        // Notes for both releases the cases cut, so a case about something
+        // else is not refused for want of them.
+        mkdir($this->dir . '/hydra/changes/unreleased', 0o775, true);
+        touch($this->dir . '/hydra/changes/unreleased/.gitkeep');
+        foreach (['0.5.1', '0.6.0'] as $version) {
+            file_put_contents(
+                "{$this->dir}/hydra/changes/{$version}.md",
+                "---\nversion: {$version}\ntitle: Test\ndate: 2026-09-28\n---\nIntro.\n",
+            );
         }
 
         // The series the script reads back out of the monorepo rather than

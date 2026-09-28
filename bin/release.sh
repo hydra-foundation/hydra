@@ -7,6 +7,10 @@
 #   bin/release.sh 0.4.0 --minor --push  # also rewrite the ^0.3 constraints first
 #   bin/release.sh 0.3.2 --security --push  # mark it a security fix in version.json
 #
+# The release notes come first: changes/<version>.md, collected with
+# `php bin/changes.php release <version> --title "…"` and committed. The
+# preflight refuses a tag without them, or with notes still unreleased.
+#
 # Two repositories are tagged: the hydra monorepo and the app skeleton. The
 # hydrakit/* package repositories are not touched here — the split
 # workflow regenerates them from the monorepo tag, and pushing to them by
@@ -242,6 +246,37 @@ if [ -n "$REMOVED" ] && [ "$DO_MINOR" -eq 0 ]; then
     problems+=("hydra: $count public symbol(s) removed since $PREV_TAG, so $TAG breaks ^$OLD_SERIES — release it as ${NEW_SERIES%.*}.$(( ${NEW_SERIES#*.} + 1 )).0 --minor, or put the symbols back")
     printf '\nRemoved since %s:\n' "$PREV_TAG" >&2
     printf '%s\n' "$REMOVED" | sed 's/^/  - /' >&2
+fi
+
+# The release notes are written as the work lands, one fragment per change in
+# changes/unreleased/, and collected into changes/<version>.md before the tag.
+# A tag without that file ships nothing to read, and a fragment still waiting
+# is a change the notes of this release leave out. `check` also refuses an
+# intro that is still the placeholder, so both have to be written by now.
+CHANGES="$DIR/hydra/changes"
+NOTES="changes/$VERSION.md"
+pending=$(find "$CHANGES/unreleased" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l)
+
+if ! run_checked "hydra: changes.php check" "$DIR/hydra" php bin/changes.php check; then
+    problems+=("hydra: the release notes do not parse — fix what is listed above, then php bin/changes.php check")
+elif [ ! -f "$DIR/hydra/$NOTES" ] && [ "$pending" -gt 0 ]; then
+    problems+=("hydra: no $NOTES — collect the $pending unreleased note(s) into it: php bin/changes.php release $VERSION --title \"…\"")
+elif [ ! -f "$DIR/hydra/$NOTES" ]; then
+    problems+=("hydra: no $NOTES and nothing in changes/unreleased/ — write the notes: php bin/changes.php new <slug>, then php bin/changes.php release $VERSION --title \"…\"")
+elif [ "$pending" -gt 0 ]; then
+    problems+=("hydra: changes/unreleased/ still holds $pending note(s) that $NOTES leaves out — fold them into it by hand and delete them")
+fi
+
+# --security decides version.json, and the notes say it again to a reader. A
+# warning rather than a refusal: the flag is the source, and which one is
+# wrong is for the author to say.
+if [ -f "$DIR/hydra/$NOTES" ]; then
+    noted=$(awk 'NR == 1 && /^---$/ { fm = 1; next } fm && /^---$/ { exit } fm && sub(/^security: */, "") { print }' "$DIR/hydra/$NOTES")
+    flagged=$([ "$DO_SECURITY" -eq 1 ] && echo true || echo false)
+    if [ "${noted:-false}" != "$flagged" ]; then
+        printf '\nwarning: %s says security: %s, but --security was %s. version.json follows the flag.\n' \
+            "$NOTES" "${noted:-false}" "$([ "$DO_SECURITY" -eq 1 ] && echo given || echo not given)" >&2
+    fi
 fi
 
 # The documentation site is hand-written static HTML with no build step, and
