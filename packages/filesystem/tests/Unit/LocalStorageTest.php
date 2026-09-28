@@ -9,6 +9,7 @@ use Hydra\Filesystem\LocalStorage;
 use Hydra\Filesystem\Testing\StorageContractTestCase;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RequiresFunction;
 use Psr\Http\Message\StreamFactoryInterface;
 
 #[CoversClass(LocalStorage::class)]
@@ -25,6 +26,7 @@ final class LocalStorageTest extends StorageContractTestCase
     protected function tearDown(): void
     {
         TemporaryDirectory::remove($this->root);
+        TemporaryDirectory::remove($this->outside());
     }
 
     protected function storage(): StorageInterface
@@ -132,5 +134,118 @@ final class LocalStorageTest extends StorageContractTestCase
         $this->expectExceptionMessage('Could not create the directory');
 
         $this->storage()->put('avatars', $this->png());
+    }
+
+    public function test_hidden_files_are_not_listed(): void
+    {
+        $key = $this->storage()->put('avatars', $this->png());
+        touch($this->root . '/.gitignore');
+        touch($this->root . '/avatars/.hidden');
+
+        $this->assertSame([$key], array_keys($this->listed()));
+    }
+
+    public function test_a_hidden_directory_is_not_walked(): void
+    {
+        $this->place('.cache/objects/ab12.png');
+
+        $this->assertSame([], $this->listed());
+    }
+
+    public function test_a_file_under_a_name_no_key_could_have_is_not_listed(): void
+    {
+        $this->place('avatars/x y.png');
+        $this->place('avatars/résumé.png');
+
+        $this->assertSame([], $this->listed());
+    }
+
+    public function test_a_file_placed_by_hand_under_a_valid_name_is_listed(): void
+    {
+        $this->place('brand/logo.png');
+
+        $listed = $this->listed();
+
+        $this->assertSame(['brand/logo.png'], array_keys($listed));
+        $this->assertSame('image/png', $listed['brand/logo.png']->mimeType);
+    }
+
+    public function test_a_symlinked_file_is_not_listed(): void
+    {
+        $this->storage()->put('avatars', $this->png());
+        $secret = $this->outside() . '/secret.png';
+        mkdir($this->outside());
+        file_put_contents($secret, base64_decode(self::PNG));
+        symlink($secret, $this->root . '/avatars/secret.png');
+
+        $this->assertNotContains('avatars/secret.png', array_keys($this->listed()));
+    }
+
+    public function test_a_symlinked_directory_is_not_walked_even_when_asked_for(): void
+    {
+        mkdir($this->outside() . '/deep', 0o775, true);
+        file_put_contents($this->outside() . '/deep/secret.png', base64_decode(self::PNG));
+        mkdir($this->root);
+        symlink($this->outside(), $this->root . '/linked');
+
+        $this->assertSame([], $this->listed());
+        $this->assertSame([], $this->listed('linked'));
+        $this->assertSame([], $this->listed('linked/deep'));
+    }
+
+    #[RequiresFunction('posix_mkfifo')]
+    public function test_only_regular_files_are_listed(): void
+    {
+        // Sniffing a named pipe's type would block the walk on a read.
+        $key = $this->storage()->put('avatars', $this->png());
+        posix_mkfifo($this->root . '/avatars/pipe', 0o600);
+
+        $this->assertSame([$key], array_keys($this->listed()));
+    }
+
+    public function test_a_file_deleted_during_the_walk_is_passed_over(): void
+    {
+        $keys = [];
+
+        for ($i = 0; $i < 3; $i++) {
+            $keys[] = $this->storage()->put('avatars', $this->png());
+        }
+
+        $seen = [];
+
+        foreach ($this->storage()->list() as $file) {
+            if ($seen === []) {
+                foreach (array_diff($keys, [$file->key]) as $other) {
+                    $this->storage()->delete($other);
+                }
+            }
+
+            $seen[] = $file->key;
+        }
+
+        $this->assertCount(1, $seen);
+    }
+
+    public function test_a_root_not_yet_written_to_lists_nothing_and_is_not_created(): void
+    {
+        $this->assertSame([], $this->listed());
+        $this->assertDirectoryDoesNotExist($this->root);
+    }
+
+    /** A PNG put straight on the disk, as someone copying files in would. */
+    private function place(string $path): void
+    {
+        $full = $this->root . '/' . $path;
+
+        if (!is_dir(dirname($full))) {
+            mkdir(dirname($full), 0o775, true);
+        }
+
+        file_put_contents($full, base64_decode(self::PNG));
+    }
+
+    private function outside(): string
+    {
+        return $this->root . '-outside';
     }
 }

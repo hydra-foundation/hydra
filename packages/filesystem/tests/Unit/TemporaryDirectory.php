@@ -9,7 +9,8 @@ final class TemporaryDirectory
 {
     public static function remove(string $path): void
     {
-        if (is_link($path) || is_file($path)) {
+        // Anything that is not a directory, a named pipe included.
+        if (is_link($path) || (file_exists($path) && !is_dir($path))) {
             unlink($path);
 
             return;

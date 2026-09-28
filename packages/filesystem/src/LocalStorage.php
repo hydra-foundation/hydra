@@ -158,14 +158,11 @@ class LocalStorage implements StorageInterface
         foreach ($entries as $entry) {
             $path = $entry->getPathname();
 
-            try {
-                if (!$entry->isFile()) {
-                    continue;
-                }
+            // One stat for the lot, so there is no gap between "it is a file"
+            // and "this is its size" for a delete() to fall into.
+            $stat = @stat($path);
 
-                $size = $entry->getSize();
-                $modified = $entry->getMTime();
-            } catch (RuntimeException) {
+            if ($stat === false || ($stat['mode'] & 0o170000) !== 0o100000) {
                 continue;
             }
 
@@ -177,9 +174,9 @@ class LocalStorage implements StorageInterface
 
             yield new StoredFile(
                 substr($path, strlen($this->root) + 1),
-                (int) $size,
+                $stat['size'],
                 is_string($type) ? $type : 'application/octet-stream',
-                (new DateTimeImmutable('@' . $modified))->setTimezone($utc),
+                (new DateTimeImmutable('@' . $stat['mtime']))->setTimezone($utc),
             );
         }
     }
