@@ -17,7 +17,9 @@ use Hydra\Auth\ApiTokens;
 use Hydra\Auth\Contracts\ApiTokenStoreInterface;
 use Hydra\Auth\RecoveryCodes;
 use Hydra\Auth\RequestGuard;
+use Hydra\Auth\Contracts\SignInStoreInterface;
 use Hydra\Auth\Testing\ArrayApiTokenStore;
+use Hydra\Auth\Testing\ArraySignInStore;
 use Hydra\Auth\Testing\ArrayTwoFactorStore;
 use Hydra\Auth\Totp;
 use Hydra\Auth\TwoFactorChallenge;
@@ -215,6 +217,38 @@ final class AuthServiceProviderTest extends TestCase
         $container->get(GuardInterface::class)->attempt('ada', 'secret');
 
         $events->assertDispatched(LoggedIn::class);
+    }
+
+    public function test_the_guard_records_sign_ins_when_a_store_is_bound(): void
+    {
+        $container = $this->register();
+        $container->instance(SignInStoreInterface::class, $signIns = new ArraySignInStore);
+        $container->instance(ClockInterface::class, new FrozenClock);
+
+        $container->get(GuardInterface::class)->attempt('ada', 'secret');
+
+        $this->assertCount(1, $signIns->forUser(new FakeUser('ada')));
+        $this->assertNotNull($container->get(SessionGuard::class)->signIn());
+    }
+
+    public function test_the_guard_records_nothing_when_no_store_is_bound(): void
+    {
+        $container = $this->register();
+        $container->instance(ClockInterface::class, new FrozenClock);
+
+        $container->get(GuardInterface::class)->attempt('ada', 'secret');
+
+        $this->assertNull($container->get(SessionGuard::class)->signIn());
+    }
+
+    public function test_a_store_bound_without_a_clock_says_to_bind_one(): void
+    {
+        $container = $this->register();
+        $container->instance(SignInStoreInterface::class, new ArraySignInStore);
+
+        $this->expectExceptionMessage('bind Psr\Clock\ClockInterface');
+
+        $container->get(SessionGuard::class);
     }
 
     public function test_nothing_is_built_until_it_is_asked_for(): void
