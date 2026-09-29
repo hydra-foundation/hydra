@@ -212,6 +212,18 @@ final class ResponderTest extends TestCase
         $this->assertSame('/api/posts?page=2', $this->body($unsent)['links']['next']);
     }
 
+    public function test_a_clamped_per_page_is_written_into_the_links_as_clamped(): void
+    {
+        // Asked for 5000 and paged by 100: each link has to describe the page
+        // it leads to, and agree with meta, rather than repeat the request.
+        $response = $this->paginated('/api/posts', ['per_page' => '5000'], total: 250, page: 1, perPage: 100);
+        $body = $this->body($response);
+
+        $this->assertSame(100, $body['meta']['per_page']);
+        $this->assertSame('/api/posts?per_page=100&page=2', $body['links']['next']);
+        $this->assertStringNotContainsString('5000', $response->getHeaderLine('Link'));
+    }
+
     public function test_array_parameters_survive_into_the_links(): void
     {
         $response = $this->paginated('/api/posts', ['tag' => ['a', 'b']], total: 50, page: 1, perPage: 20);

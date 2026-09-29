@@ -51,8 +51,9 @@ final class Responder
      * `meta`, and `links` to the first, previous, next and last pages, which
      * are also sent as an RFC 8288 `Link` header.
      *
-     * The links are the request's own path and query string with only `page`
-     * replaced, so filters and `per_page` carry over as the client sent them.
+     * The links are the request's own path and query string with `page`
+     * replaced, so filters carry over as the client sent them. `per_page` is
+     * carried only if the client sent one, and then as the size actually used.
      * They are relative on purpose: an absolute link would have to trust the
      * Host header, and a forged one would be echoed back in every link.
      *
@@ -65,8 +66,16 @@ final class Responder
     {
         $number = $page->paging->page;
         $last = $page->pages();
-        $link = static function (int $to) use ($request): string {
+        $perPage = $page->paging->perPage;
+        $link = static function (int $to) use ($request, $perPage): string {
             $query = $request->getQueryParams();
+
+            // As paged, not as asked: ?per_page=5000 on a list capped at 100
+            // links onward with 100, so every link agrees with meta.
+            if (array_key_exists('per_page', $query)) {
+                $query['per_page'] = $perPage;
+            }
+
             unset($query['page']);
             $query['page'] = $to;
 
