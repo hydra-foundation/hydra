@@ -56,14 +56,33 @@ These modules are Hydra's own: every app has users, files, tokens and mail,
 and needs to see them. The next ones, in priority order. Each one says what
 the framework has to grow before the module can exist.
 
-### 1. API tokens
+**The bar for a new module.** It answers a question no current module
+answers, or it does not get a sidebar entry. Status goes on System Health as a
+card; an action on something a screen already shows goes on that screen; two
+lists of the same kind of thing are one module with two screens, the way
+Settings has categories. Each module below says what it is not.
 
-Every issued token across all users: name, owner, abilities, last used,
-expires. Revoke one, or all of a user's.
+### 1. Access: sessions and API tokens
 
-Needs: `ApiTokens` already stores them; the module is a source over that table.
+One module, two screens, because both are ways into an account and an admin
+reaches for them for the same reason.
 
-Why here: a leaked token is the most urgent thing an admin needs to kill, and
+- **API tokens.** Every issued token across all users: name, owner,
+  abilities, last used, expires. Revoke one, or all of a user's.
+- **Sessions.** Who is signed in, from where, since when. Revoke a session.
+- **Sign out everywhere**, per user: every session and every token, in one
+  action.
+
+Needs: `ApiTokens` already stores tokens, so that screen is a source over its
+table and can ship first. Sessions need a store that can be listed per user;
+`NativeSessionStore` cannot, a database store can.
+
+Not: Settings › API tokens, which is one person's own tokens. When a token
+leaks you usually know the token and not whose it is, so the admin needs the
+list across everyone, the same split as Settings › Account and Users. Not
+Activity either: that is requests made, not access that can still be revoked.
+
+Why first: a leaked token is the most urgent thing an admin needs to kill, and
 the data already exists.
 
 ### 2. Rate limits
@@ -73,56 +92,51 @@ and a way to clear one.
 
 Needs: `RateLimiter` to enumerate its keys, or a record of lockouts.
 
+Not: Logs, which has `auth.login_failed` lines but cannot say who is locked
+out now, or let them back in.
+
 Why here: a locked-out user is a support call today, with no way to answer it
 from the admin.
 
-### 3. Sessions
+### 3. Mail
 
-Who is signed in, from where, since when. Revoke a session, or sign a user out
-everywhere.
-
-Needs: a session store that can be listed per user. `NativeSessionStore`
-cannot; a database store can.
-
-Why here: "sign out everywhere" pairs with token revocation, but it needs a new
-store first.
-
-### 4. Mail
-
-A log of sent mail (to, subject, transport, sent at, failure), a preview of
-each message, and a "send a test email" action.
+A log of sent mail (to, subject, transport, sent at), a preview of each
+message, and a "send a test email" action.
 
 Needs: the mailer to record what it sends (a listener on a sent event, so the
 mail package stays storage-free).
 
+Not: Failed jobs or Logs. A send that failed is already a failed job, and the
+log row links to it rather than tracking the failure twice. What neither
+shows is mail that went out, what it said, and whether the transport works.
+
 Why here: password reset and email verification both depend on mail arriving,
 and nothing shows whether it did.
 
-### 5. Migrations
+### On existing screens, not modules
 
-Read-only: which migrations have run, when, and which are pending.
+These were once planned as modules. Each is a card or an action on a screen
+that already covers the subject.
 
-Needs: `MigrationRunner` status as data rather than console output only.
+- **Migrations: a System Health card.** Pending count and the last run,
+  amber while anything is pending: what you check after a deploy. Needs
+  `MigrationRunner` status as data rather than console output only.
+- **Cache flush: an action on System Health's Cache card.** The card already
+  shows the store and whether it answers. Forgetting a single key is dropped:
+  nobody browses cache keys, and it is a worse flush.
 
-Why here: small and read-only; what you check after a deploy.
+### Not planned: roles and permissions
 
-### 6. Cache
+Roles are code (`Role` is an enum of User and Admin), and the Users module
+already assigns them. A module could only repeat that, or list abilities read
+only. It becomes one if roles become data an admin edits, and that is the
+design decision to make first: it reaches into authorization everywhere.
 
-Which store is in use, whether it is healthy, and a flush. Forget a single key.
+### Worth a look: Scheduler and Runs
 
-Needs: nothing much; `CacheHealthCheck` and `StoreInterface` cover it.
-
-Why here: small, and flushing is already a console job.
-
-### 7. Roles and permissions
-
-Assign roles to users, and see which abilities a role grants.
-
-Needs: decide whether roles are data (a table the admin edits) or code (the
-`Gate` abilities as written). Today they are code.
-
-Why last: the only one that needs a design decision before any code, and it
-reaches into authorization everywhere.
+The schedule and its history are two sidebar entries today. They could be one
+module with two screens, the shape Access takes. Not a problem to fix, but the
+admin should make that choice one way.
 
 ## Milestones
 
@@ -135,7 +149,7 @@ that shows it working, and the features built on it belong to apps.
 - **Done:** original filenames (0.9.17); `StorageInterface::list()`, file
   references and the Files module (0.10.0); paging as an `http` primitive,
   with paginated JSON responses and the admin rebuilt on it (0.10.1).
-- The API tokens and rate limits admin modules.
+- The Access (API tokens first) and Rate limits admin modules.
 
 ### M2. Live
 
