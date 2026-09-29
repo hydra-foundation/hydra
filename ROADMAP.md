@@ -3,10 +3,11 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.10.2 — Narrow screens** (the admin fits a phone, and the
-storage contract test stops failing at random). Before it, **0.10.1 — Paging**
-(`Paging`, `Paginated` and `Responder::paginated()` in `http`, with the admin
-rebuilt on them).
+Last shipped: **0.11.0 — Tabs** (`->tabOf()` puts a module behind another
+module's sidebar entry, as a tab; the skeleton's queue and schedule are one
+entry each, and Settings draws the same strip). Before it, **0.10.2 — Narrow
+screens** (the admin fits a phone, and the storage contract test stops failing
+at random).
 
 ## Principles
 
@@ -49,8 +50,9 @@ This is a gate on every milestone, not a milestone of its own.
 
 ## Default admin modules
 
-The admin the skeleton ships today: Dashboard, Users, Files, Activity, Audit,
-Jobs, Failed jobs, Scheduler, Scheduled runs, Logs, System health, Settings.
+The admin the skeleton ships today, as ten sidebar entries: Dashboard, System
+health, Users, Files, Activity, Audit, Logs, Scheduler (with a Runs tab), Jobs
+(with a Failed jobs tab) and Settings.
 
 These modules are Hydra's own: every app has users, files, tokens and mail,
 and needs to see them. The next ones, in priority order. Each one says what
@@ -59,13 +61,14 @@ the framework has to grow before the module can exist.
 **The bar for a new module.** It answers a question no current module
 answers, or it does not get a sidebar entry. Status goes on System Health as a
 card; an action on something a screen already shows goes on that screen; two
-lists of the same kind of thing are one module with two screens, the way
-Settings has categories. Each module below says what it is not.
+lists of the same kind of thing are one sidebar entry, the second a
+`->tabOf()` the first (0.11.0). Each module below says what it is not.
 
 ### 1. Access: sessions and API tokens
 
-One module, two screens, because both are ways into an account and an admin
-reaches for them for the same reason.
+One sidebar entry, two lists, because both are ways into an account and an
+admin reaches for them for the same reason: API tokens is the `access` module,
+and Sessions is `->tabOf('access')`.
 
 - **API tokens.** Every issued token across all users: name, owner,
   abilities, last used, expires. Revoke one, or all of a user's.
@@ -132,12 +135,6 @@ already assigns them. A module could only repeat that, or list abilities read
 only. It becomes one if roles become data an admin edits, and that is the
 design decision to make first: it reaches into authorization everywhere.
 
-### Worth a look: Scheduler and Runs
-
-The schedule and its history are two sidebar entries today. They could be one
-module with two screens, the shape Access takes. Not a problem to fix, but the
-admin should make that choice one way.
-
 ## Milestones
 
 Each milestone is a set of building blocks, and ends with something you can
@@ -148,7 +145,9 @@ that shows it working, and the features built on it belong to apps.
 
 - **Done:** original filenames (0.9.17); `StorageInterface::list()`, file
   references and the Files module (0.10.0); paging as an `http` primitive,
-  with paginated JSON responses and the admin rebuilt on it (0.10.1).
+  with paginated JSON responses and the admin rebuilt on it (0.10.1); module
+  tabs, with Scheduler and Runs, and Jobs and Failed jobs, each one entry
+  (0.11.0).
 - The Access (API tokens first) and Rate limits admin modules.
 
 ### M2. Live
