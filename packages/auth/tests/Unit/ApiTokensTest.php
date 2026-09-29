@@ -184,4 +184,28 @@ final class ApiTokensTest extends TestCase
     {
         $this->assertNull(ApiTokens::hashOf($plain));
     }
+
+    public function test_a_token_anywhere_in_a_string_is_redacted(): void
+    {
+        $plain = $this->tokens->issue(new FakeUser('ada'), 'CLI')->plain;
+
+        $this->assertSame('q=hyd_…&sort=name', ApiTokens::redact("q={$plain}&sort=name"));
+        $this->assertSame('hyd_… and hyd_…', ApiTokens::redact("{$plain} and {$plain}"));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function notTokens(): iterable
+    {
+        yield 'nothing' => [''];
+        yield 'a word' => ['q=hydra&page=3'];
+        yield 'too short' => ['q=hyd_' . str_repeat('a', 42)];
+        yield 'part of a longer run' => ['q=hyd_' . str_repeat('a', 44)];
+        yield 'glued to a word before it' => ['q=xhyd_' . str_repeat('a', 43)];
+    }
+
+    #[DataProvider('notTokens')]
+    public function test_a_string_without_a_token_is_left_alone(string $text): void
+    {
+        $this->assertSame($text, ApiTokens::redact($text));
+    }
 }
