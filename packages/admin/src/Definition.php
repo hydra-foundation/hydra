@@ -25,6 +25,7 @@ final class Definition
     private string $title;
     private ?string $icon = null;
     private ?string $group = null;
+    private ?string $tabOf = null;
     private ?string $ability = null;
     private SourceInterface|string|null $source = null;
 
@@ -77,6 +78,21 @@ final class Definition
     {
         $clone = clone $this;
         $clone->group = $group;
+
+        return $clone;
+    }
+
+    /**
+     * Puts this module's screens behind another module's sidebar entry, as a
+     * tab across the top of both. For two lists of the same kind of thing: the
+     * queue and what failed on it, a schedule and its runs. The module keeps
+     * its own slug, so its URL, its audit rows and every link to it stay as
+     * they were; only the sidebar and the strip of tabs change.
+     */
+    public function tabOf(string $parent): self
+    {
+        $clone = clone $this;
+        $clone->tabOf = $parent;
 
         return $clone;
     }
@@ -166,6 +182,7 @@ final class Definition
 
     public function compile(): Blueprint
     {
+        $this->assertTabHasSomewhereToSit();
         $this->assertSearchableFieldsAreFindable();
         $this->assertRowScreensHaveSomethingToName();
         $this->assertExportHasSomethingToWrite();
@@ -214,6 +231,7 @@ final class Definition
             title: $this->title,
             icon: $this->icon,
             group: $this->group,
+            tabOf: $this->tabOf,
             ability: $this->ability,
             source: $this->source,
             fields: $this->fields,
@@ -224,6 +242,30 @@ final class Definition
             defaultDirection: $this->defaultDirection,
             gone: $this->gone,
         );
+    }
+
+    /**
+     * The half of a tab's placement that this module alone can get wrong.
+     * Whether the parent exists, and is not itself a tab, needs every module
+     * at once, so {@see ModuleRegistry} checks that.
+     */
+    private function assertTabHasSomewhereToSit(): void
+    {
+        if ($this->tabOf === null) {
+            return;
+        }
+
+        if ($this->tabOf === $this->slug) {
+            throw new LogicException("Admin module \"{$this->slug}\" is a tab of itself. Remove tabOf().");
+        }
+
+        if ($this->group !== null) {
+            throw new LogicException(sprintf(
+                'Admin module "%s" is a tab of "%s" and sits under its sidebar entry, so it takes no group(). Remove group().',
+                $this->slug,
+                $this->tabOf,
+            ));
+        }
     }
 
     /**

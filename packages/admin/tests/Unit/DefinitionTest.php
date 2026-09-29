@@ -181,4 +181,40 @@ final class DefinitionTest extends TestCase
             ->screens(ExportScreen::make())
             ->compile();
     }
+
+    public function test_a_module_is_nobodys_tab_unless_it_says_so(): void
+    {
+        $this->assertNull(Definition::make('jobs')->screens(new ListScreen)->compile()->tabOf);
+    }
+
+    public function test_a_tab_names_the_module_whose_entry_it_sits_behind(): void
+    {
+        $plain = Definition::make('failed-jobs')->screens(new ListScreen);
+        $tab = $plain->tabOf('jobs');
+
+        $this->assertSame('jobs', $tab->compile()->tabOf);
+        $this->assertNull($plain->compile()->tabOf, 'tabOf() returns a copy and leaves the original alone');
+    }
+
+    public function test_a_module_cannot_be_a_tab_of_itself(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Admin module "jobs" is a tab of itself. Remove tabOf().');
+
+        Definition::make('jobs')->tabOf('jobs')->screens(new ListScreen)->compile();
+    }
+
+    /**
+     * A tab has no sidebar entry of its own, so a group on one would be a line
+     * that does nothing, and a line that does nothing gets copied.
+     */
+    public function test_a_tab_takes_no_group(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(
+            'Admin module "failed-jobs" is a tab of "jobs" and sits under its sidebar entry, so it takes no group(). Remove group().'
+        );
+
+        Definition::make('failed-jobs')->group('Queue')->tabOf('jobs')->screens(new ListScreen)->compile();
+    }
 }

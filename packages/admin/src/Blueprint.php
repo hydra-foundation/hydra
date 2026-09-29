@@ -24,6 +24,7 @@ final readonly class Blueprint
         public string $title,
         public ?string $icon,
         public ?string $group,
+        public ?string $tabOf,
         public ?string $ability,
         public SourceInterface|string|null $source,
         public array $fields,
