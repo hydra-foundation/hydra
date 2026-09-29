@@ -41,7 +41,7 @@ final class TrackSignInMiddlewareTest extends TestCase
     private FrozenClock $clock;
     private ArraySessionStore $session;
 
-    /** @var AbstractLogger&object{lines: list<string>} */
+    /** @var AbstractLogger&object{lines: list<string>, contexts: list<array<mixed>>} */
     private AbstractLogger $logger;
 
     protected function setUp(): void
@@ -55,9 +55,13 @@ final class TrackSignInMiddlewareTest extends TestCase
             /** @var list<string> */
             public array $lines = [];
 
+            /** @var list<array<mixed>> */
+            public array $contexts = [];
+
             public function log($level, string|Stringable $message, array $context = []): void
             {
                 $this->lines[] = (string) $message;
+                $this->contexts[] = $context;
             }
         };
     }
@@ -187,6 +191,7 @@ final class TrackSignInMiddlewareTest extends TestCase
 
         $this->assertSame(204, $response->getStatusCode());
         $this->assertSame(['Could not record where a sign-in was seen: disk full'], $this->logger->lines);
+        $this->assertInstanceOf(RuntimeException::class, $this->logger->contexts[0]['exception'] ?? null);
     }
 
     public function test_with_no_store_bound_nothing_is_tracked_and_nothing_fails(): void

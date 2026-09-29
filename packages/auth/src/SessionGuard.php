@@ -106,7 +106,6 @@ final class SessionGuard implements GuardInterface
             // a read path, the session only DROPS its claim, and the next real
             // login() rotates the id as it always does.
             $this->session->remove(self::SESSION_KEY);
-            $this->session->remove(self::SIGN_IN_KEY);
 
             return $this->cachedUser = null;
         }
@@ -271,7 +270,7 @@ final class SessionGuard implements GuardInterface
 
         if ($passwordChanged && $this->signIns !== null) {
             $held = $this->session->get(self::SIGN_IN_KEY);
-            $this->signIns->revokeAll($user, except: is_string($held) && $held !== '' ? $held : null);
+            $this->signIns->revokeAll($user, except: is_string($held) ? $held : null);
         }
 
         $this->cachedUser = $user;

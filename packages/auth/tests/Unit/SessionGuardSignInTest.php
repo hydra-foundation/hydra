@@ -272,6 +272,44 @@ final class SessionGuardSignInTest extends TestCase
         $this->assertSame(1, $guard->user()?->getAuthIdentifier());
     }
 
+    /** An app that stops recording sign-ins keeps the ones it had signed in. */
+    public function test_a_session_from_when_there_was_a_store_stays_signed_in_without_one(): void
+    {
+        $this->guard()->login($this->ada());
+
+        $without = new SessionGuard($this->session, $this->provider, new FakeHasher);
+
+        $this->assertSame(1, $without->user()?->getAuthIdentifier());
+        $this->assertNull($without->signIn());
+    }
+
+    public function test_a_clock_without_a_store_records_nothing(): void
+    {
+        $guard = new SessionGuard($this->session, $this->provider, new FakeHasher, null, null, $this->clock);
+
+        $guard->login($this->ada());
+        $guard->seen('203.0.113.7', 'Firefox');
+
+        $this->assertNull($guard->signIn());
+        $this->assertSame(1, $guard->user()?->getAuthIdentifier());
+    }
+
+    /** The deleted account's record is its own business, but a new sign-in here replaces it. */
+    public function test_a_new_login_after_the_account_was_deleted_ends_its_record(): void
+    {
+        $this->guard()->login($this->ada());
+        $old = $this->signIns->forUser($this->ada())[0]->id;
+        $ada = $this->ada();
+        $this->provider = (new ArrayUserProvider)->add('bob', new FakeUser(2, 'hashed:bob'));
+
+        $guard = $this->guard();
+        $this->assertNull($guard->user());
+        $guard->login($this->bob());
+
+        $this->assertNull($this->signIns->find($old));
+        $this->assertSame([], $this->signIns->forUser($ada));
+    }
+
     private function guard(?ArraySessionStore $session = null): SessionGuard
     {
         return new SessionGuard($session ?? $this->session, $this->provider, new FakeHasher, null, $this->signIns, $this->clock);
