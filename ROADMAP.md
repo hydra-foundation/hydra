@@ -3,12 +3,11 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.13.0 — Sign-ins** (`SessionGuard` records every sign-in
-through an app-provided `SignInStoreInterface` and checks it on each request,
-so deleting the record revokes it; the skeleton keeps them in `sign_ins`,
-tracks where each was last seen, and prunes idle ones). Before it,
-**0.12.0 — Access** (every API token across all users, found by a pasted
-secret and revoked).
+Last shipped: **0.14.0 — Sessions** (Access gains a Sessions tab listing
+every live sign-in, each revocable, and a sign out everywhere that ends every
+sign-in and API token of one user; `Definition::tabLabel()`). Before it,
+**0.13.0 — Sign-ins** (`SessionGuard` records every sign-in through an
+app-provided `SignInStoreInterface`, so deleting the record revokes it).
 
 ## Principles
 
@@ -52,7 +51,7 @@ This is a gate on every milestone, not a milestone of its own.
 ## Default admin modules
 
 The admin the skeleton ships today, as eleven sidebar entries: Dashboard,
-System health, Users, Access (API tokens), Files, Activity, Audit, Logs,
+System health, Users, Access (API tokens, with a Sessions tab), Files, Activity, Audit, Logs,
 Scheduler (with a Runs tab), Jobs (with a Failed jobs tab) and Settings.
 
 These modules are Hydra's own: every app has users, files, tokens and mail,
@@ -65,7 +64,7 @@ card; an action on something a screen already shows goes on that screen; two
 lists of the same kind of thing are one sidebar entry, the second a
 `->tabOf()` the first (0.11.0). Each module below says what it is not.
 
-### 1. Access: sessions and API tokens
+### 1. Done: Access, sessions and API tokens (0.12.0–0.14.0)
 
 One sidebar entry, two lists, because both are ways into an account and an
 admin reaches for them for the same reason: API tokens is the `access` module,
@@ -75,14 +74,16 @@ and Sessions is `->tabOf('access')`.
   name, state, last used, expires. A pasted secret finds its token; revoke
   one, or all of its owner's. Tokens have no abilities: scoped tokens would
   be an `auth` feature of their own, not a column here.
-- **Sessions.** Who is signed in, from where, since when. Revoke a session.
-- **Sign out everywhere**, per user: every session and every token, in one
-  action.
+- **Done: Sessions** (0.14.0). Every live sign-in: owner, address, browser,
+  since when, last seen, with your own marked. Revoke one, except your own.
+  Built on sign-in records in `auth` (0.13.0), which `SessionGuard` checks on
+  every request.
+- **Done: Sign out everywhere** (0.14.0), per user, from Users or Sessions:
+  every sign-in and every token, in one action, keeping your own sign-in on
+  your own account.
 
-Needs, for the rest: nothing more from the framework. Sign-ins are recorded
-and revocable since 0.13.0 (`SignInStoreInterface`, checked by
-`SessionGuard`), so Sessions is a source over `sign_ins` and a tab, and sign
-out everywhere is `revokeAll()` on both stores.
+Left for later: a Settings screen where a person sees and ends their own
+sign-ins ("your devices"). Same data, its own ownership rule.
 
 Not: Settings › API tokens, which is one person's own tokens. When a token
 leaks you usually know the token and not whose it is, so the admin needs the
@@ -151,9 +152,9 @@ that shows it working, and the features built on it belong to apps.
   references and the Files module (0.10.0); paging as an `http` primitive,
   with paginated JSON responses and the admin rebuilt on it (0.10.1); module
   tabs, with Scheduler and Runs, and Jobs and Failed jobs, each one entry
-  (0.11.0); Access › API tokens (0.12.0); sign-in records (0.13.0).
-- Access › Sessions and sign out everywhere, and the Rate limits admin
-  module.
+  (0.11.0); Access › API tokens (0.12.0); sign-in records (0.13.0); Access ›
+  Sessions and sign out everywhere (0.14.0).
+- The Rate limits admin module.
 
 ### M2. Live
 
