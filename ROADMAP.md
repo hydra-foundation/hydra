@@ -3,11 +3,12 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.12.0 — Access** (the skeleton's Access module lists every
-API token across all users, finds one by its pasted secret and revokes it, or
-all of its owner's; `ApiTokens::hashOf()` and `redact()`). Before it,
-**0.11.0 — Tabs** (`->tabOf()` puts a module behind another module's sidebar
-entry, as a tab).
+Last shipped: **0.13.0 — Sign-ins** (`SessionGuard` records every sign-in
+through an app-provided `SignInStoreInterface` and checks it on each request,
+so deleting the record revokes it; the skeleton keeps them in `sign_ins`,
+tracks where each was last seen, and prunes idle ones). Before it,
+**0.12.0 — Access** (every API token across all users, found by a pasted
+secret and revoked).
 
 ## Principles
 
@@ -78,11 +79,10 @@ and Sessions is `->tabOf('access')`.
 - **Sign out everywhere**, per user: every session and every token, in one
   action.
 
-Needs, for the rest: a record per sign-in that `SessionGuard` checks, so a
-sign-in can be listed and revoked with any session driver (the
-`session-registry` building block in `auth`), then Sessions as a tab and
-sign out everywhere. Sign-ins from before it ships are adopted, not signed
-out.
+Needs, for the rest: nothing more from the framework. Sign-ins are recorded
+and revocable since 0.13.0 (`SignInStoreInterface`, checked by
+`SessionGuard`), so Sessions is a source over `sign_ins` and a tab, and sign
+out everywhere is `revokeAll()` on both stores.
 
 Not: Settings › API tokens, which is one person's own tokens. When a token
 leaks you usually know the token and not whose it is, so the admin needs the
@@ -151,7 +151,7 @@ that shows it working, and the features built on it belong to apps.
   references and the Files module (0.10.0); paging as an `http` primitive,
   with paginated JSON responses and the admin rebuilt on it (0.10.1); module
   tabs, with Scheduler and Runs, and Jobs and Failed jobs, each one entry
-  (0.11.0); Access › API tokens (0.12.0).
+  (0.11.0); Access › API tokens (0.12.0); sign-in records (0.13.0).
 - Access › Sessions and sign out everywhere, and the Rate limits admin
   module.
 
