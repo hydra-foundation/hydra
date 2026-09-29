@@ -28,18 +28,18 @@
     ],
     "require": {
         "php": ">=8.2",
-        "hydrakit/csrf": "^0.10",
-        "hydrakit/http": "^0.10"
+        "hydrakit/csrf": "^0.11",
+        "hydrakit/http": "^0.11"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0",
-        "hydrakit/session": "^0.10"
+        "hydrakit/session": "^0.11"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.10.x-dev"
+            "dev-main": "0.11.x-dev"
         }
     }
 }
