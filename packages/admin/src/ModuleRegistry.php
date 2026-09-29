@@ -72,7 +72,69 @@ final class ModuleRegistry
             $blueprints[$blueprint->slug] = $blueprint;
         }
 
+        $this->assertTabsHaveAParent($blueprints);
+
         return $this->blueprints = $blueprints;
+    }
+
+    /**
+     * The module a sidebar entry stands for and the modules behind it: the
+     * parent first, then its tabs in the order they were registered. The same
+     * list whichever member is asked about; a module without tabs is a family
+     * of one.
+     *
+     * @return list<Blueprint>
+     */
+    public function family(Blueprint $blueprint): array
+    {
+        $parent = $blueprint->tabOf ?? $blueprint->slug;
+        $family = [];
+
+        foreach ($this->all() as $member) {
+            if ($member->slug === $parent) {
+                array_unshift($family, $member);
+            } elseif ($member->tabOf === $parent) {
+                $family[] = $member;
+            }
+        }
+
+        return $family;
+    }
+
+    /**
+     * The half of a tab's placement no single module can check, since it needs
+     * them all: that the parent exists, and that it sits in the sidebar itself.
+     * One level only, because a tab of a tab would need a strip inside a strip.
+     *
+     * @param array<string, Blueprint> $blueprints
+     */
+    private function assertTabsHaveAParent(array $blueprints): void
+    {
+        foreach ($blueprints as $blueprint) {
+            if ($blueprint->tabOf === null) {
+                continue;
+            }
+
+            $parent = $blueprints[$blueprint->tabOf] ?? null;
+
+            if ($parent === null) {
+                throw new LogicException(sprintf(
+                    'Admin module "%s" is a tab of "%s", which is not registered. Register it, or fix the slug in tabOf().',
+                    $blueprint->slug,
+                    $blueprint->tabOf,
+                ));
+            }
+
+            if ($parent->tabOf !== null) {
+                throw new LogicException(sprintf(
+                    'Admin module "%s" is a tab of "%s", which is itself a tab of "%s". Point tabOf() at "%s".',
+                    $blueprint->slug,
+                    $parent->slug,
+                    $parent->tabOf,
+                    $parent->tabOf,
+                ));
+            }
+        }
     }
 
     public function find(string $slug): ?Blueprint

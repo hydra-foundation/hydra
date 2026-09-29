@@ -6,6 +6,7 @@ namespace Hydra\Admin\Tests\Unit;
 
 use Hydra\Admin\Contracts\CreateSourceInterface;
 use Hydra\Admin\Contracts\UpdateSourceInterface;
+use Hydra\Admin\Blueprint;
 use Hydra\Admin\Criteria;
 use Hydra\Admin\Definition;
 use Hydra\Admin\Field;
@@ -16,7 +17,9 @@ use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\Tests\Support\ArrayWritableSource;
 use Hydra\Admin\Tests\Support\ArrayRowSource;
 use Hydra\Admin\Tests\Support\ArraySource;
+use Hydra\Admin\Tests\Support\DeclaredModule;
 use Hydra\Admin\Tests\Support\EditableUsersModule;
+use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Hydra\Admin\Tests\Support\UsersModule;
@@ -186,6 +189,104 @@ final class ModuleRegistryTest extends TestCase
         $this->expectExceptionMessage('screen for one row');
 
         $registry->rowSource($blueprint);
+    }
+
+    public function test_a_module_without_tabs_is_a_family_of_one(): void
+    {
+        $registry = $this->family(['jobs' => null]);
+
+        $this->assertSame(['jobs'], $this->slugs($registry->family($this->find($registry, 'jobs'))));
+    }
+
+    /**
+     * The parent leads whichever member is asked about, and its tabs follow in
+     * the order the application registered them, not the order they were
+     * found in, so the strip reads the same on every screen of the family.
+     */
+    public function test_a_family_is_the_parent_then_its_tabs_in_registration_order(): void
+    {
+        $registry = $this->family([
+            'failed-jobs' => 'jobs',
+            'users' => null,
+            'jobs' => null,
+            'batches' => 'jobs',
+        ]);
+
+        foreach (['jobs', 'failed-jobs', 'batches'] as $member) {
+            $this->assertSame(
+                ['jobs', 'failed-jobs', 'batches'],
+                $this->slugs($registry->family($this->find($registry, $member))),
+                "asked from {$member}",
+            );
+        }
+
+        $this->assertSame(['users'], $this->slugs($registry->family($this->find($registry, 'users'))));
+    }
+
+    public function test_a_tab_of_a_module_that_is_not_registered_is_refused(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(
+            'Admin module "failed-jobs" is a tab of "job", which is not registered. Register it, or fix the slug in tabOf().'
+        );
+
+        $this->family(['jobs' => null, 'failed-jobs' => 'job'])->all();
+    }
+
+    /**
+     * One level only. A tab of a tab would need a strip inside a strip, and
+     * the fix is always to point at the module the whole family sits behind.
+     */
+    public function test_a_tab_of_a_tab_is_refused_with_the_slug_to_point_at(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(
+            'Admin module "retries" is a tab of "failed-jobs", which is itself a tab of "jobs". Point tabOf() at "jobs".'
+        );
+
+        $this->family(['jobs' => null, 'failed-jobs' => 'jobs', 'retries' => 'failed-jobs'])->all();
+    }
+
+    public function test_a_tab_may_be_registered_ahead_of_its_parent(): void
+    {
+        $registry = $this->family(['failed-jobs' => 'jobs', 'jobs' => null]);
+
+        $this->assertSame(['failed-jobs', 'jobs'], array_keys($registry->all()));
+    }
+
+    /**
+     * Each module is a DeclaredModule under its own slug as the service id,
+     * tabbed to the parent given, or to nothing for null.
+     *
+     * @param array<string, ?string> $modules slug => parent
+     */
+    private function family(array $modules): ModuleRegistry
+    {
+        $services = [];
+
+        foreach ($modules as $slug => $parent) {
+            $definition = Definition::make($slug)->source(new ArraySource)->fields(Field::id());
+            $services[$slug] = new DeclaredModule($parent === null ? $definition : $definition->tabOf($parent));
+        }
+
+        return new ModuleRegistry(new FakeContainer($services), array_keys($services));
+    }
+
+    private function find(ModuleRegistry $registry, string $slug): Blueprint
+    {
+        $blueprint = $registry->find($slug);
+        $this->assertNotNull($blueprint);
+
+        return $blueprint;
+    }
+
+    /**
+     * @param list<Blueprint> $blueprints
+     * @return list<string>
+     */
+    private function slugs(array $blueprints): array
+    {
+        return array_map(static fn (Blueprint $blueprint): string => $blueprint->slug, $blueprints);
     }
 
     private function viewableRegistry(): ModuleRegistry

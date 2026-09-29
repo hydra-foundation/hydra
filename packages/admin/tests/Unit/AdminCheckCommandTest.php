@@ -10,11 +10,15 @@ use Hydra\Console\Testing\FakeOutput;
 use Hydra\Admin\Console\AdminCheckCommand;
 use Hydra\Admin\ModuleRegistry;
 use Hydra\Core\Testing\FakeContainer;
+use Hydra\Admin\Definition;
+use Hydra\Admin\Field;
 use Hydra\Admin\Tests\Support\ArraySource;
+use Hydra\Admin\Tests\Support\DeclaredModule;
 use Hydra\Admin\Tests\Support\DescribedSource;
 use Hydra\Admin\Tests\Support\DescribedUsersModule;
 use Hydra\Admin\Tests\Support\LandingModule;
 use Hydra\Admin\Tests\Support\UsersModule;
+use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -146,6 +150,28 @@ final class AdminCheckCommandTest extends TestCase
 
         $this->assertSame(ExitCode::Success, $this->code);
         $this->assertStringContainsString('home', implode("\n", $output->lines()));
+    }
+
+    /**
+     * A tab pointing at a module that is not there is refused before any
+     * module is checked, so the command stops on the reason rather than
+     * printing a table that looks like a pass.
+     */
+    public function test_a_tab_with_no_parent_stops_the_check_with_the_fix(): void
+    {
+        $registry = new ModuleRegistry(
+            new FakeContainer([
+                'failed-jobs' => new DeclaredModule(
+                    Definition::make('failed-jobs')->tabOf('job')->source(new ArraySource)->fields(Field::id()),
+                ),
+            ]),
+            ['failed-jobs'],
+        );
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Register it, or fix the slug in tabOf().');
+
+        (new AdminCheckCommand($registry))->execute(new ArrayInput, new FakeOutput);
     }
 
     /** Runs the check over one source and keeps what it said. */
