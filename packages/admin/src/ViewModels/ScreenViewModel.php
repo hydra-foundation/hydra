@@ -17,12 +17,14 @@ final readonly class ScreenViewModel
     /**
      * @param list<array{slug: string, title: string, icon: ?string, group: ?string, url: string, active: bool}> $navigation
      * @param list<array{label: string, url: ?string}> $breadcrumbs
+     * @param list<array{label: string, url: string, active: bool}> $tabs the strip across a family's screens, empty for a module without tabs
      */
     public function __construct(
         public string $title,
         public array $navigation,
         public array $breadcrumbs,
         public ?Notice $notice = null,
+        public array $tabs = [],
     ) {}
 
     /**

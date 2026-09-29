@@ -12,8 +12,11 @@ use Hydra\Authorization\Contracts\GateInterface;
  */
 final class Navigation
 {
-    /** @var list<array{slug: string, title: string, icon: ?string, group: ?string, url: string}>|null */
+    /** @var list<array{slug: string, title: string, icon: ?string, group: ?string, url: string, members: list<string>}>|null */
     private ?array $reachable = null;
+
+    /** @var array<string, bool> */
+    private array $allowed = [];
 
     public function __construct(
         private readonly ModuleRegistry $registry,
@@ -24,7 +27,12 @@ final class Navigation
     public function items(?string $current = null): array
     {
         return array_map(
-            static fn (array $item): array => [...$item, 'active' => $item['slug'] === $current],
+            static function (array $item) use ($current): array {
+                $members = $item['members'];
+                unset($item['members']);
+
+                return [...$item, 'active' => in_array($current, $members, true)];
+            },
             $this->reachable(),
         );
     }
@@ -36,16 +44,52 @@ final class Navigation
     }
 
     /**
-     * The modules this visitor may open, in declaration order. Which screen is
-     * current does not change the list, only which entry is marked. A screen
-     * asks for both the list and the root it hangs under, so the gate is walked
-     * once rather than once per question.
+     * The strip across the top of a family's screens: every member this
+     * visitor may open, parent first, with the one being shown marked. Empty
+     * for a module without tabs, and for a family the gate cuts to one, since
+     * a strip with a single tab says nothing the heading does not.
+     *
+     * @return list<array{label: string, url: string, active: bool}>
+     */
+    public function tabs(string $current): array
+    {
+        $blueprint = $this->registry->find($current);
+
+        if ($blueprint === null) {
+            return [];
+        }
+
+        $tabs = [];
+
+        foreach ($this->registry->family($blueprint) as $member) {
+            if ($this->allows($member)) {
+                $tabs[] = [
+                    'label' => $member->title,
+                    'url' => $this->registry->root($member),
+                    'active' => $member->slug === $current,
+                ];
+            }
+        }
+
+        return count($tabs) > 1 ? $tabs : [];
+    }
+
+    /**
+     * One entry per family, in declaration order. Which screen is current does
+     * not change the list, only which entry is marked. A screen asks for both
+     * the list and the root it hangs under, so the gate is walked once rather
+     * than once per question.
+     *
+     * An entry carries its parent's name, icon and group and sits at the
+     * parent's place, since that is what the family is called, but it leads to
+     * the first member this visitor may open: a visitor denied Jobs and
+     * allowed Failed jobs still has a way in, and never one that answers 403.
      *
      * Held for the life of this instance, which is one visitor's: the gate
      * answers for whoever is signed in, and that is settled before a screen is
      * built and does not change while one is being rendered.
      *
-     * @return list<array{slug: string, title: string, icon: ?string, group: ?string, url: string}>
+     * @return list<array{slug: string, title: string, icon: ?string, group: ?string, url: string, members: list<string>}>
      */
     private function reachable(): array
     {
@@ -56,7 +100,14 @@ final class Navigation
         $items = [];
 
         foreach ($this->registry->all() as $blueprint) {
-            if ($blueprint->ability !== null && $this->gate->denies($blueprint->ability)) {
+            if ($blueprint->tabOf !== null) {
+                continue;
+            }
+
+            $family = $this->registry->family($blueprint);
+            $members = array_values(array_filter($family, $this->allows(...)));
+
+            if ($members === []) {
                 continue;
             }
 
@@ -65,10 +116,16 @@ final class Navigation
                 'title' => $blueprint->title,
                 'icon' => $blueprint->icon,
                 'group' => $blueprint->group,
-                'url' => $this->registry->root($blueprint),
+                'url' => $this->registry->root($members[0]),
+                'members' => array_map(static fn (Blueprint $member): string => $member->slug, $family),
             ];
         }
 
         return $this->reachable = $items;
+    }
+
+    private function allows(Blueprint $blueprint): bool
+    {
+        return $this->allowed[$blueprint->slug] ??= $blueprint->ability === null || $this->gate->allows($blueprint->ability);
     }
 }

@@ -39,6 +39,7 @@ final class Chrome
                 ['label' => $title ?? $blueprint->title, 'url' => null],
             ],
             $notice,
+            $this->navigation->tabs($blueprint->slug),
         );
     }
 
@@ -58,21 +59,27 @@ final class Chrome
                 ['label' => $crumb ?? $title, 'url' => null],
             ],
             $notice,
+            $this->navigation->tabs($blueprint->slug),
         );
     }
 
     /**
      * The sidebar heading a module sits under, as a crumb with nothing behind
      * it: a group is a label, not a screen, so there is nowhere for it to go.
-     * A module that declared no group contributes no crumb.
+     * A module that declared no group contributes no crumb. A tab declares
+     * none and sits under its parent's entry, so it takes the parent's.
      *
      * @return list<array{label: string, url: null}>
      */
     private function under(Blueprint $blueprint): array
     {
-        return $blueprint->group === null
+        $group = $blueprint->tabOf === null
+            ? $blueprint->group
+            : $this->registry->find($blueprint->tabOf)?->group;
+
+        return $group === null
             ? []
-            : [['label' => $blueprint->group, 'url' => null]];
+            : [['label' => $group, 'url' => null]];
     }
 
     /**
