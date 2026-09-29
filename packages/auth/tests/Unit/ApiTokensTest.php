@@ -154,6 +154,8 @@ final class ApiTokensTest extends TestCase
         yield 'too short' => ['hyd_' . str_repeat('a', 42)];
         yield 'too long' => ['hyd_' . str_repeat('a', 44)];
         yield 'outside base64url' => ['hyd_' . str_repeat('a', 42) . '='];
+        yield 'trailing newline' => ['hyd_' . str_repeat('a', 43) . "\n"];
+        yield 'wrong prefix' => ['hyx_' . str_repeat('a', 43)];
     }
 
     #[DataProvider('malformed')]
@@ -168,5 +170,42 @@ final class ApiTokensTest extends TestCase
     public function test_an_unknown_token_authenticates_nobody(): void
     {
         $this->assertNull($this->tokens->authenticate('hyd_' . str_repeat('a', 43)));
+    }
+
+    public function test_the_hash_of_an_issued_token_is_the_one_the_store_holds(): void
+    {
+        $issued = $this->tokens->issue(new FakeUser('ada'), 'CLI');
+
+        $this->assertSame($issued->token->hash, ApiTokens::hashOf($issued->plain));
+    }
+
+    #[DataProvider('malformed')]
+    public function test_a_malformed_token_has_no_hash(string $plain): void
+    {
+        $this->assertNull(ApiTokens::hashOf($plain));
+    }
+
+    public function test_a_token_anywhere_in_a_string_is_redacted(): void
+    {
+        $plain = $this->tokens->issue(new FakeUser('ada'), 'CLI')->plain;
+
+        $this->assertSame('q=hyd_…&sort=name', ApiTokens::redact("q={$plain}&sort=name"));
+        $this->assertSame('hyd_… and hyd_…', ApiTokens::redact("{$plain} and {$plain}"));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function notTokens(): iterable
+    {
+        yield 'nothing' => [''];
+        yield 'a word' => ['q=hydra&page=3'];
+        yield 'too short' => ['q=hyd_' . str_repeat('a', 42)];
+        yield 'part of a longer run' => ['q=hyd_' . str_repeat('a', 44)];
+        yield 'glued to a word before it' => ['q=xhyd_' . str_repeat('a', 43)];
+    }
+
+    #[DataProvider('notTokens')]
+    public function test_a_string_without_a_token_is_left_alone(string $text): void
+    {
+        $this->assertSame($text, ApiTokens::redact($text));
     }
 }

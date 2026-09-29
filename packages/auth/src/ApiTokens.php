@@ -23,6 +23,9 @@ final readonly class ApiTokens
 
     private const BYTES = 32;
 
+    /** 32 bytes, base64url without padding, after the prefix. */
+    private const SHAPE = self::PREFIX . '[A-Za-z0-9_-]{43}';
+
     private const MAX_NAME = 100;
 
     public function __construct(
@@ -53,13 +56,40 @@ final readonly class ApiTokens
         );
     }
 
-    public function authenticate(#[\SensitiveParameter] string $plain): ?AuthenticatedToken
+    /**
+     * What the store holds for a token, or null for a string that is not one.
+     * The one place the format is written down: authentication looks a token
+     * up by it, and so does an admin holding a leaked secret and wanting to
+     * know whose it is.
+     */
+    public static function hashOf(#[\SensitiveParameter] string $plain): ?string
     {
-        if (preg_match('/^' . self::PREFIX . '[A-Za-z0-9_-]{43}$/D', $plain) !== 1) {
+        if (preg_match('/^' . self::SHAPE . '$/D', $plain) !== 1) {
             return null;
         }
 
-        $token = $this->store->findByHash(hash('sha256', $plain));
+        return hash('sha256', $plain);
+    }
+
+    /**
+     * The text with every token in it cut back to its prefix. For anything that
+     * writes down what it was given — a request log, a referer — where a token
+     * someone pasted would otherwise be kept, readable, for as long as the log.
+     */
+    public static function redact(string $text): string
+    {
+        return (string) preg_replace('/(?<![A-Za-z0-9_-])' . self::SHAPE . '(?![A-Za-z0-9_-])/', self::PREFIX . '…', $text);
+    }
+
+    public function authenticate(#[\SensitiveParameter] string $plain): ?AuthenticatedToken
+    {
+        $hash = self::hashOf($plain);
+
+        if ($hash === null) {
+            return null;
+        }
+
+        $token = $this->store->findByHash($hash);
         $now = $this->clock->now();
 
         if ($token === null || ($token->expiresAt !== null && $token->expiresAt <= $now)) {
