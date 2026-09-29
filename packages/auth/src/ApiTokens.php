@@ -53,13 +53,30 @@ final readonly class ApiTokens
         );
     }
 
-    public function authenticate(#[\SensitiveParameter] string $plain): ?AuthenticatedToken
+    /**
+     * What the store holds for a token, or null for a string that is not one.
+     * The one place the format is written down: authentication looks a token
+     * up by it, and so does an admin holding a leaked secret and wanting to
+     * know whose it is.
+     */
+    public static function hashOf(#[\SensitiveParameter] string $plain): ?string
     {
         if (preg_match('/^' . self::PREFIX . '[A-Za-z0-9_-]{43}$/D', $plain) !== 1) {
             return null;
         }
 
-        $token = $this->store->findByHash(hash('sha256', $plain));
+        return hash('sha256', $plain);
+    }
+
+    public function authenticate(#[\SensitiveParameter] string $plain): ?AuthenticatedToken
+    {
+        $hash = self::hashOf($plain);
+
+        if ($hash === null) {
+            return null;
+        }
+
+        $token = $this->store->findByHash($hash);
         $now = $this->clock->now();
 
         if ($token === null || ($token->expiresAt !== null && $token->expiresAt <= $now)) {

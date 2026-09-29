@@ -154,6 +154,8 @@ final class ApiTokensTest extends TestCase
         yield 'too short' => ['hyd_' . str_repeat('a', 42)];
         yield 'too long' => ['hyd_' . str_repeat('a', 44)];
         yield 'outside base64url' => ['hyd_' . str_repeat('a', 42) . '='];
+        yield 'trailing newline' => ['hyd_' . str_repeat('a', 43) . "\n"];
+        yield 'wrong prefix' => ['hyx_' . str_repeat('a', 43)];
     }
 
     #[DataProvider('malformed')]
@@ -168,5 +170,18 @@ final class ApiTokensTest extends TestCase
     public function test_an_unknown_token_authenticates_nobody(): void
     {
         $this->assertNull($this->tokens->authenticate('hyd_' . str_repeat('a', 43)));
+    }
+
+    public function test_the_hash_of_an_issued_token_is_the_one_the_store_holds(): void
+    {
+        $issued = $this->tokens->issue(new FakeUser('ada'), 'CLI');
+
+        $this->assertSame($issued->token->hash, ApiTokens::hashOf($issued->plain));
+    }
+
+    #[DataProvider('malformed')]
+    public function test_a_malformed_token_has_no_hash(string $plain): void
+    {
+        $this->assertNull(ApiTokens::hashOf($plain));
     }
 }
