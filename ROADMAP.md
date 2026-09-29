@@ -3,10 +3,10 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.10.1 — Paging** (`Paging`, `Paginated` and
-`Responder::paginated()` in `http`, with the admin rebuilt on them). Before it,
-**0.10.0 — Files** (`StorageInterface::list()`, file references, the Files
-module).
+Last shipped: **0.10.2 — Narrow screens** (the admin fits a phone, and the
+storage contract test stops failing at random). Before it, **0.10.1 — Paging**
+(`Paging`, `Paginated` and `Responder::paginated()` in `http`, with the admin
+rebuilt on them).
 
 ## Principles
 
