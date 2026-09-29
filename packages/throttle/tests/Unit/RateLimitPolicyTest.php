@@ -30,6 +30,14 @@ final class RateLimitPolicyTest extends TestCase
         );
     }
 
+    public function test_a_key_can_be_named_without_the_policy_that_counts_it(): void
+    {
+        $this->assertSame(
+            (new RateLimitPolicy('login', 5, 600))->keyFor('203.0.113.7'),
+            RateLimitPolicy::key('login', '203.0.113.7'),
+        );
+    }
+
     public function test_a_limit_of_exactly_one_is_allowed(): void
     {
         // The boundary, not a round number: one attempt per window is a real

@@ -42,6 +42,15 @@ final readonly class RateLimitPolicy
     /** The counter key for one client under this policy. */
     public function keyFor(string $identity): string
     {
-        return "throttle:{$this->name}:{$identity}";
+        return self::key($this->name, $identity);
+    }
+
+    /**
+     * The counter key for one client under the policy called $name: what
+     * releasing a lockout forgets, knowing the name and not the budget.
+     */
+    public static function key(string $name, string $identity): string
+    {
+        return "throttle:{$name}:{$identity}";
     }
 }
