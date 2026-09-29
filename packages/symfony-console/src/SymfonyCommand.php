@@ -7,7 +7,6 @@ namespace Hydra\SymfonyConsole;
 use Hydra\Console\Argument;
 use Hydra\Console\CommandScanner;
 use Hydra\Console\Contracts\CommandInterface;
-use Hydra\Console\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;

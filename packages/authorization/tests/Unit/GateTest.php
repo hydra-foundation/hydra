@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Hydra\Authorization\Tests\Unit;
 
 use Hydra\Auth\Contracts\AuthenticatableInterface;
-use Hydra\Auth\Contracts\GuardInterface;
 use Hydra\Auth\Testing\FakeGuard;
 use Hydra\Auth\Testing\FakeUser;
 use Hydra\Authorization\Contracts\AbilityInterface;

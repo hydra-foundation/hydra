@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Hydra\Scheduler\Tests\Unit;
 
-use DateTimeImmutable;
 use DateTimeZone;
 use Hydra\Core\Contracts\ExceptionReporterInterface;
 use Hydra\Core\Testing\FakeContainer;

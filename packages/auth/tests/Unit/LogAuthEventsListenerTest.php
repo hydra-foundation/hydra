@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Hydra\Auth\Tests\Unit;
 
-use Hydra\Auth\Contracts\AuthenticatableInterface;
 use Hydra\Auth\Events\Attempting;
 use Hydra\Auth\Events\EmailVerified;
 use Hydra\Auth\Events\LoggedIn;

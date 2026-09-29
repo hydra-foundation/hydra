@@ -14,7 +14,6 @@ use Hydra\Admin\Events\RowCreated;
 use Hydra\Admin\Events\RowDeleted;
 use Hydra\Admin\Events\RowUpdated;
 use Hydra\Admin\Exceptions\WriteRejected;
-use Hydra\Admin\Period;
 use Hydra\Admin\Screens\ActionScreen;
 use Hydra\Admin\Screens\DashboardScreen;
 use Hydra\Admin\Screens\DeleteScreen;
