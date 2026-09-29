@@ -2,7 +2,7 @@
 section: The skeleton
 kind: added
 ---
-**Administration → Rate limits** lists every client a rate limit is refusing right now: what was limited, in words ("Sign-in attempts from one address"); who, with the username where the limit counts by account; the budget ("5 per 10 minutes"); when it began and how long is left. **Let back in** clears the lockout, so that client's next request is counted from zero, and it is audited. All / Sign-in / Everything else links split the list, and it searches by who. Lockouts are recorded in a new `rate_limit_lockouts` table, and a daily `PruneLockouts` task deletes those that ended over a day ago.
+**Administration → Rate limits** lists every client a rate limit is refusing right now: what was limited, in words ("Sign-in attempts from one address"); who, with the username where the limit counts by account; the budget ("5 per 10 minutes"); when it began and how long is left. Lockouts that ended in the last 15 minutes stay listed below, marked Ended, since one under the one-minute global limit can be over before anyone looks. **Let back in** clears the lockout, so that client's next request is counted from zero, and it is audited. All / Sign-in / Everything else links split the list, and it searches by who. Lockouts are recorded in a new `rate_limit_lockouts` table, and a daily `PruneLockouts` task deletes those that ended over a day ago.
 
 ### Upgrading
 
