@@ -37,6 +37,22 @@ credentials are refused outright with `MAIL_ENCRYPTION=none`.
 | `MAIL_TIMEOUT` | `10` | seconds, for the connection and each reply |
 | `MAIL_EHLO_DOMAIN` | `localhost` | the name this client greets the server with |
 
+When the app binds a PSR-14 `EventDispatcherInterface`, every message a
+transport accepts is announced as `Events\MessageSent`, carrying the message as
+sent (sender filled in) and the transport's name. A send that throws announces
+nothing. The package stores nothing; an app that wants a log of sent mail
+listens:
+
+```php
+$listeners->listen(MessageSent::class, function (MessageSent $sent): void {
+    // $sent->message->getTo(), ->getSubject(), $sent->transport …
+});
+```
+
+A listener that throws reaches the caller of `send()` after the mail went out,
+so one that records should catch and log its own failures. `FakeMailer`
+dispatches nothing.
+
 In tests, register `Testing\FakeMailServiceProvider` after `MailServiceProvider`
 and assert on the `FakeMailer` it binds:
 

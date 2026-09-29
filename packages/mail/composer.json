@@ -16,7 +16,8 @@
     },
     "repositories": [
         { "type": "path", "url": "../core", "options": { "symlink": true } },
-        { "type": "path", "url": "../log", "options": { "symlink": true } }
+        { "type": "path", "url": "../log", "options": { "symlink": true } },
+        { "type": "path", "url": "../event", "options": { "symlink": true } }
     ],
     "authors": [
         {
@@ -28,9 +29,11 @@
         "php": ">=8.2",
         "hydrakit/core": "^0.15",
         "psr/log": "^3.0",
-        "psr/clock": "^1.0"
+        "psr/clock": "^1.0",
+        "psr/event-dispatcher": "^1.0"
     },
     "require-dev": {
+        "hydrakit/event": "^0.15",
         "hydrakit/log": "^0.15",
         "phpunit/phpunit": "^11.0"
     },

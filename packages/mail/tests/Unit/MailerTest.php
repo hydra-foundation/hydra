@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Hydra\Mail\Tests\Unit;
 
+use Hydra\Event\Testing\FakeDispatcher;
 use Hydra\Log\Testing\CapturingLogger;
 use Hydra\Mail\Address;
+use Hydra\Mail\Contracts\TransportInterface;
+use Hydra\Mail\Events\MessageSent;
 use Hydra\Mail\Mailer;
 use Hydra\Mail\Message;
 use Hydra\Mail\Transports\ArrayTransport;
 use Hydra\Mail\Transports\LogTransport;
+use Hydra\Mail\Exceptions\TransportException;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -17,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Mailer::class)]
 #[CoversClass(ArrayTransport::class)]
 #[CoversClass(LogTransport::class)]
+#[CoversClass(MessageSent::class)]
 final class MailerTest extends TestCase
 {
     public function test_a_message_without_a_sender_gets_the_default(): void
@@ -89,5 +94,63 @@ final class MailerTest extends TestCase
         $this->assertSame(['b@example.com'], $record['context']['bcc']);
         $this->assertSame('app@example.com', $record['context']['from']);
         $this->assertSame('https://x.test/r?token=abc', $record['context']['text']);
+    }
+
+    public function test_a_sent_message_is_announced_as_sent_with_the_transport_name(): void
+    {
+        $events = new FakeDispatcher;
+        $transport = new ArrayTransport;
+        (new Mailer($transport, new Address('app@example.com', 'App'), $events, 'smtp'))
+            ->send(Message::make()->to('a@example.com')->subject('Hi')->text('x'));
+
+        $this->assertCount(1, $events->dispatched());
+        $sent = $events->first(MessageSent::class);
+        $this->assertSame('smtp', $sent->transport);
+        $this->assertSame($transport->messages()[0], $sent->message);
+        $this->assertEquals(new Address('app@example.com', 'App'), $sent->message->getFrom());
+    }
+
+    public function test_the_transport_name_defaults_to_empty(): void
+    {
+        $events = new FakeDispatcher;
+        (new Mailer(new ArrayTransport, new Address('app@example.com'), $events))
+            ->send(Message::make()->to('a@example.com')->text('x'));
+
+        $this->assertSame('', $events->first(MessageSent::class)->transport);
+    }
+
+    public function test_a_message_that_fails_validation_is_not_announced(): void
+    {
+        $events = new FakeDispatcher;
+
+        try {
+            (new Mailer(new ArrayTransport, new Address('app@example.com'), $events, 'array'))
+                ->send(Message::make()->text('x'));
+            $this->fail('Expected the send to be refused.');
+        } catch (InvalidArgumentException) {
+        }
+
+        $this->assertSame([], $events->dispatched());
+    }
+
+    public function test_a_message_the_transport_refuses_is_not_announced(): void
+    {
+        $events = new FakeDispatcher;
+        $refusing = new class implements TransportInterface {
+            public function send(Message $message): void
+            {
+                throw new TransportException('535 Authentication failed');
+            }
+        };
+
+        try {
+            (new Mailer($refusing, new Address('app@example.com'), $events, 'smtp'))
+                ->send(Message::make()->to('a@example.com')->text('x'));
+            $this->fail('Expected the transport to throw.');
+        } catch (TransportException $e) {
+            $this->assertSame('535 Authentication failed', $e->getMessage());
+        }
+
+        $this->assertSame([], $events->dispatched());
     }
 }

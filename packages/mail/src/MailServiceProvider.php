@@ -14,6 +14,7 @@ use Hydra\Mail\Transports\ArrayTransport;
 use Hydra\Mail\Transports\LogTransport;
 use Hydra\Mail\Transports\SmtpTransport;
 use Psr\Clock\ClockInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -41,9 +42,15 @@ final class MailServiceProvider extends ServiceProvider
         });
 
         $container->singleton(MailerInterface::class, function () use ($container) {
+            $config = $container->get(MailConfig::class);
+
+            // The dispatcher is OPTIONAL: an app that binds one hears every
+            // sent message; one that doesn't gets the mailer as it always was.
             return new Mailer(
                 $container->get(TransportInterface::class),
-                $container->get(MailConfig::class)->from,
+                $config->from,
+                $container->bound(EventDispatcherInterface::class) ? $container->get(EventDispatcherInterface::class) : null,
+                $config->transport,
             );
         });
     }

@@ -6,9 +6,11 @@ namespace Hydra\Mail\Tests\Unit;
 
 use Hydra\Core\Environment;
 use Hydra\Core\Testing\FrozenClock;
+use Hydra\Event\Testing\FakeDispatcher;
 use Hydra\Log\Testing\CapturingLogger;
 use Hydra\Mail\Contracts\MailerInterface;
 use Hydra\Mail\Contracts\TransportInterface;
+use Hydra\Mail\Events\MessageSent;
 use Hydra\Mail\MailConfig;
 use Hydra\Mail\MailServiceProvider;
 use Hydra\Mail\Mailer;
@@ -23,6 +25,7 @@ use Hydra\Mail\Transports\SmtpTransport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 
 #[CoversClass(MailServiceProvider::class)]
@@ -91,5 +94,27 @@ final class MailServiceProviderTest extends TestCase
 
         $this->assertInstanceOf(FakeMailer::class, $container->get(MailerInterface::class));
         $this->assertSame($container->get(FakeMailer::class), $container->get(MailerInterface::class));
+    }
+
+    public function test_a_bound_dispatcher_hears_each_send_with_the_configured_transport(): void
+    {
+        $container = $this->container(new MailConfig(transport: 'array', fromAddress: 'app@example.com'));
+        $events = new FakeDispatcher;
+        $container->instance(EventDispatcherInterface::class, $events);
+
+        $container->get(MailerInterface::class)->send(Message::make()->to('a@example.com')->text('x'));
+
+        $this->assertSame('array', $events->first(MessageSent::class)->transport);
+    }
+
+    public function test_the_mailer_works_with_no_dispatcher_bound(): void
+    {
+        $container = $this->container(new MailConfig(transport: 'array', fromAddress: 'app@example.com'));
+
+        $container->get(MailerInterface::class)->send(Message::make()->to('a@example.com')->text('x'));
+
+        $transport = $container->get(TransportInterface::class);
+        $this->assertInstanceOf(ArrayTransport::class, $transport);
+        $this->assertCount(1, $transport->messages());
     }
 }
