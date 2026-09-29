@@ -3,8 +3,10 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.10.0 — Files** (`StorageInterface::list()`, file references,
-the Files module). Before it, **0.9.17 — Names** (original filenames).
+Last shipped: **0.10.1 — Paging** (`Paging`, `Paginated` and
+`Responder::paginated()` in `http`, with the admin rebuilt on them). Before it,
+**0.10.0 — Files** (`StorageInterface::list()`, file references, the Files
+module).
 
 ## Principles
 
@@ -131,25 +133,8 @@ that shows it working, and the features built on it belong to apps.
 ### M1. Tidy: finish what is half there
 
 - **Done:** original filenames (0.9.17); `StorageInterface::list()`, file
-  references and the Files module (0.10.0).
-- **Uncouple pagination from the admin.** Paging only exists inside
-  `Hydra\Admin` today: `Page` holds the rows and total, and `Criteria` mixes
-  the page and per-page with sort, filters, search and filter links. An API
-  controller that wants to page a list has nothing to reach for.
-  - Pull the paging half out into a framework primitive, with no knowledge of
-    the admin: page number, per-page, offset, total, pages, `from`/`to`,
-    has-previous/has-next, and the `MAX_PAGE` cap (the full-scan guard) with
-    it. It also reads `page` and `per_page` off a `Query`, with per-page
-    clamped to a ceiling the caller sets.
-  - **Paginated responses**: `Responder` renders a page as JSON, meaning the
-    rows plus `meta` (page, per page, total, pages) and `links` (first, prev,
-    next, last) built from the request URL, and an RFC 8288 `Link` header.
-  - The admin's `Page` and `Criteria` are rebuilt on the primitive, keeping
-    sorting, filters and search as admin concerns. The `SourceInterface`
-    contract does not change for a module author.
-  - Lives in `http`, beside `Query` and `Responder`. Paging is not
-    database-specific (the log and schedule sources page arrays), so not
-    `database`.
+  references and the Files module (0.10.0); paging as an `http` primitive,
+  with paginated JSON responses and the admin rebuilt on it (0.10.1).
 - The API tokens and rate limits admin modules.
 
 ### M2. Live
@@ -208,7 +193,8 @@ What anything people do together in real time needs, on top of M2:
 - **Presence**: who is online, as short-lived keys in Redis, broadcast on
   change. Typing indicators are the same thing with a shorter life.
 - **Cursor pagination**: newest first, with no OFFSET, for history and
-  infinite scroll. It sits beside M1's page-number primitive.
+  infinite scroll. It sits beside `Paging`, the page-number
+  primitive (0.10.1).
 - Sending over a plain htmx POST and receiving over SSE, as a recipe. No
   WebSockets.
 
