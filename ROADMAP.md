@@ -3,11 +3,11 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.14.0 — Sessions** (Access gains a Sessions tab listing
-every live sign-in, each revocable, and a sign out everywhere that ends every
-sign-in and API token of one user; `Definition::tabLabel()`). Before it,
-**0.13.0 — Sign-ins** (`SessionGuard` records every sign-in through an
-app-provided `SignInStoreInterface`, so deleting the record revokes it).
+Last shipped: **0.15.0 — Rate limits** (`RateLimiter` records each client it
+starts refusing through an app-provided `LockoutStoreInterface`, and
+`release()` lets one back in; the skeleton's Administration › Rate limits
+lists them). Before it, **0.14.0 — Sessions** (Access gains a Sessions tab
+and a sign out everywhere; `Definition::tabLabel()`).
 
 ## Principles
 
@@ -50,8 +50,9 @@ This is a gate on every milestone, not a milestone of its own.
 
 ## Default admin modules
 
-The admin the skeleton ships today, as eleven sidebar entries: Dashboard,
-System health, Users, Access (API tokens, with a Sessions tab), Files, Activity, Audit, Logs,
+The admin the skeleton ships today, as twelve sidebar entries: Dashboard,
+System health, Users, Access (API tokens, with a Sessions tab), Rate limits,
+Files, Activity, Audit, Logs,
 Scheduler (with a Runs tab), Jobs (with a Failed jobs tab) and Settings.
 
 These modules are Hydra's own: every app has users, files, tokens and mail,
@@ -93,12 +94,17 @@ Activity either: that is requests made, not access that can still be revoked.
 Why first: a leaked token is the most urgent thing an admin needs to kill, and
 the data already existed, so tokens shipped first.
 
-### 2. Rate limits
+### 2. Done: Rate limits (0.15.0)
 
-Keys currently throttled or locked out (failed sign-ins, say), with time left,
-and a way to clear one.
+Who a limit is refusing right now (failed sign-ins, say), with time left, and
+**Let back in**. Lockouts that ended in the last 15 minutes stay listed,
+marked, since one under the one-minute global limit can end before anyone
+looks.
 
-Needs: `RateLimiter` to enumerate its keys, or a record of lockouts.
+Built on a record of lockouts rather than on listing the cache's keys: the
+request that first goes past a budget writes a `Lockout` through
+`LockoutStoreInterface`, and `RateLimiter::release()` forgets the counter and
+the record.
 
 Not: Logs, which has `auth.login_failed` lines but cannot say who is locked
 out now, or let them back in.
@@ -153,8 +159,9 @@ that shows it working, and the features built on it belong to apps.
   with paginated JSON responses and the admin rebuilt on it (0.10.1); module
   tabs, with Scheduler and Runs, and Jobs and Failed jobs, each one entry
   (0.11.0); Access › API tokens (0.12.0); sign-in records (0.13.0); Access ›
-  Sessions and sign out everywhere (0.14.0).
-- The Rate limits admin module.
+  Sessions and sign out everywhere (0.14.0); lockout records and the Rate
+  limits module (0.15.0).
+- The Mail admin module, and what goes on existing screens (below).
 
 ### M2. Live
 
