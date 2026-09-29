@@ -43,6 +43,12 @@ final class SessionGuard implements GuardInterface
      */
     private const SIGN_IN_KEY = '_auth_sign_in';
 
+    /** Seconds between writes of "last seen" for a sign-in seen from the same place. */
+    private const SEEN_EVERY = 60;
+
+    /** What a store is promised to fit; a longer agent is cut, not refused. */
+    private const MAX_USER_AGENT = 255;
+
     /** Per-request cache of the resolved user; $resolved distinguishes "null" from "not looked up yet". */
     private ?AuthenticatableInterface $cachedUser = null;
     private bool $resolved = false;
@@ -137,6 +143,35 @@ final class SessionGuard implements GuardInterface
         $this->user();
 
         return $this->signIn;
+    }
+
+    /**
+     * Records that this sign-in was seen now, from $ip with $userAgent: at most
+     * once a minute, unless where it is seen from has changed, so a signed-in
+     * visitor costs the store one write a minute and not one per request.
+     * Does nothing with nobody signed in or no store bound.
+     */
+    public function seen(?string $ip, ?string $userAgent): void
+    {
+        $signIn = $this->signIn();
+
+        if ($signIn === null || $this->signIns === null || $this->clock === null) {
+            return;
+        }
+
+        $now = $this->clock->now();
+        $userAgent = $userAgent === null ? null : mb_substr($userAgent, 0, self::MAX_USER_AGENT);
+
+        if (
+            $signIn->ip === $ip
+            && $signIn->userAgent === $userAgent
+            && $now->getTimestamp() - $signIn->lastSeenAt->getTimestamp() < self::SEEN_EVERY
+        ) {
+            return;
+        }
+
+        $this->signIns->touch($signIn->id, $now, $ip, $userAgent);
+        $this->signIn = new SignIn($signIn->id, $signIn->userId, $signIn->createdAt, $now, $ip, $userAgent);
     }
 
     public function id(): int|string|null
