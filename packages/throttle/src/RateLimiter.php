@@ -6,8 +6,13 @@ namespace Hydra\Throttle;
 
 use Hydra\Cache\Contracts\StoreInterface;
 use Hydra\Http\ClientIpResolver;
+use Hydra\Throttle\Contracts\LockoutStoreInterface;
 use Hydra\Throttle\Exceptions\TooManyRequestsException;
+use LogicException;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
  * Counts what a client has spent and decides whether it may spend more.
@@ -29,10 +34,25 @@ final readonly class RateLimiter
      */
     private const ANONYMOUS = 'unidentified';
 
+    /**
+     * $lockouts, $clock and $logger are OPTIONAL. With a lockout store bound,
+     * the request that first goes past a budget records who is now refused
+     * and until when, so an admin can see them and let them back in; left
+     * out, the limiter counts exactly as it always has.
+     */
     public function __construct(
         private StoreInterface $store,
         private ClientIpResolver $clients,
-    ) {}
+        private ?LockoutStoreInterface $lockouts = null,
+        private ?ClockInterface $clock = null,
+        private ?LoggerInterface $logger = null,
+    ) {
+        if ($lockouts !== null && $clock === null) {
+            throw new LogicException(
+                'RateLimiter records lockouts with a clock; bind Psr\Clock\ClockInterface (ClockServiceProvider does).',
+            );
+        }
+    }
 
     /** Spend one request against $policy, or refuse with a 429 carrying Retry-After. */
     public function enforce(ServerRequestInterface $request, RateLimitPolicy $policy): RateLimitStatus
@@ -64,7 +84,52 @@ final readonly class RateLimiter
         // that has already reopened. One second is the honest floor.
         $retryAfter = max(1, $this->store->ttl($key));
 
+        // Only the request that crosses the limit writes: every later refusal
+        // in the window would record the same lockout again.
+        if ($used === $policy->limit + 1) {
+            $this->record($policy, $identity, $retryAfter);
+        }
+
         return new RateLimitStatus($used <= $policy->limit, $policy->limit, $used, $retryAfter);
+    }
+
+    /**
+     * Let $identity back in under the policy called $policy: its counter is
+     * forgotten, so its next request opens a fresh window, and so is the
+     * record of its lockout.
+     */
+    public function release(string $policy, string $identity): void
+    {
+        $this->store->forget(RateLimitPolicy::key($policy, $identity));
+        $this->lockouts?->forget($policy, $identity);
+    }
+
+    /**
+     * The record is for an admin to read, and the refusal stands without it,
+     * so a store that cannot take it is logged and passed over rather than
+     * turning a 429 into a 500. The counter above still raises: that is the
+     * refusal itself.
+     */
+    private function record(RateLimitPolicy $policy, string $identity, int $retryAfter): void
+    {
+        if ($this->lockouts === null || $this->clock === null) {
+            return;
+        }
+
+        $now = $this->clock->now();
+
+        try {
+            $this->lockouts->record(new Lockout(
+                $policy->name,
+                $identity,
+                $now,
+                $now->modify("+{$retryAfter} seconds"),
+                $policy->limit,
+                $policy->window,
+            ));
+        } catch (Throwable $e) {
+            $this->logger?->warning('Could not record a lockout: ' . $e->getMessage(), ['exception' => $e]);
+        }
     }
 
     private function identify(ServerRequestInterface $request): string
