@@ -9,6 +9,9 @@ use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Http\ClientIpResolver;
+use Hydra\Throttle\Contracts\LockoutStoreInterface;
+use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Wires the throttle package into an application. The store and the client
@@ -24,9 +27,19 @@ final class ThrottleServiceProvider extends ServiceProvider
         });
 
         $container->singleton(RateLimiter::class, function () use ($container) {
+            // Lockout records are OPTIONAL: an app that binds a store gets
+            // every lockout recorded, and one that doesn't gets the limiter as
+            // it always was. The clock and the logger come with the store.
+            $lockouts = $container->bound(LockoutStoreInterface::class)
+                ? $container->get(LockoutStoreInterface::class)
+                : null;
+
             return new RateLimiter(
                 $container->get(StoreInterface::class),
                 $container->get(ClientIpResolver::class),
+                $lockouts,
+                $lockouts !== null && $container->bound(ClockInterface::class) ? $container->get(ClockInterface::class) : null,
+                $lockouts !== null && $container->bound(LoggerInterface::class) ? $container->get(LoggerInterface::class) : null,
             );
         });
 
