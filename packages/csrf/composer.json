@@ -27,9 +27,9 @@
     ],
     "require": {
         "php": ">=8.2",
-        "hydrakit/core": "^0.14",
-        "hydrakit/http": "^0.14",
-        "hydrakit/session": "^0.14",
+        "hydrakit/core": "^0.15",
+        "hydrakit/http": "^0.15",
+        "hydrakit/session": "^0.15",
         "psr/http-message": "^2.0",
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0"
@@ -42,7 +42,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.14.x-dev"
+            "dev-main": "0.15.x-dev"
         }
     }
 }
