@@ -54,6 +54,16 @@ stylesheet and a template are what a designer edits, not a PHP constant, and
 `ShippedViewsTest` fails if a target, a declaration, and `Renderer` ever stop
 agreeing.
 
+### Tabs
+
+A module declared `->tabOf('jobs')` gives up its own sidebar entry and sits
+behind the Jobs entry instead, with a strip of tabs under the heading of every
+screen in the family. The frame draws the strip from `admin/partials/tabs`,
+which takes a list of `['label' => …, 'url' => …, 'active' => …]` and a
+`label` for screen readers. A page screen whose categories are its own, the
+way the skeleton's Settings is, renders the same partial with its own list,
+so there is one look for tabs across the top of a module.
+
 ### The stylesheet and the script
 
 `assets/admin.css` and `assets/admin.js` are the package's, not yours. They are

@@ -28,6 +28,22 @@ final readonly class ScreenViewModel
     ) {}
 
     /**
+     * What the family this screen belongs to is called: the sidebar entry
+     * it sits under, which names the strip of tabs for a screen reader. A
+     * screen under no entry is called what its own heading says.
+     */
+    public function family(): string
+    {
+        foreach ($this->navigation as $item) {
+            if ($item['active']) {
+                return $item['title'];
+            }
+        }
+
+        return $this->title;
+    }
+
+    /**
      * The sidebar's shape: the same modules, under the headings they declared.
      * A group appears where its first module does, so the order a module list
      * is written in is the order it reads in. Ungrouped modules keep a heading

@@ -27,6 +27,10 @@
 
 <h1 class="admin-title" hx-nonce="<?= $this->e($this->cspNonce()) ?>"><?= $this->e($screen->title) ?></h1>
 
+<?php if ($screen->tabs !== []): ?>
+    <?= $this->partial('admin/partials/tabs', ['tabs' => $screen->tabs, 'label' => $screen->family()]) ?>
+<?php endif ?>
+
 <?php if ($screen->notice !== null): ?>
     <div hx-nonce="<?= $this->e($this->cspNonce()) ?>" class="alert alert-<?= $this->e($screen->notice->style()) ?>"
          role="<?= $this->e($screen->notice->role()) ?>"><?= $this->e($screen->notice->text) ?></div>

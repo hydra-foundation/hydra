@@ -1561,13 +1561,14 @@
     }
 }
 
-/* Settings ----------------------------------------------------------------- */
+/* Tabs --------------------------------------------------------------------- */
 
-/* A category strip, not a tab bar: each is a link to its own URL, so it is
-   underlined where a tab would be boxed. It wraps on a narrow screen rather
-   than scrolling, so every category stays in sight, and a label is never
-   broken across two lines. */
-.settings-nav {
+/* A strip of links, not a tab bar: each tab is its own URL, so it is
+   underlined where a tab would be boxed. A family of modules draws it under
+   the heading, and Settings draws its categories with it. It wraps on a
+   narrow screen rather than scrolling, so every tab stays in sight, and a
+   label is never broken across two lines. */
+.admin-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: var(--s-2) var(--s-4);
@@ -1575,7 +1576,7 @@
     border-bottom: 1px solid var(--line);
 }
 
-.settings-tab {
+.admin-tab {
     padding: 0 0 var(--s-3);
     white-space: nowrap;
     margin-bottom: -1px;
@@ -1586,15 +1587,17 @@
     transition: color var(--ease), border-color var(--ease);
 }
 
-.settings-tab:hover {
+.admin-tab:hover {
     color: var(--ink-strong);
     text-decoration: none;
 }
 
-.settings-tab.active {
+.admin-tab.active {
     color: var(--accent-hover);
     border-bottom-color: var(--accent);
 }
+
+/* Settings ----------------------------------------------------------------- */
 
 /* One column for every category, the width the theme grid already uses, so
    readouts, rows and forms share a right edge. A row names a setting, shows

@@ -129,6 +129,14 @@ final class ModuleTabsNavigationTest extends TestCase
         $this->assertSame([], $chrome->root('Admin')->tabs);
     }
 
+    public function test_a_screen_is_named_after_the_entry_it_sits_under(): void
+    {
+        $chrome = $this->chrome();
+
+        $this->assertSame('Jobs', $chrome->module($this->blueprint('failed-jobs'))->family());
+        $this->assertSame('Somewhere', $chrome->root('Somewhere')->family());
+    }
+
     /**
      * A tab declares no group, so its trail borrows the parent's: Failed jobs
      * sits under Queue as Jobs does, rather than hanging straight off the root.
