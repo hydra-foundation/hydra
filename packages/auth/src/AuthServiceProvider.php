@@ -7,6 +7,7 @@ namespace Hydra\Auth;
 use Hydra\Auth\Contracts\ApiTokenStoreInterface;
 use Hydra\Auth\Contracts\GuardInterface;
 use Hydra\Auth\Contracts\HasherInterface;
+use Hydra\Auth\Contracts\SignInStoreInterface;
 use Hydra\Auth\Contracts\TwoFactorStoreInterface;
 use Hydra\Auth\Contracts\UserProviderInterface;
 use Hydra\Core\Contracts\ContainerInterface;
@@ -51,11 +52,23 @@ final class AuthServiceProvider extends ServiceProvider
                 ? $container->get(EventDispatcherInterface::class)
                 : null;
 
+            // Sign-in records are OPTIONAL too: an app that binds a store gets
+            // every login recorded and checked, and one that doesn't gets the
+            // guard as it always was. The clock comes with the store, and the
+            // guard says so if it is missing.
+            $signIns = $container->bound(SignInStoreInterface::class)
+                ? $container->get(SignInStoreInterface::class)
+                : null;
+
             return new SessionGuard(
                 $container->get(SessionInterface::class),
                 $container->get(UserProviderInterface::class),
                 $container->get(HasherInterface::class),
                 $events,
+                $signIns,
+                $signIns !== null && $container->bound(ClockInterface::class)
+                    ? $container->get(ClockInterface::class)
+                    : null,
             );
         });
 
