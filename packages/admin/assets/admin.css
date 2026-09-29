@@ -284,7 +284,10 @@
 
 /* Filters ------------------------------------------------------------------ */
 
+/* Wraps, so on a phone the buttons drop under the search rather than pushing
+   the page wider than the screen. */
 .admin-filters {
+    flex-wrap: wrap;
     margin-bottom: var(--s-4);
 }
 
@@ -1037,6 +1040,9 @@
     display: flex;
     align-items: center;
     gap: var(--s-4);
+    /* Not a floor, here or on the placeholder inside: on a phone the loading
+       bars narrow rather than push the page wider while the figures load. */
+    min-width: 0;
     padding: 0;
     background: transparent;
     border: 0;
@@ -1051,6 +1057,7 @@
     align-items: center;
     gap: var(--s-5);
     flex: 1;
+    min-width: 0;
     min-height: calc(var(--t-display) * 1.1 + var(--t-micro) * 1.5);
 }
 
@@ -1557,16 +1564,20 @@
 /* Settings ----------------------------------------------------------------- */
 
 /* A category strip, not a tab bar: each is a link to its own URL, so it is
-   underlined where a tab would be boxed. */
+   underlined where a tab would be boxed. It wraps on a narrow screen rather
+   than scrolling, so every category stays in sight, and a label is never
+   broken across two lines. */
 .settings-nav {
     display: flex;
-    gap: var(--s-4);
+    flex-wrap: wrap;
+    gap: var(--s-2) var(--s-4);
     margin-bottom: var(--s-5);
     border-bottom: 1px solid var(--line);
 }
 
 .settings-tab {
     padding: 0 0 var(--s-3);
+    white-space: nowrap;
     margin-bottom: -1px;
     font-size: var(--t-base);
     font-weight: 500;
