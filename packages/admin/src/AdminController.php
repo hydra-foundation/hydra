@@ -97,7 +97,7 @@ final class AdminController
         [$blueprint] = $this->resolve($request);
         $criteria = Criteria::fromQuery(Query::fromRequest($request), $blueprint);
 
-        return $this->table($request, $blueprint, $this->registry->source($blueprint)->page($criteria));
+        return $this->table($request, $blueprint, $this->rows($blueprint, $criteria));
     }
 
     /**
@@ -681,9 +681,10 @@ final class AdminController
     }
 
     /**
-     * The rows for this view of the list. A delete can empty the page it was on
-     * (the last row of the last page), and an empty page is not what the visitor
-     * asked to be shown, so the list falls back to its new end.
+     * The rows for this view of the list. A page past the end is not what the
+     * visitor asked to be shown, so the list falls back to its own last page:
+     * a URL typed or kept from when the list was longer, or a delete that
+     * emptied the page it was on (the last row of the last page).
      */
     private function rows(Blueprint $blueprint, Criteria $criteria): Page
     {

@@ -48,6 +48,25 @@ final class AdminControllerTest extends TestCase
         $this->assertStringNotContainsString('barbara', $body);
     }
 
+    public function test_a_page_past_the_end_renders_the_last_page_instead(): void
+    {
+        // Five rows, two per page, so three pages. A typed or stale URL past
+        // them is not an empty list: the reader lands on the list's own end.
+        $body = $this->render('list', 'GET', '/admin/users?page=9994');
+
+        $this->assertStringContainsString('barbara', $body);
+        $this->assertStringNotContainsString('alan', $body);
+        $this->assertStringContainsString('Showing 5–5 of 5', $body);
+    }
+
+    public function test_a_search_that_matches_nothing_past_the_end_is_still_just_empty(): void
+    {
+        // The fallback is to the end of this view of the list, not of the table.
+        $body = $this->render('list', 'GET', '/admin/users?q=nobody&page=4');
+
+        $this->assertStringContainsString('No results', $body);
+    }
+
     public function test_a_search_narrows_the_list_it_renders(): void
     {
         $body = $this->render('list', 'GET', '/admin/users?q=ada');
