@@ -64,7 +64,7 @@ final class Navigation
         foreach ($this->registry->family($blueprint) as $member) {
             if ($this->allows($member)) {
                 $tabs[] = [
-                    'label' => $member->title,
+                    'label' => $member->tabLabel ?? $member->title,
                     'url' => $this->registry->root($member),
                     'active' => $member->slug === $current,
                 ];

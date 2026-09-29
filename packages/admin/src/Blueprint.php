@@ -34,6 +34,8 @@ final readonly class Blueprint
         public ?string $defaultSort,
         public string $defaultDirection,
         public ?string $gone = null,
+        /** What the strip of tabs calls this module; its title when null. */
+        public ?string $tabLabel = null,
     ) {}
 
     /** @return list<Field> */
