@@ -83,7 +83,11 @@ abstract class StorageContractTestCase extends TestCase
 
     public function test_bytes_of_no_known_type_are_stored_as_bin(): void
     {
-        $key = $this->storage()->put('files', $this->streams()->createStream(random_bytes(64)));
+        // Fixed bytes, not random ones: libmagic reads about one random 64-byte
+        // string in a hundred as some type it knows (a DOS executable, plain
+        // text, zlib), which failed this test at random. Half of these are
+        // NUL, and they begin with no signature any file type has.
+        $key = $this->storage()->put('files', $this->streams()->createStream(str_repeat("\xff\x00", 32)));
 
         $this->assertStringEndsWith('.bin', $key);
     }
