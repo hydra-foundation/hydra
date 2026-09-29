@@ -36,6 +36,8 @@ abstract class FieldReader
     /**
      * The field as an int, or the default when it is absent or non-numeric.
      * "0" reads as 0 (numeric), "" and "abc" read as the default.
+     *
+     * @return ($default is null ? int|null : int)
      */
     public function int(string $key, ?int $default = null): ?int
     {
