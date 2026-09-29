@@ -196,6 +196,16 @@ final class DefinitionTest extends TestCase
         $this->assertNull($plain->compile()->tabOf, 'tabOf() returns a copy and leaves the original alone');
     }
 
+    public function test_a_module_is_labelled_in_a_strip_by_its_title_unless_it_says_otherwise(): void
+    {
+        $plain = Definition::make('access')->title('Access')->screens(new ListScreen);
+        $labelled = $plain->tabLabel('API tokens');
+
+        $this->assertNull($plain->compile()->tabLabel, 'tabLabel() returns a copy and leaves the original alone');
+        $this->assertSame('API tokens', $labelled->compile()->tabLabel);
+        $this->assertSame('Access', $labelled->compile()->title);
+    }
+
     public function test_a_module_cannot_be_a_tab_of_itself(): void
     {
         $this->expectException(LogicException::class);

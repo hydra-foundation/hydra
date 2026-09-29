@@ -26,6 +26,8 @@ final class Definition
     private ?string $icon = null;
     private ?string $group = null;
     private ?string $tabOf = null;
+
+    private ?string $tabLabel = null;
     private ?string $ability = null;
     private SourceInterface|string|null $source = null;
 
@@ -93,6 +95,20 @@ final class Definition
     {
         $clone = clone $this;
         $clone->tabOf = $parent;
+
+        return $clone;
+    }
+
+    /**
+     * What the strip of tabs calls this module, when that is not its title.
+     * For a parent named after its family: the entry and the heading say
+     * "Access", and the strip says which list this is, "API tokens", beside
+     * "Sessions". Shown only in a strip, so it is allowed anywhere.
+     */
+    public function tabLabel(string $label): self
+    {
+        $clone = clone $this;
+        $clone->tabLabel = $label;
 
         return $clone;
     }
@@ -241,6 +257,7 @@ final class Definition
             defaultSort: $this->defaultSort,
             defaultDirection: $this->defaultDirection,
             gone: $this->gone,
+            tabLabel: $this->tabLabel,
         );
     }
 

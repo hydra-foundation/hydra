@@ -99,6 +99,24 @@ final class ModuleTabsNavigationTest extends TestCase
         );
     }
 
+    /**
+     * The strip names each list; the entry and the heading name the family.
+     * A parent called after the family ("Access") can say what its own list
+     * is in the strip ("API tokens") without renaming the entry.
+     */
+    public function test_a_tab_label_names_the_tab_and_nothing_else(): void
+    {
+        $registry = $this->registry(labels: ['jobs' => 'Waiting']);
+        $navigation = new Navigation($registry, FakeGate::allowingEverything());
+        $chrome = new Chrome($registry, $navigation);
+        $jobs = $registry->find('jobs') ?? self::fail('jobs is not registered');
+
+        $this->assertSame(['Waiting', 'Failed jobs', 'Batches'], array_column($navigation->tabs('jobs'), 'label'));
+        $this->assertSame('Jobs', $navigation->items()[1]['title']);
+        $this->assertSame('Jobs', $chrome->module($jobs)->family());
+        $this->assertSame(['Admin', 'Queue', 'Jobs'], array_column($chrome->module($jobs)->breadcrumbs, 'label'));
+    }
+
     public function test_a_tab_the_gate_denies_is_left_out_of_the_strip(): void
     {
         $tabs = $this->navigation(FakeGate::allowingEverything()->deny('SeeFailures'))->tabs('jobs');
@@ -210,7 +228,8 @@ final class ModuleTabsNavigationTest extends TestCase
         return $this->registry()->find($slug) ?? self::fail("No module registered at \"{$slug}\".");
     }
 
-    private function registry(bool $withDashboard = true): ModuleRegistry
+    /** @param array<string, string> $labels a tab label per slug */
+    private function registry(bool $withDashboard = true, array $labels = []): ModuleRegistry
     {
         $list = static fn (string $slug): Definition => Definition::make($slug)
             ->source(new ArraySource)
@@ -226,6 +245,10 @@ final class ModuleTabsNavigationTest extends TestCase
 
         if (!$withDashboard) {
             unset($modules['dashboard']);
+        }
+
+        foreach ($labels as $slug => $label) {
+            $modules[$slug] = $modules[$slug]->tabLabel($label);
         }
 
         return new ModuleRegistry(
