@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin;
 
+use Hydra\Http\Paging;
 use Hydra\Http\Query;
 
 /**
@@ -13,16 +14,8 @@ use Hydra\Http\Query;
  */
 final readonly class Criteria
 {
-    /**
-     * The furthest page a request may ask for.
-     *
-     * page becomes an OFFSET, and a large one makes the database walk every
-     * row it skips, so an unbounded page number is an unauthenticated way to
-     * turn one cheap request into a full table scan. This is a blast-radius
-     * cap, not a correctness bound: a list with fewer pages still clamps to its
-     * own last page when the total is known.
-     */
-    public const MAX_PAGE = 10_000;
+    /** The furthest page a request may ask for: {@see Paging::MAX_PAGE}, the full-scan guard. */
+    public const MAX_PAGE = Paging::MAX_PAGE;
 
     /** Longer than any real search, and short enough to stay cheap to match. */
     public const MAX_SEARCH = 128;
@@ -37,6 +30,10 @@ final readonly class Criteria
      */
     public const SEARCH_ESCAPE = '!';
 
+    /** Which page, and how big: the half of a list's state that is not the admin's. */
+    public Paging $paging;
+
+    /** The paging's own, kept so that no source reading them had to change. */
     public int $page;
     public int $perPage;
     public ?string $sort;
@@ -64,8 +61,9 @@ final readonly class Criteria
         ?string $search = null,
         ?Link $view = null,
     ) {
-        $this->page = min(max(1, $page), self::MAX_PAGE);
-        $this->perPage = max(1, $perPage);
+        $this->paging = new Paging($page, $perPage);
+        $this->page = $this->paging->page;
+        $this->perPage = $this->paging->perPage;
         $this->sort = $sort;
         $this->direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
         $this->view = $view;
@@ -118,7 +116,7 @@ final readonly class Criteria
         $search = trim($query->string('q'));
 
         return new self(
-            page: $query->int('page', 1) ?? 1,
+            page: $query->int('page', 1),
             perPage: $blueprint->perPage,
             sort: $sort,
             direction: in_array($direction, ['asc', 'desc'], true) ? $direction : $blueprint->defaultDirection,
@@ -162,7 +160,7 @@ final readonly class Criteria
 
     public function offset(): int
     {
-        return ($this->page - 1) * $this->perPage;
+        return $this->paging->offset();
     }
 
     /**

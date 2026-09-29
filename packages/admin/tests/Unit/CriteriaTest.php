@@ -9,6 +9,7 @@ use Hydra\Admin\Criteria;
 use Hydra\Admin\Definition;
 use Hydra\Admin\Field;
 use Hydra\Admin\Tests\Support\ArraySource;
+use Hydra\Http\Paging;
 use Hydra\Http\Query;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -190,5 +191,32 @@ final class CriteriaTest extends TestCase
         $this->assertSame(['status' => 'active'], $wider->filters);
         $this->assertSame('ada', $wider->search);
         $this->assertSame(10, $criteria->perPage);
+    }
+
+    /**
+     * The paging half is Hydra\Http\Paging's, and page and perPage stay as
+     * properties only so that no source had to change. The two must never
+     * disagree, whichever way a Criteria was made.
+     */
+    public function test_page_and_per_page_are_the_pagings_own(): void
+    {
+        $made = [
+            'the constructor' => new Criteria(page: 4, perPage: 10),
+            'fromQuery' => $this->criteria(['page' => '3']),
+            'onPage' => (new Criteria(perPage: 10))->onPage(6),
+            'inPagesOf' => (new Criteria(page: 2))->inPagesOf(50),
+            'a clamped page' => new Criteria(page: Paging::MAX_PAGE + 5, perPage: 0),
+        ];
+
+        foreach ($made as $how => $criteria) {
+            $this->assertSame($criteria->paging->page, $criteria->page, $how);
+            $this->assertSame($criteria->paging->perPage, $criteria->perPage, $how);
+            $this->assertSame($criteria->paging->offset(), $criteria->offset(), $how);
+        }
+    }
+
+    public function test_the_page_cap_is_the_one_http_enforces(): void
+    {
+        $this->assertSame(Paging::MAX_PAGE, Criteria::MAX_PAGE);
     }
 }
