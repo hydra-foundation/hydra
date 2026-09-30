@@ -29,6 +29,17 @@ final readonly class Notifier
     public function notify(int|string $userId, Notice $notice): string
     {
         $id = $this->store->add($userId, $notice, $this->clock->now());
+        $this->announce($userId);
+
+        return $id;
+    }
+
+    /**
+     * Tells the user's open pages how many they now have unread: after a
+     * notice arrives, and after one is read, so every tab's bell agrees.
+     */
+    public function announce(int|string $userId): void
+    {
         $topic = self::topic($userId);
 
         // An id no topic can be made from has no page that could listen for
@@ -36,8 +47,6 @@ final readonly class Notifier
         if ($this->broadcaster !== null && Topic::isValid($topic)) {
             $this->broadcaster->publish($topic, 'notification', ['unread' => $this->store->unreadCount($userId)]);
         }
-
-        return $id;
     }
 
     /** The topic a user's pages listen on for their own notices. */

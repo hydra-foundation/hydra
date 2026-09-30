@@ -127,6 +127,7 @@
         "hydrakit/http": "^0.19",
         "hydrakit/validation": "^0.19",
         "hydrakit/view": "^0.19",
+        "hydrakit/auth": "^0.19",
         "hydrakit/authorization": "^0.19",
         "hydrakit/cache": "^0.19",
         "psr/clock": "^1.0",

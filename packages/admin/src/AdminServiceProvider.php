@@ -11,8 +11,12 @@ use Hydra\Admin\Events\AdminEvent;
 use Hydra\Admin\Files\FileReferences;
 use Hydra\Admin\Live\LiveAdmin;
 use Hydra\Admin\Live\PublishAdminEvents;
+use Hydra\Admin\Notifications\NotificationController;
+use Hydra\Admin\Notifications\NotificationStoreInterface;
+use Hydra\Admin\Notifications\Notifier;
 use Hydra\Admin\Updates\HttpReleaseFeed;
 use Hydra\Admin\Updates\UpdateCheck;
+use Hydra\Auth\Contracts\GuardInterface;
 use Hydra\Authorization\Contracts\GateInterface;
 use Hydra\Broadcast\Contracts\BroadcasterInterface;
 use Hydra\Broadcast\TopicPolicy;
@@ -80,6 +84,26 @@ final class AdminServiceProvider extends ServiceProvider
         // Live when a broadcaster is bound. Asked by name, so an application
         // without hydrakit/broadcast never loads a class of it.
         $container->singleton(LiveAdmin::class, fn () => new LiveAdmin($container->bound(BroadcasterInterface::class)));
+
+        // The bell's side. Built only when asked for, and asked for only
+        // where the application binds a notification store: without one
+        // there are no routes to reach these.
+        $container->singleton(Notifier::class, fn () => new Notifier(
+            $container->get(NotificationStoreInterface::class),
+            $container->bound(ClockInterface::class) ? $container->get(ClockInterface::class) : new SystemClock,
+            $container->bound(BroadcasterInterface::class) ? $container->get(BroadcasterInterface::class) : null,
+        ));
+
+        $container->singleton(NotificationController::class, fn () => new NotificationController(
+            $container->get(NotificationStoreInterface::class),
+            $container->get(Notifier::class),
+            $container->get(GuardInterface::class),
+            $container->get(Renderer::class),
+            $container->get(Responder::class),
+            $container->bound(ClockInterface::class) ? $container->get(ClockInterface::class) : new SystemClock,
+            $container->get(LiveAdmin::class),
+            $this->prefix,
+        ));
 
         $container->singleton(ModuleRegistry::class, function () use ($container) {
             return new ModuleRegistry($container, $this->modules, $this->prefix);
@@ -247,6 +271,12 @@ final class AdminServiceProvider extends ServiceProvider
                         && ($blueprint->ability === null || $container->get(GateInterface::class)->allows($blueprint->ability));
                 },
             );
+
+            // A user's own notices: theirs to hear, and nobody else's.
+            $container->get(TopicPolicy::class)->allow(
+                Notifier::topic('{id}'),
+                static fn (int|string $userId, array $params): bool => (string) $userId === $params['id'],
+            );
         }
     }
 
@@ -256,6 +286,7 @@ final class AdminServiceProvider extends ServiceProvider
         return [
             ...$this->assetRoutes(),
             ...$this->fileRoutes(),
+            ...($container->bound(NotificationStoreInterface::class) ? $this->notificationRoutes() : []),
             ...(new ModuleScanner)->scan(
                 $container->get(ModuleRegistry::class)->all(),
                 $this->prefix,
@@ -282,6 +313,31 @@ final class AdminServiceProvider extends ServiceProvider
             'middleware' => [],
             'name' => 'admin.asset',
         ]];
+    }
+
+    /**
+     * The bell's four requests, behind the admin's guard and ahead of the
+     * modules, as the file route is. read-all is registered before {id}/read,
+     * which would otherwise take it.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function notificationRoutes(): array
+    {
+        $base = rtrim($this->prefix, '/') . '/notifications';
+
+        return array_map(fn (array $route): array => [
+            'method' => $route[0],
+            'path' => $base . $route[1],
+            'handler' => [NotificationController::class, $route[2]],
+            'middleware' => $this->middleware,
+            'name' => 'admin.notifications.' . $route[2],
+        ], [
+            ['GET', '/badge', 'badge'],
+            ['GET', '', 'list'],
+            ['POST', '/read-all', 'readAll'],
+            ['POST', '/{id}/read', 'read'],
+        ]);
     }
 
     /**
