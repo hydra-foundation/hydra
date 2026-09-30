@@ -134,17 +134,20 @@ shows is mail that went out, what it said, and whether the transport works.
 Why here: password reset and email verification both depend on mail arriving,
 and nothing shows whether it did.
 
-### On existing screens, not modules
+### Done: on existing screens, not modules (0.17.0)
 
-These were once planned as modules. Each is a card or an action on a screen
-that already covers the subject.
+These were once planned as modules. Each became a card or an action on a
+screen that already covers the subject.
 
-- **Migrations: a System Health card.** Pending count and the last run,
-  amber while anything is pending: what you check after a deploy. Needs
-  `MigrationRunner` status as data rather than console output only.
-- **Cache flush: an action on System Health's Cache card.** The card already
-  shows the store and whether it answers. Forgetting a single key is dropped:
-  nobody browses cache keys, and it is a worse flush.
+- **Migrations: a System Health card.** "Up to date", or "N pending" in amber
+  with the files named and the command to run: what you check after a
+  deploy. Read-only. Built on `MigrationRunner::summary()`, which creates
+  nothing.
+- **Cache flush: an action on System Health's Cache card**, through buttons
+  on dashboard cards (`Widget::action()`). The rate limiter counts in the
+  cache, so a flush also ends every active lockout, and Rate limits lists
+  them as Ended. Forgetting a single key is dropped: nobody browses cache
+  keys, and it is a worse flush.
 
 ### Not planned: roles and permissions
 
@@ -159,7 +162,7 @@ Each milestone is a set of building blocks, and ends with something you can
 open in a browser. No application is a goal: each block ships with a recipe
 that shows it working, and the features built on it belong to apps.
 
-### M1. Tidy: finish what is half there
+### M1. Done: Tidy, finish what is half there (0.9.17–0.17.0)
 
 - **Done:** original filenames (0.9.17); `StorageInterface::list()`, file
   references and the Files module (0.10.0); paging as an `http` primitive,
@@ -167,8 +170,9 @@ that shows it working, and the features built on it belong to apps.
   tabs, with Scheduler and Runs, and Jobs and Failed jobs, each one entry
   (0.11.0); Access › API tokens (0.12.0); sign-in records (0.13.0); Access ›
   Sessions and sign out everywhere (0.14.0); lockout records and the Rate
-  limits module (0.15.0); the sent event and the Mail module (0.16.0).
-- What goes on existing screens (below).
+  limits module (0.15.0); the sent event and the Mail module (0.16.0);
+  migration state as data, buttons on dashboard cards, and System Health's
+  Migrations card and cache flush (0.17.0).
 
 ### M2. Live
 
