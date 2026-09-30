@@ -12,6 +12,7 @@ use Hydra\Admin\Screens\ExportScreen;
 use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\LinkCountsScreen;
 use Hydra\Admin\Screens\ListScreen;
+use Hydra\Admin\Screens\WidgetActionScreen;
 use Hydra\Admin\Screens\WidgetScreen;
 use Hydra\Admin\Sources\CallableSource;
 use LogicException;
@@ -322,10 +323,11 @@ final class Definition
     /**
      * A route per dashboard screen for its cards to fetch themselves over.
      * Added here rather than declared, because a dashboard with widgets always
-     * needs exactly one and a dashboard without them never does.
+     * needs exactly one and a dashboard without them never does. A dashboard
+     * with a card that has a button gets a second, for the buttons to post to.
      *
      * @param list<ScreenInterface> $screens
-     * @return list<WidgetScreen>
+     * @return list<WidgetScreen|WidgetActionScreen>
      */
     private function widgetRoutes(array $screens): array
     {
@@ -349,6 +351,16 @@ final class Definition
                 trim(trim($screen->path(), '/') . '/w/{widget}', '/'),
                 $screen->ability(),
             );
+
+            $withButtons = array_filter($screen->cards(), static fn (Widget $card): bool => $card->actions() !== []);
+
+            if ($withButtons !== []) {
+                $routes[] = new WidgetActionScreen(
+                    $screen->name(),
+                    trim(trim($screen->path(), '/') . '/w/{widget}/{action}', '/'),
+                    $screen->ability(),
+                );
+            }
         }
 
         return $routes;

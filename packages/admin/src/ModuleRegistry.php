@@ -414,6 +414,18 @@ final class ModuleRegistry
         return $resolved;
     }
 
+    /** A card's button, resolved from the container like any other action. */
+    public function widgetAction(WidgetAction $action): ModuleActionInterface
+    {
+        $resolved = $this->container->get($action->runs);
+
+        if (!$resolved instanceof ModuleActionInterface) {
+            throw new RuntimeException(sprintf('The action "%s" resolved to nothing it can run.', $action->name));
+        }
+
+        return $resolved;
+    }
+
     /** The module's declared source, resolved from the container when it is a service id. */
     private function sourceFor(Blueprint $blueprint): mixed
     {

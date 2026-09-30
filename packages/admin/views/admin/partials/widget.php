@@ -2,6 +2,7 @@
 <?php /** @var \Hydra\Admin\Widget $widget */ ?>
 <?php /** @var string|null $url */ ?>
 <?php /** @var array<string, mixed>|null $data null until the card has fetched itself */ ?>
+<?php /** @var \Hydra\Admin\Notice|null $notice what a button on the card just said */ ?>
 <?php /* One card, in both of its states: the placeholder the grid draws, and
    the filled version that replaces it. The two are one template because they
    are one card — the id, the width and the heading have to survive the swap,
@@ -10,6 +11,7 @@
    The filled copy carries no hx-get unless the widget asked to refresh, which
    is what ends the exchange after a single round trip. */ ?>
 <?php $data ??= null ?>
+<?php $notice ??= null ?>
 <?php $loading = $data === null && $url !== null ?>
 <?php $polling = $data !== null && $url !== null && $widget->refresh() > 0 ?>
 <?php $id = 'admin-widget-' . $widget->key() ?>
@@ -74,7 +76,36 @@
                 <?= $this->partial('admin/partials/widget-failed', ['url' => $url, 'target' => '#' . $id, 'label' => $widget->title()]) ?>
             <?php endif ?>
         <?php else: ?>
+            <?php /* Inside the card, because the card is all a button's answer
+               replaces: the page's notice region is outside it and would keep
+               whatever it said before. */ ?>
+            <?php if ($notice !== null): ?>
+                <div class="alert alert-<?= $this->e($notice->style()) ?> admin-widget-notice py-1 px-2 small"
+                     role="<?= $this->e($notice->role()) ?>"><?= $this->e($notice->text) ?></div>
+            <?php endif ?>
             <?= $this->partial($widget->template(), $data) ?>
+            <?php /* Only on the filled card: one still fetching itself shows
+               nothing to act on yet. Each button replaces the card with its
+               answer; without htmx the form posts and the dashboard comes back. */ ?>
+            <?php if ($url !== null && $widget->actions() !== []): ?>
+                <?php $base = explode('?', $url, 2)[0] ?>
+                <div class="admin-widget-actions d-flex gap-2 mt-3">
+                    <?php foreach ($widget->actions() as $action): ?>
+                        <?php $target = $base . '/' . rawurlencode($action->name) ?>
+                        <form method="post"
+                              action="<?= $this->e($target) ?>"
+                              hx-nonce="<?= $this->e($this->cspNonce()) ?>"
+                              hx-post="<?= $this->e($target) ?>"
+                              hx-target="#<?= $this->e($id) ?>"
+                              hx-swap="outerHTML"<?php if ($action->confirm !== null): ?>
+
+                              hx-confirm="<?= $this->e($action->confirm) ?>"<?php endif ?>>
+                            <?= $this->csrf() ?>
+                            <button type="submit" class="btn btn-sm btn-outline-secondary"><?= $this->e($action->label) ?></button>
+                        </form>
+                    <?php endforeach ?>
+                </div>
+            <?php endif ?>
         <?php endif ?>
     </div>
 </div>

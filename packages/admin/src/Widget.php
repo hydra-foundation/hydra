@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin;
 
+use Hydra\Admin\Contracts\ModuleActionInterface;
 use Hydra\Admin\Contracts\PeriodAwareInterface;
 use Hydra\Admin\Contracts\PresenterInterface;
 use LogicException;
@@ -36,6 +37,9 @@ final class Widget
     private bool $refreshable = false;
     private ?string $ability = null;
     private ?string $presenter = null;
+
+    /** @var list<WidgetAction> */
+    private array $actions = [];
 
     private function __construct(
         private readonly string $key,
@@ -179,6 +183,57 @@ final class Widget
         $clone->presenter = $presenter;
 
         return $clone;
+    }
+
+    /**
+     * A button on the filled card that runs $runs, a {@see ModuleActionInterface}
+     * service id, and comes back as the card with what it said. Repeatable; the
+     * name is the last segment of the URL it posts to, so it is refused here
+     * rather than at the first press when it could not be one.
+     *
+     * @param class-string<ModuleActionInterface> $runs
+     */
+    public function action(string $name, string $label, string $runs, ?string $confirm = null): self
+    {
+        if (preg_match('/^[a-z0-9-]+$/', $name) !== 1) {
+            throw new LogicException(sprintf('Widget "%s": action name "%s" may only use a-z, 0-9 and -.', $this->key, $name));
+        }
+
+        if ($this->actionNamed($name) !== null) {
+            throw new LogicException(sprintf('Widget "%s" has two actions named "%s".', $this->key, $name));
+        }
+
+        if (!is_a($runs, ModuleActionInterface::class, true)) {
+            throw new LogicException(sprintf(
+                'Widget "%s": action "%s" runs %s, which is not a %s.',
+                $this->key,
+                $name,
+                $runs,
+                ModuleActionInterface::class,
+            ));
+        }
+
+        $clone = clone $this;
+        $clone->actions[] = new WidgetAction($name, $label, $runs, $confirm);
+
+        return $clone;
+    }
+
+    /** @return list<WidgetAction> in the order they were declared, which is the order they are drawn */
+    public function actions(): array
+    {
+        return $this->actions;
+    }
+
+    public function actionNamed(string $name): ?WidgetAction
+    {
+        foreach ($this->actions as $action) {
+            if ($action->name === $name) {
+                return $action;
+            }
+        }
+
+        return null;
     }
 
     public function key(): string

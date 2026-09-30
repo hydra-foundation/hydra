@@ -22,6 +22,7 @@ use Hydra\Admin\Screens\FormScreen;
 use Hydra\Admin\Screens\LinkCountsScreen;
 use Hydra\Admin\Screens\PageScreen;
 use Hydra\Admin\Screens\ShowScreen;
+use Hydra\Admin\Screens\WidgetActionScreen;
 use Hydra\Admin\Screens\WidgetScreen;
 use Hydra\Admin\ViewModels\DashboardViewModel;
 use Hydra\Admin\ViewModels\FormViewModel;
@@ -303,6 +304,64 @@ final class AdminController
                 $period->window($this->clock, $this->timezone->zone()),
             ),
         ])->withHeader('Cache-Control', 'no-store');
+    }
+
+    /**
+     * A button on a card, pressed. The card comes back as itself, presented
+     * afresh, with what the action said inside it: the page's notice region is
+     * outside the card, and the card is all this response replaces. It never
+     * goes through {@see done()}, which answers with a list a dashboard does
+     * not have.
+     *
+     * Without htmx there is no card to replace, so the press goes back to the
+     * dashboard, which fetches its cards again.
+     */
+    public function widgetAction(Request $request): Response
+    {
+        [$blueprint, $screen] = $this->resolve($request);
+        $key = $request->getAttribute('widget');
+        $name = $request->getAttribute('action');
+
+        if (!$screen instanceof WidgetActionScreen || !is_string($key) || !is_string($name)) {
+            throw new NotFoundException;
+        }
+
+        $dashboard = $blueprint->screen($screen->dashboard());
+        $widget = $dashboard instanceof DashboardScreen ? $dashboard->card($key) : null;
+        $action = $widget?->actionNamed($name);
+
+        if ($widget === null || $action === null) {
+            throw new NotFoundException;
+        }
+
+        // Before the action runs, not after: a button on a card the visitor
+        // may not see is a button they may not press.
+        if ($widget->ability() !== null) {
+            $this->gate->authorize($widget->ability());
+        }
+
+        $status = Status::Ok;
+
+        try {
+            $notice = Notice::success($this->registry->widgetAction($action)->run());
+            $this->events?->dispatch(new ActionTaken($blueprint->slug, "{$widget->key()}.{$action->name}"));
+        } catch (WriteRejected $rejected) {
+            $notice = Notice::failure($rejected->summary());
+            $status = Status::UnprocessableEntity;
+        }
+
+        $view = new DashboardViewModel($blueprint, $dashboard, $this->registry->prefix(), period: Period::fromKey(null));
+
+        if (!Htmx::fromRequest($request)->isHtmx()) {
+            return $this->respond->redirect($view->dashboardUrl());
+        }
+
+        return $this->renderer->fragment('admin/partials/widget', [
+            'widget' => $widget,
+            'url' => $view->url($widget),
+            'data' => $this->registry->presentWidget($widget, Period::fromKey(null)->window($this->clock, $this->timezone->zone())),
+            'notice' => $notice,
+        ], status: $status)->withHeader('Cache-Control', 'no-store');
     }
 
     /**
