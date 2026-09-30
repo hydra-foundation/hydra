@@ -6,6 +6,7 @@ namespace Hydra\Admin\Tests\Support;
 
 use Hydra\Core\Testing\FakeContainer;
 use Hydra\Admin\AdminController;
+use Hydra\Admin\Live\LiveAdmin;
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Admin\Chrome;
 use Hydra\Admin\Contracts\ModuleInterface;
@@ -58,6 +59,8 @@ final class AdminHarness
         /** The zone the visitor reads in. UTC unless a test is about zones. */
         private readonly TimezoneInterface $timezone = new FixedTimezone,
         ?Uploads $uploads = null,
+        /** Whether a broadcaster is bound, so lists listen for their module's writes. */
+        bool $live = false,
     ) {
         $psr17 = new Psr17Factory;
         $session = new ArraySessionStore;
@@ -93,6 +96,7 @@ final class AdminHarness
             $this->clock,
             $this->timezone,
             $uploads,
+            new LiveAdmin($live),
         );
     }
 

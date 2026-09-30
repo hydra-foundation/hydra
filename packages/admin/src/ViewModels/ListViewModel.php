@@ -41,7 +41,19 @@ final readonly class ListViewModel
         public ?DateTimeImmutable $now = null,
         /** Where an image field's files are fetched from. */
         public ?FileUrls $files = null,
+        /** The topic this list refetches itself on, or null when the admin is not live. */
+        public ?string $liveTopic = null,
     ) {}
+
+    /**
+     * The list exactly as it is shown, marked as a refetch: {@see \Hydra\Admin\AdminController::list()}
+     * counts its tallies again for it. Rendered inside the swapped body, so
+     * after each filter, sort or page it asks for what is on screen now.
+     */
+    public function liveUrl(): string
+    {
+        return $this->link(['_live' => '1']);
+    }
 
     public function url(): string
     {

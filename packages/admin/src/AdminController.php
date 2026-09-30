@@ -13,6 +13,7 @@ use Hydra\Admin\Events\Exported;
 use Hydra\Admin\Events\RowCreated;
 use Hydra\Admin\Events\RowDeleted;
 use Hydra\Admin\Events\RowUpdated;
+use Hydra\Admin\Live\LiveAdmin;
 use Hydra\Admin\Exceptions\WriteRejected;
 use Hydra\Admin\Screens\ActionScreen;
 use Hydra\Admin\Screens\DashboardScreen;
@@ -90,6 +91,11 @@ final class AdminController
          * rest of the admin works the same whether any disk is bound or not.
          */
         private readonly ?Uploads $uploads = null,
+        /**
+         * OPTIONAL, and last, as the rest: off, the lists render exactly as
+         * they did before there was anything to listen to.
+         */
+        private readonly LiveAdmin $live = new LiveAdmin,
     ) {}
 
     public function list(Request $request): Response
@@ -97,7 +103,17 @@ final class AdminController
         [$blueprint] = $this->resolve($request);
         $criteria = Criteria::fromQuery(Query::fromRequest($request), $blueprint);
 
-        return $this->table($request, $blueprint, $this->rows($blueprint, $criteria));
+        // A live list refetching itself because a row in it changed: the
+        // tallies the browser holds are from before, as after a write, so the
+        // bar is sent to an address it has never seen. See done().
+        $refetch = array_key_exists('_live', $request->getQueryParams());
+
+        return $this->table(
+            $request,
+            $blueprint,
+            $this->rows($blueprint, $criteria),
+            countsToken: $refetch ? $this->clock->now()->format('Uu') : null,
+        );
     }
 
     /**
@@ -785,6 +801,7 @@ final class AdminController
                 $this->timezone->zone(),
                 $this->clock->now(),
                 $this->files(),
+                $this->live->enabled ? LiveAdmin::topic($blueprint->slug) : null,
             )],
             toolbar: 'admin/partials/filters',
             status: $status,

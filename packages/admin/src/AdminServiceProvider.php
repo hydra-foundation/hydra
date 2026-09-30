@@ -184,6 +184,7 @@ final class AdminServiceProvider extends ServiceProvider
                 // calls any concrete class bound, and would build Disks from
                 // storage interfaces nobody bound.
                 $container->bound(PublicStorageInterface::class) ? $container->get(Uploads::class) : null,
+                $container->get(LiveAdmin::class),
             );
         });
 

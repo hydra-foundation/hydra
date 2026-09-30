@@ -19,6 +19,20 @@
 
 <?= $this->partial('admin/partials/links', ['vm' => $vm]) ?>
 
+<?php if ($vm->liveTopic !== null): ?>
+<?php /* Refetches the list, exactly as shown, when a row in its module
+   changes, after half a second of quiet so a burst is one request. Inside the
+   body, so every swap renders it again with the current filter, sort and
+   page; the stream client in app.js turns the hub's events into sse:<topic>
+   on it. It pushes no URL: nothing the visitor did moved them. */ ?>
+<div hidden
+     data-stream="<?= $this->e($vm->liveTopic) ?>"
+     hx-nonce="<?= $this->e($this->cspNonce()) ?>"
+     hx-get="<?= $this->e($vm->liveUrl()) ?>"
+     hx-trigger="sse:<?= $this->e($vm->liveTopic) ?> delay:500ms"
+     hx-target="#admin-body"></div>
+<?php endif ?>
+
 <div class="table-responsive" hx-nonce="<?= $this->e($this->cspNonce()) ?>">
     <table class="table table-hover align-middle mb-3">
         <thead>
