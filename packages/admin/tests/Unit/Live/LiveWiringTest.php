@@ -7,6 +7,7 @@ namespace Hydra\Admin\Tests\Unit\Live;
 use Hydra\Admin\AdminServiceProvider;
 use Hydra\Admin\Events\RowCreated;
 use Hydra\Admin\Live\LiveAdmin;
+use Hydra\Admin\Live\ModuleChanges;
 use Hydra\Admin\Tests\Support\AdminsOnlyGate;
 use Hydra\Admin\Tests\Support\ArraySource;
 use Hydra\Admin\Tests\Support\DocumentsModule;
@@ -83,6 +84,24 @@ final class LiveWiringTest extends TestCase
         $provider->boot($container);
 
         $this->assertTrue($container->get(LiveAdmin::class)->enabled);
+    }
+
+    public function test_module_changes_publish_through_the_bound_broadcaster(): void
+    {
+        $container = $this->boot(true, gate: true);
+
+        $container->get(ModuleChanges::class)->publish('users', 7);
+
+        $container->get(FakeBroadcaster::class)->assertPublished('module.users', 'changed', times: 1);
+    }
+
+    public function test_module_changes_resolve_without_a_broadcaster_and_do_nothing(): void
+    {
+        $container = $this->boot(false, gate: true);
+
+        $container->get(ModuleChanges::class)->publish('users', 7);
+
+        $container->get(FakeBroadcaster::class)->assertNothingPublished();
     }
 
     private function boot(bool $broadcasting, bool $gate): FakeContainer

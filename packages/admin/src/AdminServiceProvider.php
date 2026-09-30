@@ -10,6 +10,7 @@ use Hydra\Admin\Contracts\TimezoneInterface;
 use Hydra\Admin\Events\AdminEvent;
 use Hydra\Admin\Files\FileReferences;
 use Hydra\Admin\Live\LiveAdmin;
+use Hydra\Admin\Live\ModuleChanges;
 use Hydra\Admin\Live\PublishAdminEvents;
 use Hydra\Admin\Notifications\NotificationController;
 use Hydra\Admin\Notifications\NotificationStoreInterface;
@@ -84,6 +85,12 @@ final class AdminServiceProvider extends ServiceProvider
         // Live when a broadcaster is bound. Asked by name, so an application
         // without hydrakit/broadcast never loads a class of it.
         $container->singleton(LiveAdmin::class, fn () => new LiveAdmin($container->bound(BroadcasterInterface::class)));
+
+        // Always bound, so a writer outside the admin can publish its changes
+        // without asking whether the admin is live.
+        $container->singleton(ModuleChanges::class, fn () => new ModuleChanges(
+            $container->bound(BroadcasterInterface::class) ? $container->get(BroadcasterInterface::class) : null,
+        ));
 
         // The bell's side. Built only when asked for, and asked for only
         // where the application binds a notification store: without one
@@ -255,7 +262,7 @@ final class AdminServiceProvider extends ServiceProvider
             // writes nothing never builds the broadcaster.
             $container->get(ListenerProvider::class)->listen(
                 AdminEvent::class,
-                static fn (AdminEvent $event) => (new PublishAdminEvents($container->get(BroadcasterInterface::class)))($event),
+                static fn (AdminEvent $event) => (new PublishAdminEvents($container->get(ModuleChanges::class)))($event),
             );
         }
 

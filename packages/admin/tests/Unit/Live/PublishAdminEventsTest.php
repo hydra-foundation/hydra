@@ -10,6 +10,7 @@ use Hydra\Admin\Events\Exported;
 use Hydra\Admin\Events\RowCreated;
 use Hydra\Admin\Events\RowDeleted;
 use Hydra\Admin\Events\RowUpdated;
+use Hydra\Admin\Live\ModuleChanges;
 use Hydra\Admin\Live\PublishAdminEvents;
 use Hydra\Broadcast\Envelope;
 use Hydra\Broadcast\Testing\FakeBroadcaster;
@@ -30,7 +31,7 @@ final class PublishAdminEventsTest extends TestCase
     protected function setUp(): void
     {
         $this->broadcaster = new FakeBroadcaster;
-        $this->listener = new PublishAdminEvents($this->broadcaster);
+        $this->listener = new PublishAdminEvents(new ModuleChanges($this->broadcaster));
     }
 
     public function test_a_created_row_is_published_on_its_module(): void

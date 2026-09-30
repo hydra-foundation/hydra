@@ -9,7 +9,6 @@ use Hydra\Admin\Events\AdminEvent;
 use Hydra\Admin\Events\RowCreated;
 use Hydra\Admin\Events\RowDeleted;
 use Hydra\Admin\Events\RowUpdated;
-use Hydra\Broadcast\Contracts\BroadcasterInterface;
 
 /**
  * Tells every open list of a module that something in it changed, so each
@@ -26,7 +25,7 @@ use Hydra\Broadcast\Contracts\BroadcasterInterface;
  */
 final readonly class PublishAdminEvents
 {
-    public function __construct(private BroadcasterInterface $broadcaster) {}
+    public function __construct(private ModuleChanges $changes) {}
 
     public function __invoke(AdminEvent $event): void
     {
@@ -40,6 +39,6 @@ final readonly class PublishAdminEvents
             return;
         }
 
-        $this->broadcaster->publish("module.{$event->module}", 'changed', ['action' => $event->action(), 'id' => $id]);
+        $this->changes->publish($event->module, $id, $event->action());
     }
 }
