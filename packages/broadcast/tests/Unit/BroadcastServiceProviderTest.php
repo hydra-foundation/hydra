@@ -6,18 +6,31 @@ namespace Hydra\Broadcast\Tests\Unit;
 
 use Hydra\Broadcast\BroadcastConfig;
 use Hydra\Broadcast\BroadcastServiceProvider;
+use Hydra\Broadcast\Console\SseServeCommand;
 use Hydra\Broadcast\Contracts\BroadcasterInterface;
 use Hydra\Broadcast\Drivers\LogBroadcaster;
 use Hydra\Broadcast\Drivers\NullBroadcaster;
 use Hydra\Broadcast\Drivers\RedisBroadcaster;
+use Hydra\Broadcast\Hub\HubConfig;
+use Hydra\Broadcast\Hub\HubFactory;
+use Hydra\Broadcast\Hub\HubHealthCheck;
+use Hydra\Broadcast\Hub\HubReport;
+use Hydra\Broadcast\Hub\HubStatus;
+use Hydra\Broadcast\Hub\RedisHubStatus;
+use Hydra\Broadcast\StreamToken;
+use Hydra\Broadcast\TopicPolicy;
+use Hydra\Core\Clock\SystemClock;
 use Hydra\Core\Environment;
+use Hydra\Core\Security\Signer;
 use Hydra\Core\Testing\FakeContainer;
 use Hydra\Log\Testing\CapturingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 
 #[CoversClass(BroadcastServiceProvider::class)]
+#[CoversClass(RedisHubStatus::class)]
 final class BroadcastServiceProviderTest extends TestCase
 {
     use WritesEnvironment;
@@ -95,6 +108,64 @@ final class BroadcastServiceProviderTest extends TestCase
         $this->assertCount(1, $logger->records());
         $this->assertSame('warning', $logger->records()[0]['level']);
         $this->assertStringStartsWith('Could not broadcast changed on users: ', $logger->messages()[0]);
+    }
+
+    public function test_listen_tokens_are_signed_with_the_bound_signer(): void
+    {
+        $signer = Signer::fromHex(str_repeat('ab', 32));
+        $container = $this->register([], [Signer::class => $signer]);
+
+        $tokens = $container->get(StreamToken::class);
+
+        $this->assertSame(7, $tokens->open($tokens->mint(7, ['demo'], 60))?->userId);
+        $this->assertNull((new StreamToken(Signer::fromHex(str_repeat('cd', 32)), new SystemClock))->open($tokens->mint(7, ['demo'], 60)));
+    }
+
+    public function test_the_topic_policy_is_one_shared_registry(): void
+    {
+        $container = $this->register([]);
+        $container->get(TopicPolicy::class)->allow('demo', static fn (): bool => true);
+
+        $this->assertTrue($container->get(TopicPolicy::class)->permits(1, 'demo'));
+    }
+
+    public function test_the_hub_is_wired_from_the_environment_without_connecting(): void
+    {
+        $container = $this->register([
+            'SSE_LISTEN' => '127.0.0.1:9123',
+            'REDIS_PREFIX' => 'app:',
+            'REDIS_PORT' => '1',
+        ], [Signer::class => Signer::fromHex(str_repeat('ab', 32))]);
+
+        $this->assertSame(9123, $container->get(HubConfig::class)->port);
+        $this->assertInstanceOf(RedisHubStatus::class, $container->get(HubStatus::class));
+        $this->assertInstanceOf(HubFactory::class, $container->get(HubFactory::class));
+        $this->assertInstanceOf(SseServeCommand::class, $container->get(SseServeCommand::class));
+        $this->assertInstanceOf(HubHealthCheck::class, $container->get(HubHealthCheck::class));
+    }
+
+    public function test_the_health_check_fails_when_redis_cannot_be_reached(): void
+    {
+        $this->withoutRealRedisAddress();
+        $container = $this->register(['REDIS_HOST' => '127.0.0.1', 'REDIS_PORT' => '1', 'REDIS_TIMEOUT' => '0.2']);
+
+        $this->expectException(RuntimeException::class);
+
+        $container->get(HubHealthCheck::class)->check();
+    }
+
+    public function test_the_hub_status_logs_a_write_it_could_not_make(): void
+    {
+        $this->withoutRealRedisAddress();
+        $logger = new CapturingLogger;
+        $container = $this->register(['REDIS_HOST' => '127.0.0.1', 'REDIS_PORT' => '1', 'REDIS_TIMEOUT' => '0.2'], [LoggerInterface::class => $logger]);
+
+        $status = $container->get(HubStatus::class);
+        $status->publish(new HubReport(1, 1, 0, true, 1), 30);
+        $status->clear();
+
+        $this->assertCount(2, $logger->records());
+        $this->assertStringStartsWith("Could not write the SSE hub's status: ", $logger->messages()[0]);
     }
 
     /**

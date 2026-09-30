@@ -89,6 +89,18 @@ final class TopicPolicyTest extends TestCase
         $this->assertFalse($policy->permits(3, 'module.users'));
         $this->assertSame(['Topic check for module.{slug} failed on module.users: no db'], $logger->messages());
         $this->assertSame('warning', $logger->records()[0]['level']);
+        $this->assertInstanceOf(RuntimeException::class, $logger->records()[0]['context']['exception'] ?? null);
+    }
+
+    public function test_a_check_that_throws_does_not_fall_through_to_a_later_pattern(): void
+    {
+        // The throwing rule matched, so it decides: a catch-all further down
+        // must not grant what the specific check could not confirm.
+        $policy = (new TopicPolicy)
+            ->allow('module.secrets', static fn (): bool => throw new RuntimeException('no db'))
+            ->allow('module.{slug}', static fn (): bool => true);
+
+        $this->assertFalse($policy->permits(1, 'module.secrets'));
     }
 
     /** @return iterable<string, array{string, string}> */

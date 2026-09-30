@@ -90,6 +90,61 @@ final class ServerLimitsTest extends TestCase
         $this->assertNotNull($slow);
     }
 
+    public function test_a_backlog_drains_once_the_browser_reads_again(): void
+    {
+        $browser = $this->listener();
+        $big = new Envelope('demo', 'changed', ['p' => str_repeat('x', 60_000)], 1);
+
+        // Fill the socket until the hub has to hold some back, short of the limit.
+        $sent = 0;
+        for ($i = 0; $i < 400; $i++) {
+            $this->publish($big);
+            $sent++;
+
+            if ($this->server->backlog() > 0) {
+                break;
+            }
+        }
+        $this->assertGreaterThan(0, $this->server->backlog());
+
+        $got = '';
+        for ($i = 0; $i < 400 && substr_count($got, "\n\n") < $sent; $i++) {
+            $got .= $this->drain($browser);
+        }
+
+        $this->assertSame($sent, substr_count($got, 'event: demo'));
+        $this->assertSame(0, $this->server->backlog());
+        $this->assertSame(1, $this->server->streams());
+    }
+
+    public function test_past_the_cap_and_the_room_for_heads_a_connection_is_closed_at_once(): void
+    {
+        $this->server->stop();
+        $this->server = $this->makeServer(new HubConfig(host: '127.0.0.1', port: 1, maxConnections: 1));
+
+        $sockets = [];
+        for ($i = 0; $i < 70; $i++) {
+            $socket = stream_socket_client("tcp://{$this->address}", $errno, $error, 1.0);
+            $this->assertNotFalse($socket);
+            $this->browsers[] = $sockets[] = $socket;
+            $this->server->tick(0.005);
+        }
+        $this->rounds();
+
+        $this->assertSame(1 + 64, $this->server->connections());
+    }
+
+    public function test_bytes_after_the_head_are_ignored(): void
+    {
+        $browser = $this->listener();
+
+        fwrite($browser, "more\r\n\r\n");
+        $this->rounds();
+
+        $this->assertSame(1, $this->server->streams());
+        $this->assertSame('', $this->drain($browser));
+    }
+
     public function test_every_stream_is_told_to_resync_when_redis_comes_back(): void
     {
         $a = $this->listener(['demo']);
@@ -142,12 +197,30 @@ final class ServerLimitsTest extends TestCase
         $this->assertNull($this->status->read());
     }
 
-    public function test_run_returns_once_stopped(): void
+    public function test_run_serves_until_halted_then_stops(): void
     {
-        // A listener that is already closed ends the loop at once.
-        $this->server->stop();
+        $browser = $this->listener();
+        $rounds = 0;
+        $this->subscriber->onMaintain = function () use (&$rounds): void {
+            if (++$rounds === 3) {
+                $this->server->halt();
+            }
+        };
+
         $this->server->run();
 
-        $this->addToAssertionCount(1);
+        $this->assertSame(3, $rounds);
+        $this->assertSame(0, $this->server->connections());
+        $this->assertNull($this->status->read());
+        $this->assertTrue($this->closedByServer($browser));
+    }
+
+    public function test_run_and_tick_do_nothing_once_stopped(): void
+    {
+        $this->server->stop();
+        $this->server->run();
+        $this->server->tick(0.01);
+
+        $this->assertSame(0, $this->server->connections());
     }
 }

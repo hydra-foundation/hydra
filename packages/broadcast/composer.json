@@ -1,6 +1,6 @@
 {
     "name": "hydrakit/broadcast",
-    "description": "Tell other processes that something changed: a publisher contract over Redis pub/sub, with log, null and fake drivers.",
+    "description": "Tell other processes that something changed: a publisher over Redis pub/sub, listen tokens, and an SSE hub that fans broadcasts out to browsers.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://hydra.williamhleucka.com",
@@ -16,6 +16,7 @@
     },
     "repositories": [
         { "type": "path", "url": "../core", "options": { "symlink": true } },
+        { "type": "path", "url": "../console", "options": { "symlink": true } },
         { "type": "path", "url": "../cache", "options": { "symlink": true } },
         { "type": "path", "url": "../log", "options": { "symlink": true } }
     ],
@@ -29,6 +30,7 @@
         "php": ">=8.2",
         "hydrakit/core": "^0.17",
         "hydrakit/cache": "^0.17",
+        "hydrakit/console": "^0.17",
         "psr/clock": "^1.0",
         "psr/log": "^3.0"
     },
@@ -37,7 +39,8 @@
         "phpunit/phpunit": "^11.0"
     },
     "suggest": {
-        "ext-redis": "Required by the redis driver (BROADCAST_DRIVER=redis)."
+        "ext-redis": "Required by the redis driver (BROADCAST_DRIVER=redis).",
+        "ext-pcntl": "Lets sse:serve close its streams and clear its status on SIGTERM."
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

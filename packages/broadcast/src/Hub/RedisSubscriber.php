@@ -6,6 +6,7 @@ namespace Hydra\Broadcast\Hub;
 
 use Closure;
 use Hydra\Broadcast\Envelope;
+use Hydra\Cache\CacheConfig;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -47,6 +48,23 @@ final class RedisSubscriber implements Subscriber
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
     ) {}
+
+    /** A subscriber on the server the cache's settings name, whatever CACHE_STORE says. */
+    public static function over(CacheConfig $redis, string $pattern, ClockInterface $clock, LoggerInterface $logger): self
+    {
+        $connect = static function () use ($redis) {
+            $where = "{$redis->host}:{$redis->port}";
+            $socket = @stream_socket_client("tcp://{$where}", $errno, $error, $redis->timeout);
+
+            if ($socket === false) {
+                throw new RuntimeException("Could not connect to Redis at {$where}: {$error}");
+            }
+
+            return $socket;
+        };
+
+        return new self($connect, $pattern, $redis->password, $clock, $logger);
+    }
 
     public function socket()
     {
@@ -109,7 +127,7 @@ final class RedisSubscriber implements Subscriber
         $envelopes = [];
 
         try {
-            while (($reply = $this->next()) !== null) {
+            while (($reply = $this->next()) !== self::incomplete()) {
                 $envelope = $this->handle($reply);
 
                 if ($envelope !== null) {
@@ -174,8 +192,9 @@ final class RedisSubscriber implements Subscriber
     }
 
     /**
-     * The next whole reply off the buffer, consuming it, or null when it has
-     * not all arrived.
+     * The next whole reply off the buffer, consuming it, or incomplete() when
+     * it has not all arrived. A reply can itself be null (`$-1`), so null
+     * cannot mean "nothing yet".
      *
      * @throws RuntimeException for bytes that are not RESP, or a reply too large to hold
      */
@@ -184,11 +203,9 @@ final class RedisSubscriber implements Subscriber
         $offset = 0;
         $reply = $this->parse($offset);
 
-        if ($reply === self::incomplete()) {
-            return null;
+        if ($reply !== self::incomplete()) {
+            $this->buffer = substr($this->buffer, $offset);
         }
-
-        $this->buffer = substr($this->buffer, $offset);
 
         return $reply;
     }

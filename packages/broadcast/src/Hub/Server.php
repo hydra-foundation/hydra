@@ -28,7 +28,7 @@ final class Server
     /** @var array<int, Stream> keyed by socket id */
     private array $streams = [];
 
-    private bool $running = false;
+    private bool $halted = false;
     private readonly int $startedAt;
     private ?int $lastStatus = null;
 
@@ -46,19 +46,29 @@ final class Server
         $this->startedAt = $this->now();
     }
 
+    /** Serves until halt() or stop(), then closes everything. */
     public function run(): void
     {
-        $this->running = true;
-
-        while ($this->running && is_resource($this->listener)) {
+        while (!$this->halted && is_resource($this->listener)) {
             $this->tick(1.0);
         }
+
+        $this->stop();
     }
 
-    /** Ends run() after the round in progress, and closes every stream. */
+    /**
+     * Asks run() to finish after the round in progress. Safe from a signal
+     * handler, which may fire mid-select: it touches no socket.
+     */
+    public function halt(): void
+    {
+        $this->halted = true;
+    }
+
+    /** Closes every stream, the subscription and the listener, and clears the status. */
     public function stop(): void
     {
-        $this->running = false;
+        $this->halted = true;
 
         foreach ($this->streams as $stream) {
             $this->close($stream);
@@ -77,6 +87,12 @@ final class Server
     public function streams(): int
     {
         return count(array_filter($this->streams, static fn (Stream $s): bool => $s->isStreaming()));
+    }
+
+    /** Bytes held for browsers that have not read them yet, across every stream. */
+    public function backlog(): int
+    {
+        return array_sum(array_map(static fn (Stream $s): int => strlen($s->outbox), $this->streams));
     }
 
     /** Every browser connection, streams and heads still being read alike. */
@@ -210,27 +226,18 @@ final class Server
         }
 
         $token = $head->token() ?? '';
+        $grant = $token === '' ? null : $this->tokens->open($token);
 
-        match ($token === '' ? TokenState::Invalid : $this->tokens->inspect($token)) {
-            TokenState::Invalid => $this->refuse($stream, 403),
-            TokenState::Expired => $this->refuse($stream, 204),
-            TokenState::Valid => $this->open($stream, $token),
-        };
-    }
-
-    private function open(Stream $stream, string $token): void
-    {
-        if ($this->streams() >= $this->config->maxConnections) {
-            $this->refuse($stream, 503);
+        if ($grant === null) {
+            // An honest page with an old token is sent for a fresh one; a
+            // forgery is refused.
+            $this->refuse($stream, $token !== '' && $this->tokens->inspect($token) === TokenState::Expired ? 204 : 403);
 
             return;
         }
 
-        $grant = $this->tokens->open($token);
-
-        // Valid a moment ago; only a clock that moved in between says otherwise.
-        if ($grant === null) {
-            $this->refuse($stream, 204);
+        if ($this->streams() >= $this->config->maxConnections) {
+            $this->refuse($stream, 503);
 
             return;
         }

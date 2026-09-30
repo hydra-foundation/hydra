@@ -6,6 +6,7 @@ namespace Hydra\Broadcast\Tests\Unit\Hub;
 
 use Hydra\Broadcast\Envelope;
 use Hydra\Broadcast\Hub\RedisSubscriber;
+use Hydra\Cache\CacheConfig;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Log\Testing\CapturingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -217,6 +218,48 @@ final class RedisSubscriberTest extends TestCase
         }
 
         $this->assertNull($subscriber->socket());
+    }
+
+    public function test_replies_it_has_no_use_for_are_skipped(): void
+    {
+        $subscriber = $this->connected();
+        $envelope = new Envelope('demo', 'changed', [], 1);
+
+        fwrite($this->servers[0], "\$-1\r\n*1\r\n\$4\r\npong\r\n:5\r\n" . self::pmessage('app:broadcast.demo', $envelope->toJson()));
+
+        $this->assertEquals([$envelope], $subscriber->read());
+        $this->assertSame([], $this->logger->messages());
+    }
+
+    public function test_bytes_that_are_not_resp_drop_the_connection(): void
+    {
+        $subscriber = $this->connected();
+        fwrite($this->servers[0], "!what\r\n");
+
+        $subscriber->read();
+
+        $this->assertNull($subscriber->socket());
+        $this->assertSame(['Redis sent something that is not RESP.', 'Lost the Redis subscription; reconnecting in 1s.'], $this->logger->messages());
+    }
+
+    public function test_reading_while_disconnected_is_nothing(): void
+    {
+        $this->assertSame([], $this->subscriber()->read());
+    }
+
+    public function test_the_cache_settings_name_the_server_and_a_dead_one_is_retried(): void
+    {
+        $subscriber = RedisSubscriber::over(
+            new CacheConfig(host: '127.0.0.1', port: 1, timeout: 0.2),
+            self::PATTERN,
+            $this->clock,
+            $this->logger,
+        );
+
+        $subscriber->maintain();
+
+        $this->assertNull($subscriber->socket());
+        $this->assertStringStartsWith('Could not subscribe to Redis: Could not connect to Redis at 127.0.0.1:1: ', $this->logger->messages()[0]);
     }
 
     public function test_close_drops_the_socket(): void

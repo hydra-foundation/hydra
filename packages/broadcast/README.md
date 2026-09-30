@@ -79,3 +79,78 @@ $fake->assertNothingPublished();
 
 The fake validates like the real drivers, so a test can't pass on a topic
 that Redis would refuse.
+
+## Listening: the SSE hub
+
+php-fpm can't hold a stream: each open tab would keep a worker busy until
+it closes. So browsers listen to **the hub**, a long-running process of its
+own:
+
+```
+php bin/console sse:serve
+```
+
+It runs one non-blocking loop over its listening socket, every browser, and
+a Redis pattern subscription on `{REDIS_PREFIX}broadcast.*`. Each broadcast
+goes to every open stream whose token grants its topic, as an SSE event
+named by the topic:
+
+```
+event: module.users
+data: {"event":"changed","data":{"id":7}}
+```
+
+- **Heartbeat:** `: ping` after `SSE_HEARTBEAT` quiet seconds (15).
+- **Connection cap:** past `SSE_MAX_CONNECTIONS` (1000), a browser gets
+  `503` with `Retry-After`.
+- **Slow browsers:** one that falls more than 256 KiB behind is dropped. A
+  request head has to arrive within 5 seconds and 8 KiB.
+- **Redis:** a lost subscription is retried after 1, 2, 4, … up to 30
+  seconds. Once it's back, every stream gets `event: hub.resync`, since
+  events may have been missed.
+- **Stopping:** with `ext-pcntl`, SIGTERM and SIGINT close every stream
+  and clear the status.
+
+It listens on `SSE_LISTEN` (`0.0.0.0:8080`). Put it behind the web server
+at `/stream`, with response buffering off.
+
+### Listen tokens
+
+A browser opens `/stream?token=…`. `StreamToken::mint($userId, $topics,
+$ttl)` signs the user, up to 32 topics and an expiry with the app key. The
+hub checks the token and never reads a session:
+
+| Token | The hub answers |
+|---|---|
+| valid | `200` and the stream |
+| expired | `204`, which stops EventSource: fetch a fresh token |
+| forged or malformed | `403` |
+
+A stream is closed when its token expires. Nothing is stored and nothing
+revokes a token, so a sign-out reaches an open tab within
+`STREAM_TOKEN_TTL` (3600 seconds). Tokens never reach a log line: one in a
+log is a stream anyone can open.
+
+### Who may listen
+
+Mint only what `TopicPolicy` permits. It's shared, and it refuses any
+topic that no pattern matches:
+
+```php
+$container->get(TopicPolicy::class)
+    ->allow('module.{slug}', fn (int|string $userId, array $params): bool => $gate->allows($userId, $params['slug']))
+    ->allow('user.{id}', fn (int|string $userId, array $params): bool => (string) $userId === $params['id']);
+
+$policy->permits($userId, 'module.users'); // bool
+```
+
+Each `{name}` placeholder is one whole segment, and the first matching
+pattern decides. A check that throws is a refusal, and it's logged.
+
+### Health
+
+The hub writes a `HubReport` (pid, start time, open streams, and whether
+Redis is subscribed) to `{REDIS_PREFIX}sse:hub` every 10 seconds, with a
+30-second expiry. `HubStatus::read()` returns it, or null when no hub is
+running. `HubHealthCheck` (named `sse`) fails when there's no report, or
+when the hub has lost Redis.

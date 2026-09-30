@@ -213,7 +213,15 @@ final class HandFedSubscriber implements Subscriber
         return $queue;
     }
 
-    public function maintain(): void {}
+    /** @var (callable(): void)|null runs on every maintain(), which the server calls each round */
+    public $onMaintain = null;
+
+    public function maintain(): void
+    {
+        if ($this->onMaintain !== null) {
+            ($this->onMaintain)();
+        }
+    }
 
     public function resubscribed(): bool
     {
