@@ -9,6 +9,7 @@ use Hydra\Broadcast\Hub\HubConfig;
 use Hydra\Broadcast\Hub\Server;
 use Hydra\Broadcast\Hub\Subscriber;
 use Hydra\Broadcast\StreamToken;
+use Hydra\Broadcast\Testing\FakeHubStatus;
 use Hydra\Core\Security\Signer;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Log\Testing\CapturingLogger;
@@ -27,6 +28,7 @@ trait HubHarness
     private CapturingLogger $logger;
     private StreamToken $tokens;
     private HandFedSubscriber $subscriber;
+    private FakeHubStatus $status;
     private Server $server;
     private string $address;
 
@@ -40,6 +42,7 @@ trait HubHarness
         $this->logger = new CapturingLogger;
         $this->tokens = new StreamToken(Signer::fromHex(str_repeat('ab', 32)), $this->clock);
         $this->subscriber = new HandFedSubscriber;
+        $this->status = new FakeHubStatus;
         $this->server = $this->makeServer(new HubConfig(host: '127.0.0.1', port: 1));
     }
 
@@ -67,7 +70,7 @@ trait HubHarness
 
         $this->address = (string) stream_socket_get_name($listener, false);
 
-        return new Server($listener, $this->subscriber, $this->tokens, $config, $this->clock, $this->logger);
+        return new Server($listener, $this->subscriber, $this->tokens, $config, $this->clock, $this->logger, $this->status);
     }
 
     /**

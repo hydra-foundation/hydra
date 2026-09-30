@@ -29,6 +29,8 @@ final class Server
     private array $streams = [];
 
     private bool $running = false;
+    private readonly int $startedAt;
+    private ?int $lastStatus = null;
 
     /** @param resource $listener */
     public function __construct(
@@ -38,8 +40,10 @@ final class Server
         private readonly HubConfig $config,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
+        private readonly ?HubStatus $status = null,
     ) {
         stream_set_blocking($this->listener, false);
+        $this->startedAt = $this->now();
     }
 
     public function run(): void
@@ -65,6 +69,8 @@ final class Server
         if (is_resource($this->listener)) {
             fclose($this->listener);
         }
+
+        $this->status?->clear();
     }
 
     /** Open event streams. */
@@ -136,6 +142,7 @@ final class Server
         }
 
         $this->sweep();
+        $this->report();
     }
 
     private function accept(): void
@@ -311,6 +318,22 @@ final class Server
                 $this->send($stream, Frame::ping());
             }
         }
+    }
+
+    /** Says the hub is alive, every STATUS_EVERY seconds, for three times as long. */
+    private function report(): void
+    {
+        $now = $this->now();
+
+        if ($this->status === null || ($this->lastStatus !== null && $now - $this->lastStatus < HubConfig::STATUS_EVERY)) {
+            return;
+        }
+
+        $this->lastStatus = $now;
+        $this->status->publish(
+            new HubReport((int) getmypid(), $this->startedAt, $this->streams(), $this->subscriber->subscribed(), $now),
+            HubConfig::STATUS_EVERY * 3,
+        );
     }
 
     private function close(Stream $stream): void

@@ -114,6 +114,34 @@ final class ServerLimitsTest extends TestCase
         $this->assertFalse(@stream_socket_client("tcp://{$this->address}", $errno, $error, 0.2));
     }
 
+    public function test_the_status_is_written_at_start_then_every_ten_seconds_and_cleared_on_stop(): void
+    {
+        $this->listener();
+        $this->assertSame(1, $this->status->writes);
+
+        $report = $this->status->read();
+        $this->assertNotNull($report);
+        $this->assertSame([getmypid(), 1790769600, true], [$report->pid, $report->startedAt, $report->subscribed]);
+        $this->assertSame(30, $this->status->ttl);
+
+        $this->clock->advance('+9 seconds');
+        $this->rounds();
+        $this->assertSame(1, $this->status->writes);
+
+        $this->clock->advance('+1 second');
+        $this->rounds();
+        $this->assertSame(2, $this->status->writes);
+        $this->assertSame(1, $this->status->read()?->connections);
+
+        $this->subscriber->goAway();
+        $this->clock->advance('+10 seconds');
+        $this->rounds();
+        $this->assertFalse($this->status->read()?->subscribed);
+
+        $this->server->stop();
+        $this->assertNull($this->status->read());
+    }
+
     public function test_run_returns_once_stopped(): void
     {
         // A listener that is already closed ends the loop at once.
