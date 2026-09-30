@@ -6,8 +6,10 @@ namespace Hydra\Queue;
 
 use Hydra\Database\Contracts\ConnectionInterface;
 use Hydra\Queue\Contracts\QueueInterface;
+use Hydra\Queue\Events\QueueChanged;
 use InvalidArgumentException;
 use Psr\Clock\ClockInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Throwable;
 
 /**
@@ -23,12 +25,16 @@ final class DatabaseQueue implements QueueInterface
     /**
      * @param string $driver the PDO driver name; mysql and mariadb claim with SKIP LOCKED
      * @param int $reserveFor seconds before a claim whose worker never finished is taken again
+     * @param EventDispatcherInterface|null $events told with {@see QueueChanged} when a
+     *        push or a retry, cancel, forget or flush moves a row; the calls a worker
+     *        makes per job are the worker's to report, once per batch
      */
     public function __construct(
         private readonly ConnectionInterface $db,
         private readonly ClockInterface $clock,
         private readonly string $driver,
         private readonly int $reserveFor = self::DEFAULT_RESERVE_SECONDS,
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
         if ($reserveFor < 1) {
             throw new InvalidArgumentException("A claim must be held for at least a second, not {$reserveFor}.");
@@ -44,6 +50,7 @@ final class DatabaseQueue implements QueueInterface
             'INSERT INTO jobs (job, payload, attempts, available_at, created_at) VALUES (?, ?, 0, ?, ?)',
             [$job, Payload::encode($payload), $now + $delay, $now],
         );
+        $this->changed(QueueChanged::JOBS);
     }
 
     /**
@@ -142,7 +149,9 @@ final class DatabaseQueue implements QueueInterface
      */
     public function retry(int $id): bool
     {
-        return $this->db->transaction(function () use ($id): bool {
+        // Told after the transaction, so nobody refetches a move that could
+        // still roll back.
+        $moved = $this->db->transaction(function () use ($id): bool {
             $row = $this->db->selectOne('SELECT job, payload FROM failed_jobs WHERE id = ?', [$id]);
 
             if ($row === null || $this->db->execute('DELETE FROM failed_jobs WHERE id = ?', [$id]) === 0) {
@@ -157,6 +166,8 @@ final class DatabaseQueue implements QueueInterface
 
             return true;
         });
+
+        return $moved && $this->changed(QueueChanged::JOBS, QueueChanged::FAILED);
     }
 
     /**
@@ -166,19 +177,39 @@ final class DatabaseQueue implements QueueInterface
      */
     public function cancel(int $id): bool
     {
-        return $this->db->execute('DELETE FROM jobs WHERE id = ? AND reserved_at IS NULL', [$id]) > 0;
+        return $this->db->execute('DELETE FROM jobs WHERE id = ? AND reserved_at IS NULL', [$id]) > 0
+            && $this->changed(QueueChanged::JOBS);
     }
 
     /** Delete one failed job for good. False when no failed job has that id. */
     public function forget(int $id): bool
     {
-        return $this->db->execute('DELETE FROM failed_jobs WHERE id = ?', [$id]) > 0;
+        return $this->db->execute('DELETE FROM failed_jobs WHERE id = ?', [$id]) > 0
+            && $this->changed(QueueChanged::FAILED);
     }
 
     /** Delete every failed job, returning how many there were. */
     public function flush(): int
     {
-        return $this->db->execute('DELETE FROM failed_jobs');
+        $deleted = $this->db->execute('DELETE FROM failed_jobs');
+
+        if ($deleted > 0) {
+            $this->changed(QueueChanged::FAILED);
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * True, so a method that answers whether it moved a row can say so and
+     * tell in one expression.
+     */
+    private function changed(string ...$tables): bool
+    {
+        /** @var non-empty-list<QueueChanged::JOBS|QueueChanged::FAILED> $tables */
+        $this->events?->dispatch(new QueueChanged($tables));
+
+        return true;
     }
 
     private function now(): int
