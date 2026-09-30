@@ -108,8 +108,9 @@ data: {"event":"changed","data":{"id":7}}
 - **Redis:** a lost subscription is retried after 1, 2, 4, … up to 30
   seconds. Once it's back, every stream gets `event: hub.resync`, since
   events may have been missed.
-- **Stopping:** with `ext-pcntl`, SIGTERM and SIGINT close every stream
-  and clear the status.
+- **Stopping:** with `ext-pcntl`, SIGTERM, SIGINT and SIGQUIT close every
+  stream and clear the status. SIGQUIT is there because an image built on
+  `php:fpm` inherits it as its stop signal.
 
 It listens on `SSE_LISTEN` (`0.0.0.0:8080`). Put it behind the web server
 at `/stream`, with response buffering off.

@@ -44,12 +44,16 @@ final class SseServeCommand extends Command
 
         $server = ($this->hub)($listener);
 
-        // Without pcntl, docker's kill ends the process all the same, only
-        // with the status key left to expire rather than cleared.
+        // SIGQUIT too: an image built on php:fpm inherits STOPSIGNAL SIGQUIT,
+        // and `docker stop` would otherwise end the hub with its status key
+        // still saying it runs. Without pcntl the kill ends it all the same,
+        // with the key left to expire rather than cleared.
         if (function_exists('pcntl_async_signals')) {
             pcntl_async_signals(true);
-            pcntl_signal(SIGTERM, static fn () => $server->halt());
-            pcntl_signal(SIGINT, static fn () => $server->halt());
+
+            foreach ([SIGTERM, SIGINT, SIGQUIT] as $signal) {
+                pcntl_signal($signal, static fn () => $server->halt());
+            }
         }
 
         $this->logger->info("The SSE hub is listening on {$where}.");
