@@ -38,6 +38,7 @@ jobs:
           - admin
           - auth
           - authorization
+          - broadcast
           - cache
           - console
           - core

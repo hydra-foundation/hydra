@@ -39,6 +39,9 @@
         <testsuite name="authorization">
             <directory>packages/authorization/tests</directory>
         </testsuite>
+        <testsuite name="broadcast">
+            <directory>packages/broadcast/tests</directory>
+        </testsuite>
         <testsuite name="cache">
             <directory>packages/cache/tests</directory>
         </testsuite>
@@ -113,6 +116,7 @@
             <directory>packages/admin/src</directory>
             <directory>packages/auth/src</directory>
             <directory>packages/authorization/src</directory>
+            <directory>packages/broadcast/src</directory>
             <directory>packages/cache/src</directory>
             <directory>packages/console/src</directory>
             <directory>packages/core/src</directory>

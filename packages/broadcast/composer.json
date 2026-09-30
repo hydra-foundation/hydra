@@ -1,0 +1,49 @@
+{
+    "name": "hydrakit/broadcast",
+    "description": "Tell other processes that something changed: a publisher contract over Redis pub/sub, with log, null and fake drivers.",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://hydra.williamhleucka.com",
+    "autoload": {
+        "psr-4": {
+            "Hydra\\Broadcast\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hydra\\Broadcast\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        { "type": "path", "url": "../core", "options": { "symlink": true } },
+        { "type": "path", "url": "../cache", "options": { "symlink": true } },
+        { "type": "path", "url": "../log", "options": { "symlink": true } }
+    ],
+    "authors": [
+        {
+            "name": "William Hleucka",
+            "email": "william.hleucka@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "hydrakit/core": "^0.17",
+        "hydrakit/cache": "^0.17",
+        "psr/clock": "^1.0",
+        "psr/log": "^3.0"
+    },
+    "require-dev": {
+        "hydrakit/log": "^0.17",
+        "phpunit/phpunit": "^11.0"
+    },
+    "suggest": {
+        "ext-redis": "Required by the redis driver (BROADCAST_DRIVER=redis)."
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.17.x-dev"
+        }
+    }
+}
