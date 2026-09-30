@@ -28,14 +28,14 @@
     ],
     "require": {
         "php": ">=8.2",
-        "hydrakit/core": "^0.20",
-        "hydrakit/cache": "^0.20",
-        "hydrakit/console": "^0.20",
+        "hydrakit/core": "^0.21",
+        "hydrakit/cache": "^0.21",
+        "hydrakit/console": "^0.21",
         "psr/clock": "^1.0",
         "psr/log": "^3.0"
     },
     "require-dev": {
-        "hydrakit/log": "^0.20",
+        "hydrakit/log": "^0.21",
         "phpunit/phpunit": "^11.0"
     },
     "suggest": {
@@ -46,7 +46,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.20.x-dev"
+            "dev-main": "0.21.x-dev"
         }
     }
 }

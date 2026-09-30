@@ -29,14 +29,14 @@
         "psr/log": "^3.0"
     },
     "require-dev": {
-        "hydrakit/core": "^0.20",
+        "hydrakit/core": "^0.21",
         "phpunit/phpunit": "^11.0"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.20.x-dev"
+            "dev-main": "0.21.x-dev"
         }
     }
 }
