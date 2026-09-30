@@ -54,6 +54,7 @@ trait WritesEnvironment
         foreach ($this->borrowed as $key => $value) {
             putenv("{$key}={$value}");
             $_ENV[$key] = $value;
+            $_SERVER[$key] = $value;
         }
         $this->borrowed = [];
 
@@ -61,6 +62,20 @@ trait WritesEnvironment
             unlink($this->envDir . '/.env');
         }
         rmdir($this->envDir);
+    }
+
+    /**
+     * Hide the real REDIS_HOST and REDIS_PORT until the test ends. A real
+     * variable beats the .env file, and Environment reads it at the moment a
+     * setting is asked for, so a test that needs its own address, such as one
+     * with nothing behind it, would otherwise reach CI's server.
+     */
+    private function withoutRealRedisAddress(): void
+    {
+        foreach (self::BORROWED as $key) {
+            putenv($key);
+            unset($_ENV[$key], $_SERVER[$key]);
+        }
     }
 
     /** @param array<string, string> $values */

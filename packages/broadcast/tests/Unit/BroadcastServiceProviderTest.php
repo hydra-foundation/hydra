@@ -79,6 +79,7 @@ final class BroadcastServiceProviderTest extends TestCase
     {
         // Port 1 has nothing behind it; without ext-redis the opener fails
         // earlier, naming the extension. Either way the publish returns.
+        $this->withoutRealRedisAddress();
         $logger = new CapturingLogger;
         $container = $this->register([
             'BROADCAST_DRIVER' => 'redis',
