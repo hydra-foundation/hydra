@@ -2,6 +2,7 @@
     "admin": 78.8,
     "auth": 98.7,
     "authorization": 100,
+    "broadcast": 97.4,
     "cache": 89.8,
     "console": 95.3,
     "core": 95.6,

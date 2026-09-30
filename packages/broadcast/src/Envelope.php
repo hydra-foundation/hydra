@@ -69,7 +69,7 @@ final readonly class Envelope
     public static function fromJson(string $json): ?self
     {
         try {
-            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+            $decoded = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             return null;
         }
