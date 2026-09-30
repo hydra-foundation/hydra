@@ -129,6 +129,21 @@ abstract class NotificationStoreContractTestCase extends TestCase
         $this->assertSame(0, $this->store()->markAllRead($this->user(), self::at('2026-09-30 12:00:00')));
     }
 
+    public function test_clearing_deletes_only_this_users_read_notices(): void
+    {
+        $read = $this->store()->add($this->user(), new Notice('read'), self::at('2026-09-30 10:00:00'));
+        $this->store()->add($this->user(), new Notice('unread'), self::at('2026-09-30 10:01:00'));
+        $theirs = $this->store()->add($this->otherUser(), new Notice('theirs, read'), self::at('2026-09-30 10:00:00'));
+        $this->store()->markRead($this->user(), $read, self::at('2026-09-30 11:00:00'));
+        $this->store()->markRead($this->otherUser(), $theirs, self::at('2026-09-30 11:00:00'));
+
+        $this->assertSame(1, $this->store()->clearRead($this->user()));
+        $this->assertSame(['unread'], array_map(static fn ($n) => $n->notice->title, $this->store()->latest($this->user(), 10)));
+        $this->assertSame(1, $this->store()->unreadCount($this->user()));
+        $this->assertSame(['theirs, read'], array_map(static fn ($n) => $n->notice->title, $this->store()->latest($this->otherUser(), 10)));
+        $this->assertSame(0, $this->store()->clearRead($this->user()));
+    }
+
     public function test_a_user_with_nothing_has_nothing(): void
     {
         $this->assertSame([], $this->store()->latest($this->user(), 10));

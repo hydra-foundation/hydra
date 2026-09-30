@@ -2033,6 +2033,7 @@
 .admin-bell-actions {
     display: flex;
     justify-content: flex-end;
+    gap: var(--s-2);
     margin: var(--s-1) 0 0;
     padding-top: var(--s-1);
     border-top: 1px solid var(--line);

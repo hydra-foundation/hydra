@@ -38,7 +38,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AdminServiceProvider::class)]
 final class NotificationWiringTest extends TestCase
 {
-    public function test_with_a_store_the_four_routes_are_behind_the_guard_and_ahead_of_the_modules(): void
+    public function test_with_a_store_the_bells_routes_are_behind_the_guard_and_ahead_of_the_modules(): void
     {
         $container = $this->container(store: true);
         $provider = new AdminServiceProvider([UsersModule::class], '/admin', ['RequireSignIn']);
@@ -52,6 +52,7 @@ final class NotificationWiringTest extends TestCase
                 ['GET', '/admin/notifications/badge', 'badge'],
                 ['GET', '/admin/notifications', 'list'],
                 ['POST', '/admin/notifications/read-all', 'readAll'],
+                ['POST', '/admin/notifications/clear', 'clear'],
                 ['POST', '/admin/notifications/{id}/read', 'read'],
             ],
             array_map(static fn (array $r): array => [$r['method'], $r['path'], $r['handler'][1]], $mine),

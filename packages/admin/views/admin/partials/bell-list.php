@@ -4,7 +4,9 @@
 <?php /** @var string $readUrl the notifications path, which the forms post under */ ?>
 <?php /* The dropdown's contents. Each notice is a plain form: opening it marks it
    read and follows its link, which is a navigation, not a swap. Mark all read
-   is the one swap, and brings this list back with nothing unread in it. */ ?>
+   and Clear are swaps, and bring this list back: with nothing unread in it,
+   or with only what is still unread. */ ?>
+<?php $anyRead = array_filter($items, static fn (array $item): bool => $item['notification']->isRead()) !== [] ?>
 <div class="admin-bell-list" hx-nonce="<?= $this->e($this->cspNonce()) ?>">
     <?php if ($items === []): ?>
         <p class="admin-bell-empty">No notifications yet.</p>
@@ -23,14 +25,27 @@
                 </button>
             </form>
         <?php endforeach ?>
-        <?php if ($unread > 0): ?>
-            <form class="admin-bell-actions" hx-nonce="<?= $this->e($this->cspNonce()) ?>"
-                  hx-post="<?= $this->e($readUrl . '/read-all') ?>"
-                  hx-target="closest .admin-bell-list"
-                  hx-swap="outerHTML">
-                <?= $this->csrf() ?>
-                <button type="submit" class="btn btn-sm btn-link">Mark all read</button>
-            </form>
+        <?php if ($unread > 0 || $anyRead): ?>
+            <div class="admin-bell-actions">
+                <?php if ($anyRead): ?>
+                    <form hx-nonce="<?= $this->e($this->cspNonce()) ?>"
+                          hx-post="<?= $this->e($readUrl . '/clear') ?>"
+                          hx-target="closest .admin-bell-list"
+                          hx-swap="outerHTML">
+                        <?= $this->csrf() ?>
+                        <button type="submit" class="btn btn-sm btn-link">Clear read</button>
+                    </form>
+                <?php endif ?>
+                <?php if ($unread > 0): ?>
+                    <form hx-nonce="<?= $this->e($this->cspNonce()) ?>"
+                          hx-post="<?= $this->e($readUrl . '/read-all') ?>"
+                          hx-target="closest .admin-bell-list"
+                          hx-swap="outerHTML">
+                        <?= $this->csrf() ?>
+                        <button type="submit" class="btn btn-sm btn-link">Mark all read</button>
+                    </form>
+                <?php endif ?>
+            </div>
         <?php endif ?>
     <?php endif ?>
 </div>

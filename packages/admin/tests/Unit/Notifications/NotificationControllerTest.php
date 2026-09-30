@@ -158,6 +158,43 @@ final class NotificationControllerTest extends TestCase
         $this->broadcaster->assertPublished('user.7', 'notification', static fn (Envelope $e): bool => $e->data === ['unread' => 0], times: 1);
     }
 
+    public function test_clearing_deletes_the_users_read_notices_and_answers_with_the_list(): void
+    {
+        $read = $this->store->add(7, new Notice('read'), $this->clock->now());
+        $this->store->add(7, new Notice('unread'), $this->clock->now());
+        $this->store->markRead(7, $read, $this->clock->now());
+
+        $body = $this->body($this->controller(7)->clear($this->post('/admin/notifications/clear')));
+
+        $this->assertSame(1, substr_count($body, 'class="admin-bell-item'));
+        $this->assertStringContainsString('unread', $body);
+        $this->assertStringNotContainsString('>read<', $body);
+        $this->assertSame(1, count($this->store->latest(7, 10)));
+    }
+
+    public function test_the_menu_offers_clear_only_when_something_is_read(): void
+    {
+        $id = $this->store->add(7, new Notice('a'), $this->clock->now());
+
+        $this->assertStringNotContainsString('/admin/notifications/clear', $this->body($this->controller(7)->list($this->get('/admin/notifications'))));
+
+        $this->store->markRead(7, $id, $this->clock->now());
+        $body = $this->body($this->controller(7)->list($this->get('/admin/notifications')));
+
+        $this->assertStringContainsString('hx-post="/admin/notifications/clear"', $body);
+        $this->assertStringNotContainsString('read-all', $body);
+    }
+
+    public function test_clearing_everything_leaves_the_empty_menu(): void
+    {
+        $id = $this->store->add(7, new Notice('a'), $this->clock->now());
+        $this->store->markRead(7, $id, $this->clock->now());
+
+        $body = $this->body($this->controller(7)->clear($this->post('/admin/notifications/clear')));
+
+        $this->assertStringContainsString('No notifications yet.', $body);
+    }
+
     public function test_a_guest_is_not_found(): void
     {
         $this->expectException(NotFoundException::class);

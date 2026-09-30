@@ -30,4 +30,7 @@ interface NotificationStoreInterface
 
     /** Marks every unread notice of this user's read, and says how many. */
     public function markAllRead(int|string $userId, DateTimeImmutable $at): int;
+
+    /** Deletes this user's read notices, and says how many. Unread ones are kept. */
+    public function clearRead(int|string $userId): int;
 }

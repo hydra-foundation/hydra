@@ -316,9 +316,9 @@ final class AdminServiceProvider extends ServiceProvider
     }
 
     /**
-     * The bell's four requests, behind the admin's guard and ahead of the
-     * modules, as the file route is. read-all is registered before {id}/read,
-     * which would otherwise take it.
+     * The bell's requests, behind the admin's guard and ahead of the modules,
+     * as the file route is. read-all and clear are registered before
+     * {id}/read, which would otherwise take them.
      *
      * @return list<array<string, mixed>>
      */
@@ -336,6 +336,7 @@ final class AdminServiceProvider extends ServiceProvider
             ['GET', '/badge', 'badge'],
             ['GET', '', 'list'],
             ['POST', '/read-all', 'readAll'],
+            ['POST', '/clear', 'clear'],
             ['POST', '/{id}/read', 'read'],
         ]);
     }

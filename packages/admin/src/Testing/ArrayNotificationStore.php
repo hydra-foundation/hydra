@@ -65,6 +65,20 @@ final class ArrayNotificationStore implements NotificationStoreInterface
         return $marked;
     }
 
+    public function clearRead(int|string $userId): int
+    {
+        $cleared = 0;
+
+        foreach ($this->rows as $id => $row) {
+            if ($row['user'] === (string) $userId && $row['notification']->isRead()) {
+                unset($this->rows[$id]);
+                $cleared++;
+            }
+        }
+
+        return $cleared;
+    }
+
     /** @return list<StoredNotification> oldest first */
     private function mine(int|string $userId): array
     {

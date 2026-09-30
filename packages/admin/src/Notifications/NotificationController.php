@@ -15,7 +15,8 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
- * The bell's four requests: the badge, the list, reading one, reading all.
+ * The bell's requests: the badge, the list, reading one, reading all, and
+ * clearing what has been read.
  * Each answers for the signed-in user and nobody else; a notice of anyone
  * else's is not found rather than refused, so its id says nothing.
  */
@@ -81,6 +82,15 @@ final readonly class NotificationController
         $user = $this->user();
         $this->store->markAllRead($user, $this->clock->now());
         $this->notifier->announce($user);
+
+        return $this->listFor($user);
+    }
+
+    /** Deletes the user's read notices, so the menu can be emptied. The count is unchanged. */
+    public function clear(Request $request): Response
+    {
+        $user = $this->user();
+        $this->store->clearRead($user);
 
         return $this->listFor($user);
     }
