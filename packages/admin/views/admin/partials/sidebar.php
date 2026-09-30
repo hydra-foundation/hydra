@@ -12,7 +12,7 @@
     <?= $this->partial('admin/partials/nav', ['screen' => $screen, 'oob' => false]) ?>
 
     <?php if (($account ?? '') !== '' || ($bell ?? '') !== ''): ?>
-        <div class="admin-account"><?= $account ?? '' ?><?= ($bell ?? '') !== '' ? trim($this->partial('admin/partials/bell', ['url' => $bell, 'place' => 'sidebar'])) : '' ?></div>
+        <div class="admin-account"><?= trim($this->partial('admin/partials/account-slot', ['account' => $account ?? '', 'place' => 'sidebar', 'oob' => false])) ?><?= ($bell ?? '') !== '' ? trim($this->partial('admin/partials/bell', ['url' => $bell, 'place' => 'sidebar'])) : '' ?></div>
     <?php endif ?>
 
     <form class="admin-signout" hx-nonce="<?= $this->e($this->cspNonce()) ?>" hx-post="/logout">

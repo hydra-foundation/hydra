@@ -16,7 +16,7 @@
     <a class="admin-brand" href="/admin">Hydra</a>
 
     <?php if (($account ?? '') !== '' || ($bell ?? '') !== ''): ?>
-        <div class="admin-account"><?= $account ?? '' ?><?= ($bell ?? '') !== '' ? trim($this->partial('admin/partials/bell', ['url' => $bell, 'place' => 'topbar'])) : '' ?></div>
+        <div class="admin-account"><?= trim($this->partial('admin/partials/account-slot', ['account' => $account ?? '', 'place' => 'topbar', 'oob' => false])) ?><?= ($bell ?? '') !== '' ? trim($this->partial('admin/partials/bell', ['url' => $bell, 'place' => 'topbar'])) : '' ?></div>
     <?php endif ?>
 </div>
 

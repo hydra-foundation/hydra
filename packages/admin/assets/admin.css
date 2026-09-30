@@ -184,6 +184,12 @@
     min-width: 0;
 }
 
+/* The swappable half of the slot: no box of its own, so the link lays out as
+   a child of the row exactly as it did before it had a wrapper. */
+.admin-account-who {
+    display: contents;
+}
+
 .admin-sidebar .admin-account {
     margin-top: auto;
     padding: var(--s-4) var(--s-2) 0;

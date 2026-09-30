@@ -51,14 +51,14 @@ final class ShellBellTest extends TestCase
     {
         $shell = $this->shell(['account' => self::ACCOUNT, 'bell' => '/admin/notifications']);
 
-        $this->assertMatchesRegularExpression('~<div class="admin-account">' . preg_quote(self::ACCOUNT, '~') . '<div class="admin-bell dropdown"~', $shell);
+        $this->assertMatchesRegularExpression('~<div class="admin-account"><div id="admin-account-topbar" class="admin-account-who"[^>]*>' . preg_quote(self::ACCOUNT, '~') . '</div><div class="admin-bell dropdown"~', $shell);
     }
 
     public function test_without_a_bell_the_account_row_is_as_it_was(): void
     {
         $shell = $this->shell(['account' => self::ACCOUNT]);
 
-        $this->assertSame(2, substr_count($shell, '<div class="admin-account">' . self::ACCOUNT . '</div>'));
+        $this->assertSame(2, preg_match_all('~<div class="admin-account"><div id="admin-account-\w+" class="admin-account-who"[^>]*>' . preg_quote(self::ACCOUNT, '~') . '</div></div>~', $shell));
         $this->assertStringNotContainsString('admin-bell', $shell);
         $this->assertStringNotContainsString('admin-bell', $this->shell(['account' => self::ACCOUNT, 'bell' => '']));
     }
