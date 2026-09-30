@@ -12,8 +12,18 @@
    is what ends the exchange after a single round trip. */ ?>
 <?php $data ??= null ?>
 <?php $notice ??= null ?>
+<?php /** @var bool|null $live whether the admin is live, so a card that listens may */ ?>
+<?php $live ??= false ?>
 <?php $loading = $data === null && $url !== null ?>
 <?php $polling = $data !== null && $url !== null && $widget->refresh() > 0 ?>
+<?php /* Only the filled copy listens: the placeholder is already on its way
+   to being replaced, and a broadcast then would fetch the card twice. */ ?>
+<?php $listening = $data !== null && $url !== null && $live && $widget->topics() !== [] ?>
+<?php $triggers = array_merge(
+    $loading ? ['load'] : [],
+    $polling ? ['every ' . $widget->refresh() . 's'] : [],
+    $listening ? array_map(static fn (string $topic): string => "sse:{$topic} delay:500ms", $widget->topics()) : [],
+) ?>
 <?php $id = 'admin-widget-' . $widget->key() ?>
 
 <?php /* The nonce is unconditional: it vouches for the card, not for the fetch
@@ -33,9 +43,12 @@
      role="region" aria-labelledby="<?= $this->e($id) ?>-title"
      aria-busy="<?= $data === null ? 'true' : 'false' ?>"
      hx-nonce="<?= $this->e($this->cspNonce()) ?>"
-     <?php if ($loading || $polling): ?>
+     <?php if ($listening): ?>
+     data-stream="<?= $this->e(implode(' ', $widget->topics())) ?>"
+     <?php endif ?>
+     <?php if ($triggers !== []): ?>
      hx-get="<?= $this->e((string) $url) ?>"
-     hx-trigger="<?= $loading ? 'load' : '' ?><?= $loading && $polling ? ', ' : '' ?><?= $polling ? 'every ' . $this->e((string) $widget->refresh()) . 's' : '' ?>"
+     hx-trigger="<?= $this->e(implode(', ', $triggers)) ?>"
      hx-swap="outerHTML"
      <?php endif ?>>
     <div class="card-body">

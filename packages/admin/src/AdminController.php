@@ -315,6 +315,7 @@ final class AdminController
                 $this->registry->prefix(),
                 period: $period,
             ))->url($widget),
+            'live' => $this->live->enabled,
             'data' => $this->registry->presentWidget(
                 $widget,
                 $period->window($this->clock, $this->timezone->zone()),
@@ -377,6 +378,7 @@ final class AdminController
             'url' => $view->url($widget),
             'data' => $this->registry->presentWidget($widget, Period::fromKey(null)->window($this->clock, $this->timezone->zone())),
             'notice' => $notice,
+            'live' => $this->live->enabled,
         ], status: $status)->withHeader('Cache-Control', 'no-store');
     }
 

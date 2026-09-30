@@ -7,6 +7,7 @@ namespace Hydra\Admin;
 use Hydra\Admin\Contracts\ModuleActionInterface;
 use Hydra\Admin\Contracts\PeriodAwareInterface;
 use Hydra\Admin\Contracts\PresenterInterface;
+use InvalidArgumentException;
 use LogicException;
 
 /**
@@ -40,6 +41,17 @@ final class Widget
 
     /** @var list<WidgetAction> */
     private array $actions = [];
+
+    /** @var list<string> */
+    private array $topics = [];
+
+    /**
+     * hydrakit/broadcast's topic rules, repeated so the admin does not need
+     * the package to check a card: a topic that breaks them could never be
+     * granted, and the card would wait on it forever.
+     */
+    private const TOPIC = '/^[a-z0-9_-]+(?:\.[a-z0-9_-]+)*$/D';
+    private const TOPIC_LENGTH = 128;
 
     private function __construct(
         private readonly string $key,
@@ -127,6 +139,42 @@ final class Widget
         $clone->refresh = max(0, $seconds);
 
         return $clone;
+    }
+
+    /**
+     * Fetch the card again when one of these topics is broadcast, after half
+     * a second of quiet, as a live list does: `->liveOn('module.users')`.
+     * Only while the admin is live; otherwise the card is drawn as it was.
+     *
+     * Everyone who can see the card must be allowed to hear its topics. The
+     * page asks for every topic on it at once, and one refused topic is a
+     * page that hears nothing.
+     *
+     * @throws InvalidArgumentException for a topic no page could be granted
+     */
+    public function liveOn(string ...$topics): self
+    {
+        foreach ($topics as $topic) {
+            if (strlen($topic) > self::TOPIC_LENGTH || preg_match(self::TOPIC, $topic) !== 1) {
+                throw new InvalidArgumentException(sprintf(
+                    'Card %s cannot listen on "%s": a topic is dot-separated segments of a-z, 0-9, _ and -, at most %d characters.',
+                    $this->key,
+                    $topic,
+                    self::TOPIC_LENGTH,
+                ));
+            }
+        }
+
+        $clone = clone $this;
+        $clone->topics = array_values(array_unique([...$this->topics, ...$topics]));
+
+        return $clone;
+    }
+
+    /** @return list<string> what the card listens on, in the order declared */
+    public function topics(): array
+    {
+        return $this->topics;
     }
 
     /**
