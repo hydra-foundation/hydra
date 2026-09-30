@@ -27,21 +27,21 @@
     ],
     "require": {
         "php": ">=8.2",
-        "hydrakit/core": "^0.17",
+        "hydrakit/core": "^0.18",
         "psr/log": "^3.0",
         "psr/clock": "^1.0",
         "psr/event-dispatcher": "^1.0"
     },
     "require-dev": {
-        "hydrakit/event": "^0.17",
-        "hydrakit/log": "^0.17",
+        "hydrakit/event": "^0.18",
+        "hydrakit/log": "^0.18",
         "phpunit/phpunit": "^11.0"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.17.x-dev"
+            "dev-main": "0.18.x-dev"
         }
     }
 }
