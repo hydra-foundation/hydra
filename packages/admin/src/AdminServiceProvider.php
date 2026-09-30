@@ -7,16 +7,22 @@ namespace Hydra\Admin;
 use Hydra\Admin\Contracts\FileHolderInterface;
 use Hydra\Admin\Contracts\ModuleInterface;
 use Hydra\Admin\Contracts\TimezoneInterface;
+use Hydra\Admin\Events\AdminEvent;
 use Hydra\Admin\Files\FileReferences;
+use Hydra\Admin\Live\LiveAdmin;
+use Hydra\Admin\Live\PublishAdminEvents;
 use Hydra\Admin\Updates\HttpReleaseFeed;
 use Hydra\Admin\Updates\UpdateCheck;
 use Hydra\Authorization\Contracts\GateInterface;
+use Hydra\Broadcast\Contracts\BroadcasterInterface;
+use Hydra\Broadcast\TopicPolicy;
 use Hydra\Cache\Contracts\StoreInterface;
 use Hydra\Core\Clock\SystemClock;
 use Hydra\Core\Contracts\ContainerInterface;
 use Hydra\Core\Environment;
 use Hydra\Core\Providers\ServiceProvider;
 use Hydra\Core\Versions;
+use Hydra\Event\ListenerProvider;
 use Hydra\Filesystem\Contracts\PublicStorageInterface;
 use Hydra\Filesystem\Disks;
 use Hydra\Http\Responder;
@@ -71,6 +77,10 @@ final class AdminServiceProvider extends ServiceProvider
 
     public function register(ContainerInterface $container): void
     {
+        // Live when a broadcaster is bound. Asked by name, so an application
+        // without hydrakit/broadcast never loads a class of it.
+        $container->singleton(LiveAdmin::class, fn () => new LiveAdmin($container->bound(BroadcasterInterface::class)));
+
         $container->singleton(ModuleRegistry::class, function () use ($container) {
             return new ModuleRegistry($container, $this->modules, $this->prefix);
         });
@@ -201,6 +211,42 @@ final class AdminServiceProvider extends ServiceProvider
     public function boot(ContainerInterface $container): void
     {
         $container->get(Router::class)->loadRoutes($this->routes($container));
+
+        if ($container->get(LiveAdmin::class)->enabled) {
+            $this->goLive($container);
+        }
+    }
+
+    /**
+     * Writes are published on their module's topic, and the topic is granted
+     * to exactly who may open the module. Each half needs its own piece of
+     * the application: a listener provider to hear the writes, a topic policy
+     * to grant the topics. Either may be missing, and then that half is.
+     */
+    private function goLive(ContainerInterface $container): void
+    {
+        if ($container->bound(ListenerProvider::class)) {
+            // Resolved when a write happens, not at boot: a request that
+            // writes nothing never builds the broadcaster.
+            $container->get(ListenerProvider::class)->listen(
+                AdminEvent::class,
+                static fn (AdminEvent $event) => (new PublishAdminEvents($container->get(BroadcasterInterface::class)))($event),
+            );
+        }
+
+        if ($container->bound(TopicPolicy::class)) {
+            // The gate answers for whoever is signed in, and the only request
+            // that asks the policy is the one minting that user's token.
+            $container->get(TopicPolicy::class)->allow(
+                LiveAdmin::topic('{slug}'),
+                static function (int|string $userId, array $params) use ($container): bool {
+                    $blueprint = $container->get(ModuleRegistry::class)->find($params['slug']);
+
+                    return $blueprint !== null
+                        && ($blueprint->ability === null || $container->get(GateInterface::class)->allows($blueprint->ability));
+                },
+            );
+        }
     }
 
     /** @return list<array<string, mixed>> */
