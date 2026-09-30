@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Database\Tests\Unit;
 
 use Hydra\Database\MigrationRunner;
+use Hydra\Database\MigrationSummary;
 use PDO;
 use PDOException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -18,6 +19,7 @@ use RuntimeException;
  * on fresh().
  */
 #[CoversClass(MigrationRunner::class)]
+#[CoversClass(MigrationSummary::class)]
 final class MigrationRunnerTest extends TestCase
 {
     private PDO $pdo;
@@ -258,5 +260,100 @@ final class MigrationRunnerTest extends TestCase
         // applied; the constructor must have flipped the handle to exceptions.
         $this->expectException(PDOException::class);
         $runner->run();
+    }
+
+    public function test_the_summary_of_a_database_never_migrated_is_everything_pending_and_creates_nothing(): void
+    {
+        $this->writeMigration('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
+        $this->writeMigration('20260102_000000_create_b.sql', 'CREATE TABLE b (id INTEGER PRIMARY KEY)');
+
+        $summary = $this->runner()->summary();
+
+        $this->assertSame([], $summary->applied);
+        $this->assertSame(['20260101_000000_create_a.sql', '20260102_000000_create_b.sql'], $summary->pending);
+        $this->assertNull($summary->last);
+        $this->assertNull($summary->lastAt);
+        $this->assertFalse(
+            $this->pdo->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'migrations'")->fetchColumn(),
+            'a health check must not create the migrations table',
+        );
+    }
+
+    public function test_the_summary_after_a_run_is_up_to_date_with_the_batch_s_highest_file_last(): void
+    {
+        $this->writeMigration('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
+        $this->writeMigration('20260102_000000_create_b.sql', 'CREATE TABLE b (id INTEGER PRIMARY KEY)');
+        $this->runner()->run();
+
+        $summary = $this->runner()->summary();
+
+        $this->assertSame(['20260101_000000_create_a.sql', '20260102_000000_create_b.sql'], $summary->applied);
+        $this->assertSame([], $summary->pending);
+        $this->assertSame('20260102_000000_create_b.sql', $summary->last, 'one batch shares a second: the filename breaks the tie');
+        $this->assertNotNull($summary->lastAt);
+    }
+
+    public function test_a_file_added_after_the_run_is_the_only_one_pending(): void
+    {
+        $this->writeMigration('20260101_000000_create_a.sql', 'CREATE TABLE a (id INTEGER PRIMARY KEY)');
+        $this->runner()->run();
+        $this->writeMigration('20260105_000000_create_c.sql', 'CREATE TABLE c (id INTEGER PRIMARY KEY)');
+
+        $this->assertSame(['20260105_000000_create_c.sql'], $this->runner()->summary()->pending);
+    }
+
+    public function test_last_is_the_most_recently_applied_not_the_highest_filename(): void
+    {
+        $this->writeMigration('20260101_000000_a.sql', 'SELECT 1');
+        $this->writeMigration('20260102_000000_b.sql', 'SELECT 1');
+        $this->runner()->run();
+        // b ran first, a was backfilled later: last is what ran last.
+        $this->pdo->exec("UPDATE migrations SET applied_at = '2026-03-01 10:00:00' WHERE filename = '20260102_000000_b.sql'");
+        $this->pdo->exec("UPDATE migrations SET applied_at = '2026-03-02 10:00:00' WHERE filename = '20260101_000000_a.sql'");
+
+        $this->assertSame('20260101_000000_a.sql', $this->runner()->summary()->last);
+    }
+
+    public function test_the_last_run_time_is_the_recorded_instant_whatever_the_default_zone(): void
+    {
+        $this->writeMigration('20260101_000000_a.sql', 'SELECT 1');
+        $this->runner()->run();
+        // sqlite's CURRENT_TIMESTAMP is UTC text.
+        $this->pdo->exec("UPDATE migrations SET applied_at = '2026-03-01 10:00:00'");
+
+        $zone = date_default_timezone_get();
+        date_default_timezone_set('America/Vancouver');
+
+        try {
+            $lastAt = $this->runner()->summary()->lastAt;
+        } finally {
+            date_default_timezone_set($zone);
+        }
+
+        $this->assertNotNull($lastAt);
+        $this->assertSame(strtotime('2026-03-01 10:00:00 UTC'), $lastAt->getTimestamp());
+    }
+
+    public function test_an_applied_migration_whose_file_is_gone_is_still_applied_and_never_pending(): void
+    {
+        $this->writeMigration('20260101_000000_a.sql', 'SELECT 1');
+        $this->writeMigration('20260102_000000_b.sql', 'SELECT 1');
+        $this->runner()->run();
+        unlink($this->dir . '/20260102_000000_b.sql');
+
+        $summary = $this->runner()->summary();
+
+        $this->assertSame(['20260101_000000_a.sql', '20260102_000000_b.sql'], $summary->applied);
+        $this->assertSame([], $summary->pending);
+        $this->assertSame('20260102_000000_b.sql', $summary->last);
+    }
+
+    public function test_the_summary_of_no_migrations_at_all_is_empty(): void
+    {
+        $summary = $this->runner()->summary();
+
+        $this->assertSame([], $summary->applied);
+        $this->assertSame([], $summary->pending);
+        $this->assertNull($summary->last);
     }
 }

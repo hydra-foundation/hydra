@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Hydra\Database;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use PDO;
 use PDOException;
 use RuntimeException;
@@ -15,6 +17,18 @@ use RuntimeException;
  */
 final class MigrationRunner
 {
+    /** Whether the migrations table exists, asked of each driver's catalogue. */
+    private const HAS_TABLE = [
+        'sqlite' => "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'migrations'",
+        'mysql' => "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'migrations'",
+    ];
+
+    /** applied_at as unix seconds, so the connection's time zone never moves it. */
+    private const EPOCH = [
+        'sqlite' => "CAST(strftime('%s', applied_at) AS INTEGER)",
+        'mysql' => 'UNIX_TIMESTAMP(applied_at)',
+    ];
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly string $migrationsPath,
@@ -143,6 +157,53 @@ final class MigrationRunner
             $this->migrationFiles(),
             static fn (string $filename): bool => !in_array($filename, $applied, true),
         ));
+    }
+
+    /**
+     * Applied, pending, and what ran last, without touching the schema: this is
+     * read by a health check, and a health check that creates a table on a
+     * database nobody has migrated yet is doing DDL on every refresh. With no
+     * migrations table, nothing has been applied.
+     *
+     * The time is read as unix seconds so the connection's time zone never
+     * moves it.
+     */
+    public function summary(): MigrationSummary
+    {
+        $files = $this->migrationFiles();
+
+        if (!$this->hasTable()) {
+            return new MigrationSummary([], $files, null, null);
+        }
+
+        $applied = $this->appliedFilenames();
+        $epoch = self::EPOCH[$this->dialect()];
+
+        /** @var array{filename: string, at: int|string|null}|false $last */
+        $last = $this->pdo
+            ->query("SELECT filename, {$epoch} AS at FROM migrations ORDER BY applied_at DESC, filename DESC LIMIT 1")
+            ->fetch(PDO::FETCH_ASSOC);
+
+        return new MigrationSummary(
+            $applied,
+            array_values(array_diff($files, $applied)),
+            $last === false ? null : $last['filename'],
+            $last === false || $last['at'] === null
+                ? null
+                : (new DateTimeImmutable('@' . (int) $last['at']))->setTimezone(new DateTimeZone(date_default_timezone_get())),
+        );
+    }
+
+    /** Asked of the catalogue rather than by trying a SELECT, which would hide a real fault as "never migrated". */
+    private function hasTable(): bool
+    {
+        return $this->pdo->query(self::HAS_TABLE[$this->dialect()])->fetchColumn() !== false;
+    }
+
+    /** mysql and mariadb speak one dialect here; everything else Hydra targets is sqlite. */
+    private function dialect(): string
+    {
+        return $this->driver === 'sqlite' ? 'sqlite' : 'mysql';
     }
 
     /** Written to stay portable across the mysql and sqlite drivers Hydra targets. */
