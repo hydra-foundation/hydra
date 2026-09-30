@@ -3,12 +3,12 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.18.0 — Live, part one** (`hydrakit/broadcast`: publishing
-from anywhere, listen tokens and `TopicPolicy`, and the SSE hub,
-`bin/console sse:serve`, which the skeleton runs as its own service; a page
-listens with `data-stream` and `hx-trigger="sse:<topic>"`). Before it,
-**0.17.0 — System health** (the Migrations card, and buttons on dashboard
-cards, with Flush on the Cache card).
+Last shipped: **0.19.0 — Live, part two** (every admin list refetches
+itself when a row in its module changes, keeping its filter, sort, page and
+tallies; admin writes publish `module.{slug}`, granted by the module's own
+ability; `Widget::liveOn()` for cards; the skeleton's `UserRepository`
+publishes). Before it, **0.18.0 — Live, part one** (`hydrakit/broadcast`:
+publishing, listen tokens and `TopicPolicy`, and the SSE hub).
 
 ## Principles
 
@@ -175,7 +175,7 @@ that shows it working, and the features built on it belong to apps.
   migration state as data, buttons on dashboard cards, and System Health's
   Migrations card and cache flush (0.17.0).
 
-### M2. Live (half done: 0.18.0)
+### M2. Live (three-quarters done: 0.18.0–0.19.0)
 
 - **Done (0.18.0):** broadcasting, the SSE hub and who may listen, all in
   `hydrakit/broadcast`.
@@ -193,21 +193,31 @@ that shows it working, and the features built on it belong to apps.
     `sse:<topic>` DOM events for `hx-trigger`, with no htmx extension.
   - The skeleton shows it on System Health and in a home-page demo.
 
+- **Done (0.19.0):** live admin tables.
+  - The admin publishes its own writes and row actions on `module.{slug}`,
+    and grants the topic to whoever may open the module.
+  - Every list listens with no opt-in, and refetches its own table as
+    shown after half a second of quiet: filter, sort, page and fresh
+    tallies, with no URL pushed.
+  - Rows written outside the admin go live when their writer publishes,
+    which is the opt-in. The skeleton's `UserRepository` does, for
+    `make:user`, settings and email changes.
+  - Dashboard cards and the summary strip listen with `Widget::liveOn()`,
+    and the skeleton's Totals and Newest accounts do.
+  - Measured on the dev stack at 10,000 users: a refetch is about 40 ms for
+    the body and 35 ms for the tallies.
+  - Not yet: Activity, Jobs, Mail and Sessions, whose writers don't publish.
+    Activity needs its own refetches excluded and its publishing
+    throttled, or an open Activity tab would feed itself.
+
 Still to build:
 
-- **Live admin tables**: a listener turns `RowCreated`/`RowUpdated`/
-  `RowDeleted` into a `module.<slug>` event, and a list screen re-fetches its
-  own table on `sse:module.<slug>` with its current query string. The table
-  is re-fetched rather than the row pushed, so sorting, filters, paging and
-  per-row authorization stay right for free. Live dashboard widgets (queue
-  depth, latest files) work the same way. Caveat: only writes that fire an
-  event show up live, so a row written outside the admin has to publish too.
 - **Notifications**: the mail-backed piece the 0.9.x changelog promised after
   password reset and email verification, plus in-app: a bell in the admin top
   bar that updates live.
 
-Visible result: open the Users list in two tabs, sign up in a third, and watch
-the row appear.
+Visible result: open the Users list in two tabs, create a user in a third (or
+run `make:user`), and watch the row appear. The skeleton has no public sign-up.
 
 ### M3. Publishing
 
