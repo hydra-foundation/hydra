@@ -50,9 +50,9 @@ This is a gate on every milestone, not a milestone of its own.
 
 ## Default admin modules
 
-The admin the skeleton ships today, as twelve sidebar entries: Dashboard,
+The admin the skeleton ships today, as thirteen sidebar entries: Dashboard,
 System health, Users, Access (API tokens, with a Sessions tab), Rate limits,
-Files, Activity, Audit, Logs,
+Mail, Files, Activity, Audit, Logs,
 Scheduler (with a Runs tab), Jobs (with a Failed jobs tab) and Settings.
 
 These modules are Hydra's own: every app has users, files, tokens and mail,
@@ -112,16 +112,23 @@ out now, or let them back in.
 Why here: a locked-out user is a support call today, with no way to answer it
 from the admin.
 
-### 3. Mail
+### 3. Done: Mail (0.16.0)
 
-A log of sent mail (to, subject, transport, sent at), a preview of each
-message, and a "send a test email" action.
+A log of sent mail (to, subject, transport, sent at), newest first and
+searchable, a preview of each message with both bodies shown as text, and
+**Send a test email**, which sends to the signed-in admin in the request so a
+refusing transport says why on the spot. Kept for 30 days.
 
-Needs: the mailer to record what it sends (a listener on a sent event, so the
-mail package stays storage-free).
+Built on a sent event rather than storage in `mail`: `Mailer` dispatches
+`MessageSent` after a transport accepts, and the skeleton's listener records
+it, logging and swallowing its own failures so a queued mail is never sent
+twice.
 
-Not: Failed jobs or Logs. A send that failed is already a failed job, and the
-log row links to it rather than tracking the failure twice. What neither
+Left for later: sending a test to an address other than your own, which needs
+a list screen to link to a form page, and the admin cannot do that yet.
+
+Not: Failed jobs or Logs. A send that failed is already a failed job, and is
+not tracked twice. What neither
 shows is mail that went out, what it said, and whether the transport works.
 
 Why here: password reset and email verification both depend on mail arriving,
@@ -160,8 +167,8 @@ that shows it working, and the features built on it belong to apps.
   tabs, with Scheduler and Runs, and Jobs and Failed jobs, each one entry
   (0.11.0); Access › API tokens (0.12.0); sign-in records (0.13.0); Access ›
   Sessions and sign out everywhere (0.14.0); lockout records and the Rate
-  limits module (0.15.0).
-- The Mail admin module, and what goes on existing screens (below).
+  limits module (0.15.0); the sent event and the Mail module (0.16.0).
+- What goes on existing screens (below).
 
 ### M2. Live
 
