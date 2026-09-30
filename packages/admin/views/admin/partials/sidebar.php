@@ -1,6 +1,7 @@
 <?php /** @var \Hydra\View\Template $this */ ?>
 <?php /** @var \Hydra\Admin\ViewModels\ScreenViewModel $screen */ ?>
 <?php /** @var string $account */ ?>
+<?php /** @var string $bell where the bell asks for notifications; empty for none */ ?>
 <?php /* One nav for both widths: a rail on a wide screen, the drawer the top bar
    opens on a narrow one. Rendering it twice would mean two copies of #admin-nav
    in the document, and the out-of-band swap that marks the current module can
@@ -10,8 +11,8 @@
 
     <?= $this->partial('admin/partials/nav', ['screen' => $screen, 'oob' => false]) ?>
 
-    <?php if (($account ?? '') !== ''): ?>
-        <div class="admin-account"><?= $account ?></div>
+    <?php if (($account ?? '') !== '' || ($bell ?? '') !== ''): ?>
+        <div class="admin-account"><?= $account ?? '' ?><?= ($bell ?? '') !== '' ? trim($this->partial('admin/partials/bell', ['url' => $bell, 'place' => 'sidebar'])) : '' ?></div>
     <?php endif ?>
 
     <form class="admin-signout" hx-nonce="<?= $this->e($this->cspNonce()) ?>" hx-post="/logout">

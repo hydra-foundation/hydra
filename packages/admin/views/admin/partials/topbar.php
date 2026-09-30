@@ -1,5 +1,6 @@
 <?php /** @var \Hydra\View\Template $this */ ?>
 <?php /** @var string $account */ ?>
+<?php /** @var string $bell where the bell asks for notifications; empty for none */ ?>
 <?php /* The narrow-screen counterpart to the sidebar, which at that width is a
    drawer rather than a rail. It carries no screen name of its own: only the
    frame is swapped on navigation, so anything stateful here would go stale
@@ -14,8 +15,8 @@
 
     <a class="admin-brand" href="/admin">Hydra</a>
 
-    <?php if (($account ?? '') !== ''): ?>
-        <div class="admin-account"><?= $account ?></div>
+    <?php if (($account ?? '') !== '' || ($bell ?? '') !== ''): ?>
+        <div class="admin-account"><?= $account ?? '' ?><?= ($bell ?? '') !== '' ? trim($this->partial('admin/partials/bell', ['url' => $bell, 'place' => 'topbar'])) : '' ?></div>
     <?php endif ?>
 </div>
 

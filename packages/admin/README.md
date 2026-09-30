@@ -118,6 +118,7 @@ value:
 - `--line-strong`
 - `--muted`
 - `--ok`
+- `--on-accent`
 - `--paper`
 - `--r-1`
 - `--r-2`
