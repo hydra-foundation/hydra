@@ -3,11 +3,12 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.15.0 — Rate limits** (`RateLimiter` records each client it
-starts refusing through an app-provided `LockoutStoreInterface`, and
-`release()` lets one back in; the skeleton's Administration › Rate limits
-lists them). Before it, **0.14.0 — Sessions** (Access gains a Sessions tab
-and a sign out everywhere; `Definition::tabLabel()`).
+Last shipped: **0.18.0 — Live, part one** (`hydrakit/broadcast`: publishing
+from anywhere, listen tokens and `TopicPolicy`, and the SSE hub,
+`bin/console sse:serve`, which the skeleton runs as its own service; a page
+listens with `data-stream` and `hx-trigger="sse:<topic>"`). Before it,
+**0.17.0 — System health** (the Migrations card, and buttons on dashboard
+cards, with Flush on the Cache card).
 
 ## Principles
 
@@ -174,22 +175,26 @@ that shows it working, and the features built on it belong to apps.
   migration state as data, buttons on dashboard cards, and System Health's
   Migrations card and cache flush (0.17.0).
 
-### M2. Live
+### M2. Live (half done: 0.18.0)
 
-Building blocks:
+- **Done (0.18.0):** broadcasting, the SSE hub and who may listen, all in
+  `hydrakit/broadcast`.
+  - `BroadcasterInterface::publish(topic, event, data)` has `redis`, `log`
+    and `null` drivers and a fake. It's best effort: a Redis outage is a
+    warning, never a failed write.
+  - `bin/console sse:serve` is its own compose service, with nginx proxying
+    `/stream` to it unbuffered. It holds the streams php-fpm cannot, with a
+    heartbeat, a connection cap and a resync after Redis returns.
+  - A page gets a short-lived `StreamToken` for its topics from
+    `/stream/token`, where `TopicPolicy` decides, deny by default. The hub
+    checks the token and never reads sessions. The token is its own class
+    on core's `Signer`, not auth's `SignedToken`.
+  - A small stream client in the skeleton's `app.js` turns events into
+    `sse:<topic>` DOM events for `hx-trigger`, with no htmx extension.
+  - The skeleton shows it on System Health and in a home-page demo.
 
-- **Broadcasting**: `BroadcasterInterface::publish(topic, event, data)`,
-  with a Redis pub/sub driver (Redis is already in the stack) and a fake for
-  tests. Anything can publish: a listener, a job, a controller.
-- **The SSE hub**: php-fpm cannot hold streams, since each open connection
-  pins a worker and a handful of tabs would starve the pool. So streams go to
-  a long-running `bin/console sse:serve` process instead: its own compose
-  service (like `scheduler`), subscribed to Redis, fanning events out to
-  connected browsers, with nginx proxying `/stream` to it unbuffered. Driven
-  from htmx's `sse` extension.
-- **Who may listen**: the page asks for a short-lived signed token naming its
-  topics (`SignedToken` in `auth` already exists), and the hub checks it. The
-  hub never reads sessions.
+Still to build:
+
 - **Live admin tables**: a listener turns `RowCreated`/`RowUpdated`/
   `RowDeleted` into a `module.<slug>` event, and a list screen re-fetches its
   own table on `sse:module.<slug>` with its current query string. The table
@@ -262,7 +267,7 @@ Building blocks with a case of their own and no milestone yet:
   fallback covers the dev server. For any app that serves large files.
 - **An HTTP client** (PSR-18), for any app that calls another service.
 - **Long jobs with progress**: queued jobs that report progress over SSE, for
-  imports, exports and reports. Needs M2.
+  imports, exports and reports. The hub it needs shipped in 0.18.0.
 - **Remember me**: "stay signed in on this device", as an opt-in in `auth`.
 - **SQL helpers**, each justified by repositories that need it, never as a
   bundle: binding a list to `IN (?)`, mapping a row to a typed entity,
