@@ -3,12 +3,12 @@
 Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
 when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.19.0 — Live, part two** (every admin list refetches
-itself when a row in its module changes, keeping its filter, sort, page and
-tallies; admin writes publish `module.{slug}`, granted by the module's own
-ability; `Widget::liveOn()` for cards; the skeleton's `UserRepository`
-publishes). Before it, **0.18.0 — Live, part one** (`hydrakit/broadcast`:
-publishing, listen tokens and `TopicPolicy`, and the SSE hub).
+Last shipped: **0.20.0 — Live, part three: notifications** (`Notifier` and
+a bell in the admin: unread count, the latest ten, Mark all read and Clear
+read, live on `user.{id}`; the application keeps the store, held to a
+contract test; the skeleton's security notices ring it). It completes M2.
+Before it, **0.19.0 — Live, part two** (admin lists that refresh
+themselves).
 
 ## Principles
 
@@ -175,7 +175,7 @@ that shows it working, and the features built on it belong to apps.
   migration state as data, buttons on dashboard cards, and System Health's
   Migrations card and cache flush (0.17.0).
 
-### M2. Live (three-quarters done: 0.18.0–0.19.0)
+### M2. Done: Live (0.18.0–0.20.0)
 
 - **Done (0.18.0):** broadcasting, the SSE hub and who may listen, all in
   `hydrakit/broadcast`.
@@ -210,11 +210,18 @@ that shows it working, and the features built on it belong to apps.
     Activity needs its own refetches excluded and its publishing
     throttled, or an open Activity tab would feed itself.
 
-Still to build:
-
-- **Notifications**: the mail-backed piece the 0.9.x changelog promised after
-  password reset and email verification, plus in-app: a bell in the admin top
-  bar that updates live.
+- **Done (0.20.0):** notifications.
+  - `Notifier::notify($userId, new Notice(...))` keeps a notice, and
+    publishes only the unread count on `user.{id}`, which is granted to
+    that user alone.
+  - A bell at the end of the admin's account row has an unread badge that
+    updates live, the latest ten, Mark all read and Clear read. Opening a
+    notice follows its link.
+  - The application implements `NotificationStoreInterface`, proved by its
+    contract test case. The skeleton keeps a `notifications` table and
+    prunes read notices after 90 days.
+  - There is no channel system. Mail stays where it is, and the skeleton's
+    security notices both mail and notify.
 
 Visible result: open the Users list in two tabs, create a user in a third (or
 run `make:user`), and watch the row appear. The skeleton has no public sign-up.
@@ -278,6 +285,12 @@ Building blocks with a case of their own and no milestone yet:
 - **An HTTP client** (PSR-18), for any app that calls another service.
 - **Long jobs with progress**: queued jobs that report progress over SSE, for
   imports, exports and reports. The hub it needs shipped in 0.18.0.
+- **A helper for publishing module changes**, so a table written outside the
+  admin goes live in one call: `ModuleChanges::publish('invoices', $id)`,
+  which takes care of the null broadcaster and the `module.{slug}` topic.
+  Optionally it would throttle to at most once every N seconds per module,
+  for writers as busy as Activity or the queue. Today it's one `publish()`
+  line, as `UserRepository` does, and the throttle is hand-written.
 - **Remember me**: "stay signed in on this device", as an opt-in in `auth`.
 - **SQL helpers**, each justified by repositories that need it, never as a
   bundle: binding a list to `IN (?)`, mapping a row to a typed entity,
