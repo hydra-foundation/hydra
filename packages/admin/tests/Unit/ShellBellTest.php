@@ -38,7 +38,13 @@ final class ShellBellTest extends TestCase
         $this->assertStringContainsString('data-bs-toggle="dropdown"', $bell);
         $this->assertStringContainsString('aria-label="Notifications"', $bell);
         $this->assertMatchesRegularExpression('~id="admin-bell-badge-topbar"[^>]*hx-trigger="load"~s', $bell);
-        $this->assertMatchesRegularExpression('~hx-get="/admin/notifications"\s+hx-trigger="show\.bs\.dropdown from:closest \.admin-bell"~', $bell);
+        // On the bell itself, where Bootstrap's show event bubbles to: htmx 4
+        // reads a modifier up to the first space, so a from:closest .x
+        // listener on the menu would never hear it.
+        $this->assertMatchesRegularExpression('~<div class="admin-bell dropdown"[^>]*hx-get="/admin/notifications"[^>]*hx-trigger="show\.bs\.dropdown"[^>]*hx-target="find \.admin-bell-menu"[^>]*hx-swap="innerHTML"~s', $bell);
+        $this->assertStringNotContainsString('from:', $bell);
+        // Fixed, so the menu escapes the rail, which scrolls and would clip it.
+        $this->assertStringContainsString("data-bs-popper-config='{\"strategy\":\"fixed\"}'", $bell);
     }
 
     public function test_it_sits_in_the_account_row(): void

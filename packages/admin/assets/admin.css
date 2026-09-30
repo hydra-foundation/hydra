@@ -90,6 +90,10 @@
     overflow-y: auto;
     background: var(--paper);
     border-right: 1px solid var(--line);
+    /* Sticky makes the rail a stacking context of its own, so anything that
+       opens out of it (the bell's menu) could never rise above the main
+       column beside it without the rail itself sitting above it. */
+    z-index: 2;
 }
 
 .admin-brand {
