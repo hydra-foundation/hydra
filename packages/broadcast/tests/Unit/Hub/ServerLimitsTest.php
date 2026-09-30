@@ -188,10 +188,16 @@ final class ServerLimitsTest extends TestCase
         $this->assertSame(2, $this->status->writes);
         $this->assertSame(1, $this->status->read()?->connections);
 
+        // A change in the subscription is written at once, not at the next interval.
         $this->subscriber->goAway();
-        $this->clock->advance('+10 seconds');
         $this->rounds();
+        $this->assertSame(3, $this->status->writes);
         $this->assertFalse($this->status->read()?->subscribed);
+
+        $this->subscriber->comeBack();
+        $this->rounds();
+        $this->assertSame(4, $this->status->writes);
+        $this->assertTrue($this->status->read()?->subscribed);
 
         $this->server->stop();
         $this->assertNull($this->status->read());

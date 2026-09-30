@@ -31,6 +31,7 @@ final class Server
     private bool $halted = false;
     private readonly int $startedAt;
     private ?int $lastStatus = null;
+    private ?bool $lastSubscribed = null;
 
     /** @param resource $listener */
     public function __construct(
@@ -327,18 +328,27 @@ final class Server
         }
     }
 
-    /** Says the hub is alive, every STATUS_EVERY seconds, for three times as long. */
+    /**
+     * Says the hub is alive, every STATUS_EVERY seconds for three times as
+     * long, and at once when the Redis subscription is lost or regained, so
+     * the card never trails the hub by a whole interval.
+     */
     private function report(): void
     {
         $now = $this->now();
+        $subscribed = $this->subscriber->subscribed();
+        $due = $this->lastStatus === null
+            || $now - $this->lastStatus >= HubConfig::STATUS_EVERY
+            || $subscribed !== $this->lastSubscribed;
 
-        if ($this->status === null || ($this->lastStatus !== null && $now - $this->lastStatus < HubConfig::STATUS_EVERY)) {
+        if ($this->status === null || !$due) {
             return;
         }
 
         $this->lastStatus = $now;
+        $this->lastSubscribed = $subscribed;
         $this->status->publish(
-            new HubReport((int) getmypid(), $this->startedAt, $this->streams(), $this->subscriber->subscribed(), $now),
+            new HubReport((int) getmypid(), $this->startedAt, $this->streams(), $subscribed, $now),
             HubConfig::STATUS_EVERY * 3,
         );
     }
