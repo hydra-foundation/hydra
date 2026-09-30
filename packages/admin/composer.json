@@ -105,6 +105,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../broadcast",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "authors": [
@@ -132,7 +139,11 @@
     "require-dev": {
         "hydrakit/event": "^0.18",
         "phpunit/phpunit": "^11.0",
-        "nyholm/psr7": "^1.8"
+        "nyholm/psr7": "^1.8",
+        "hydrakit/broadcast": "^0.18"
+    },
+    "suggest": {
+        "hydrakit/broadcast": "Makes list screens and cards live: admin writes are published, and pages refetch what changed."
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
