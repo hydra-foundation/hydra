@@ -178,6 +178,23 @@ final class Widget
     }
 
     /**
+     * What the card's hx-trigger says, in the order it is written: load
+     * while it is a placeholder, then its poll, then each topic it listens
+     * on, after half a second of quiet as a live list waits. The card and the
+     * summary strip draw the same list; empty is a card that asks nothing.
+     *
+     * @return list<string>
+     */
+    public function triggers(bool $loading, bool $polling, bool $listening): array
+    {
+        return [
+            ...$loading ? ['load'] : [],
+            ...$polling ? ["every {$this->refresh}s"] : [],
+            ...$listening ? array_map(static fn (string $topic): string => "sse:{$topic} delay:500ms", $this->topics) : [],
+        ];
+    }
+
+    /**
      * Offer a button that asks this card again, now.
      *
      * Off by default, and that is the correction: every card carried one, so a

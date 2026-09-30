@@ -19,11 +19,7 @@
 <?php /* Only the filled copy listens: the placeholder is already on its way
    to being replaced, and a broadcast then would fetch the card twice. */ ?>
 <?php $listening = $data !== null && $url !== null && $live && $widget->topics() !== [] ?>
-<?php $triggers = array_merge(
-    $loading ? ['load'] : [],
-    $polling ? ['every ' . $widget->refresh() . 's'] : [],
-    $listening ? array_map(static fn (string $topic): string => "sse:{$topic} delay:500ms", $widget->topics()) : [],
-) ?>
+<?php $triggers = $widget->triggers($loading, $polling, $listening) ?>
 <?php $id = 'admin-widget-' . $widget->key() ?>
 
 <?php /* The nonce is unconditional: it vouches for the card, not for the fetch

@@ -15,16 +15,23 @@
    questions. The period is the page's now, and all time is the caption under
    each figure. */ ?>
 <?php $data ??= null ?>
+<?php /** @var bool|null $live whether the admin is live, so a strip that listens may */ ?>
+<?php $live ??= false ?>
 <?php $loading = $data === null && $url !== null ?>
 <?php $polling = $data !== null && $url !== null && $widget->refresh() > 0 ?>
+<?php $listening = $data !== null && $url !== null && $live && $widget->topics() !== [] ?>
+<?php $triggers = $widget->triggers($loading, $polling, $listening) ?>
 
 <div class="admin-summary-card" id="admin-summary-card"<?= ($oob ?? false) ? ' hx-swap-oob="true"' : '' ?>
      role="region" aria-labelledby="admin-summary-title"
      aria-busy="<?= $data === null ? 'true' : 'false' ?>"
      hx-nonce="<?= $this->e($this->cspNonce()) ?>"
-     <?php if ($loading || $polling): ?>
+     <?php if ($listening): ?>
+     data-stream="<?= $this->e(implode(' ', $widget->topics())) ?>"
+     <?php endif ?>
+     <?php if ($triggers !== []): ?>
      hx-get="<?= $this->e((string) $url) ?>"
-     hx-trigger="<?= $loading ? 'load' : '' ?><?= $loading && $polling ? ', ' : '' ?><?= $polling ? 'every ' . $this->e((string) $widget->refresh()) . 's' : '' ?>"
+     hx-trigger="<?= $this->e(implode(', ', $triggers)) ?>"
      hx-swap="outerHTML"
      <?php endif ?>>
     <?php /* The strip shows figures and no heading, so its name exists only

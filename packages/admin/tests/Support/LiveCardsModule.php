@@ -18,6 +18,12 @@ final class LiveCardsModule implements ModuleInterface
             ->title('Live')
             ->screens(
                 DashboardScreen::make()
+                    ->summarised(
+                        Widget::make('totals', 'admin/widgets/count')
+                            ->titled('Totals')
+                            ->liveOn('module.users')
+                            ->from(CountPresenter::class),
+                    )
                     ->widgets(
                         Widget::make('still', 'admin/widgets/count')->titled('Still')->from(CountPresenter::class),
                         Widget::make('listening', 'admin/widgets/count')

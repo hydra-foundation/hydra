@@ -41,6 +41,29 @@ final class LiveCardsTest extends TestCase
         $this->assertStringContainsString('hx-trigger="every 30s, sse:module.users delay:500ms, sse:module.jobs delay:500ms"', $card);
     }
 
+    public function test_the_summary_strip_listens_like_a_card(): void
+    {
+        $admin = $this->admin(true);
+        $body = (string) $admin->controller->widget($admin->request('GET', '/admin/live/w/totals'))->getBody();
+        preg_match('~<div class="admin-summary-card"[^>]*>~s', $body, $m);
+
+        $this->assertStringContainsString('data-stream="module.users"', $m[0] ?? '');
+        $this->assertStringContainsString('hx-trigger="sse:module.users delay:500ms"', $m[0] ?? '');
+
+        $still = $this->admin(false);
+        $body = (string) $still->controller->widget($still->request('GET', '/admin/live/w/totals'))->getBody();
+        $this->assertStringNotContainsString('hx-trigger', $body);
+    }
+
+    public function test_the_triggers_are_load_then_poll_then_each_topic(): void
+    {
+        $widget = Widget::make('x', 'x')->refreshEvery(10)->liveOn('a', 'b');
+
+        $this->assertSame(['load'], $widget->triggers(loading: true, polling: false, listening: false));
+        $this->assertSame(['every 10s', 'sse:a delay:500ms', 'sse:b delay:500ms'], $widget->triggers(loading: false, polling: true, listening: true));
+        $this->assertSame([], $widget->triggers(loading: false, polling: false, listening: false));
+    }
+
     public function test_a_card_that_does_neither_asks_for_nothing(): void
     {
         $card = $this->card('still', live: true);
