@@ -1,14 +1,13 @@
 # Roadmap
 
-Unreleased intent. Each item graduates to a spec (in the hydra-foundation root)
-when work starts, and to a changelog entry when it ships.
+Unreleased intent. Each item graduates to a spec (in hydra-foundation's
+`specs/`) when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.20.0 — Live, part three: notifications** (`Notifier` and
-a bell in the admin: unread count, the latest ten, Mark all read and Clear
-read, live on `user.{id}`; the application keeps the store, held to a
-contract test; the skeleton's security notices ring it). It completes M2.
-Before it, **0.19.0 — Live, part two** (admin lists that refresh
-themselves).
+Last shipped: **0.21.0 — Live, from anywhere: module changes**
+(`ModuleChanges::publish()` makes a table written outside the admin live in
+one call; the queue dispatches `QueueChanged` once per batch; the skeleton's
+Jobs, Failed jobs, Mail, Sessions and Audit lists are live). Before it,
+**0.20.0 — Live, part three: notifications**, which completed M2.
 
 ## Principles
 
@@ -175,7 +174,7 @@ that shows it working, and the features built on it belong to apps.
   migration state as data, buttons on dashboard cards, and System Health's
   Migrations card and cache flush (0.17.0).
 
-### M2. Done: Live (0.18.0–0.20.0)
+### M2. Done: Live (0.18.0–0.21.0)
 
 - **Done (0.18.0):** broadcasting, the SSE hub and who may listen, all in
   `hydrakit/broadcast`.
@@ -222,6 +221,23 @@ that shows it working, and the features built on it belong to apps.
     prunes read notices after 90 days.
   - There is no channel system. Mail stays where it is, and the skeleton's
     security notices both mail and notify.
+
+- **Done (0.21.0):** module changes, the follow-up for rows written outside
+  the admin.
+  - `Live\ModuleChanges::publish($slug, $id)` owns the `module.{slug}` topic
+    and does nothing without a broadcaster, so a writer can always depend on
+    it. `PublishAdminEvents` goes through it too.
+  - `hydrakit/queue` dispatches `QueueChanged` (the tables that moved) on a
+    push, a retry, cancel, forget or flush, and once per worker batch, not
+    per job. The queue still knows nothing of the admin.
+  - The skeleton's Jobs, Failed jobs, Mail, Access › Sessions and Audit are
+    live. Sessions never publishes on the per-request touch, and never sends
+    a sign-in's id.
+  - Activity, Logs and Rate limits stay snapshots on purpose: their rows are
+    written on every request, and Activity would feed itself. There is no
+    time-based throttle; the one busy writer, the worker, coalesces per batch.
+  - There is no `->live()` flag on a module: every list already listens, and
+    what makes a table live is its writers publishing.
 
 Visible result: open the Users list in two tabs, create a user in a third (or
 run `make:user`), and watch the row appear. The skeleton has no public sign-up.
@@ -285,12 +301,11 @@ Building blocks with a case of their own and no milestone yet:
 - **An HTTP client** (PSR-18), for any app that calls another service.
 - **Long jobs with progress**: queued jobs that report progress over SSE, for
   imports, exports and reports. The hub it needs shipped in 0.18.0.
-- **A helper for publishing module changes**, so a table written outside the
-  admin goes live in one call: `ModuleChanges::publish('invoices', $id)`,
-  which takes care of the null broadcaster and the `module.{slug}` topic.
-  Optionally it would throttle to at most once every N seconds per module,
-  for writers as busy as Activity or the queue. Today it's one `publish()`
-  line, as `UserRepository` does, and the throttle is hand-written.
+- **Scheduled runs and Files, live.** The same `ModuleChanges` recipe, for
+  the two monitoring lists 0.21.0 left out. Scheduled runs needs an event
+  from `hydrakit/scheduler`'s run log, as the queue has `QueueChanged`.
+  Files needs the admin's `Uploads` to know the Files module's slug, or the
+  application to publish around every upload.
 - **Remember me**: "stay signed in on this device", as an opt-in in `auth`.
 - **SQL helpers**, each justified by repositories that need it, never as a
   bundle: binding a list to `IN (?)`, mapping a row to a typed entity,
