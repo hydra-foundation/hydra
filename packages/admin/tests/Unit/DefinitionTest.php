@@ -15,6 +15,7 @@ use Hydra\Admin\Surface;
 use Hydra\Admin\Tests\Support\ArraySource;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -226,5 +227,60 @@ final class DefinitionTest extends TestCase
         );
 
         Definition::make('failed-jobs')->group('Queue')->tabOf('jobs')->screens(new ListScreen)->compile();
+    }
+
+    /**
+     * The slug is a broadcast topic segment (`module.{slug}`) as well as a URL
+     * and an audit row's module, so the rule is the topic's: a slug that worked
+     * until a broadcaster was bound would fail every write after storing it.
+     *
+     * @return iterable<string, array{string, ?string}> slug, suggestion
+     */
+    public static function badSlugs(): iterable
+    {
+        yield 'capital' => ['blogPosts', 'blog-posts'];
+        yield 'space' => ['blog posts', 'blog-posts'];
+        yield 'capitals and a space' => ['Blog Posts', 'blog-posts'];
+        yield 'dot' => ['posts.archive', 'posts-archive'];
+        yield 'leading hyphen' => ['-posts', 'posts'];
+        yield 'leading underscore' => ['_posts', 'posts'];
+        yield 'trailing newline' => ["users\n", 'users'];
+        yield 'too long' => [str_repeat('a', 65), str_repeat('a', 64)];
+        yield 'empty' => ['', null];
+        yield 'nothing usable' => ['!!!', null];
+    }
+
+    #[DataProvider('badSlugs')]
+    public function test_a_slug_must_be_a_lowercase_topic_segment(string $slug, ?string $suggestion): void
+    {
+        try {
+            Definition::make($slug);
+            $this->fail("\"{$slug}\" was accepted.");
+        } catch (LogicException $e) {
+            $this->assertStringContainsString("\"{$slug}\"", $e->getMessage());
+            $this->assertStringContainsString('a-z, 0-9, - and _', $e->getMessage());
+
+            if ($suggestion === null) {
+                $this->assertStringNotContainsString('Try', $e->getMessage());
+            } else {
+                $this->assertStringContainsString("Try \"{$suggestion}\".", $e->getMessage());
+            }
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function goodSlugs(): iterable
+    {
+        yield 'word' => ['users'];
+        yield 'hyphenated' => ['failed-jobs'];
+        yield 'snake case' => ['scheduled_runs'];
+        yield 'digits' => ['2fa'];
+        yield 'at the limit' => [str_repeat('a', 64)];
+    }
+
+    #[DataProvider('goodSlugs')]
+    public function test_a_lowercase_topic_segment_is_a_slug(string $slug): void
+    {
+        $this->assertSame($slug, Definition::make($slug)->screens(new ListScreen)->compile()->slug);
     }
 }

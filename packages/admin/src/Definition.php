@@ -51,9 +51,37 @@ final class Definition
         $this->title = ucfirst(str_replace(['-', '_'], ' ', $slug));
     }
 
+    /**
+     * The slug is the module's URL, its audit rows' module and its broadcast
+     * topic segment (`module.{slug}`), so it follows the strictest of the three,
+     * the topic's. Refused here rather than at the first publish: by then the
+     * row is written and the request answers 500, so a slug that worked until
+     * a broadcaster was bound would make every retry a duplicate.
+     *
+     * @throws LogicException for a slug that is not lowercase a-z, 0-9, - and _
+     */
     public static function make(string $slug): self
     {
+        if (preg_match('/^[a-z0-9][a-z0-9_-]{0,63}$/D', $slug) !== 1) {
+            $suggestion = self::suggest($slug);
+
+            throw new LogicException(sprintf(
+                'Admin module "%s": a slug is lowercase a-z, 0-9, - and _, starts with a letter or digit, and is at most 64 characters.%s',
+                $slug,
+                $suggestion === '' ? '' : " Try \"{$suggestion}\".",
+            ));
+        }
+
         return new self($slug);
+    }
+
+    /** The nearest slug to $slug: words split at capitals, anything else a hyphen. */
+    private static function suggest(string $slug): string
+    {
+        $words = strtolower((string) preg_replace('/(?<=[a-z0-9])(?=[A-Z])/', '-', $slug));
+        $hyphenated = (string) preg_replace('/[^a-z0-9_-]+/', '-', $words);
+
+        return substr(trim($hyphenated, '-_'), 0, 64);
     }
 
     public function title(string $title): self
