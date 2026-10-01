@@ -53,16 +53,18 @@ This is a gate on every milestone, not a milestone of its own.
   expected to implement, so a new driver or source proves it is correct.
   Twenty-six ship; a new interface an app implements ships with its own.
 
-### Gate debt
+### Done: gate debt (October 2026)
 
-What the gate above says and the docs do not yet do, found in the October 2026
-review. Each is a release of its own, not a milestone.
+What the October 2026 review found the docs owed, paid in the wiki alone:
 
-- **Recipe pages** for building blocks that have none: cache, rate limits
-  (`throttle`), sessions, events, logging, and files outside the admin (today
-  a section of admin.php).
-- **Split admin.php**, at 1,300 lines a quarter of the docs, into the module,
-  sources, dashboards and files pages a reader looks for.
+- **Recipe pages** for the blocks that had none: files, sessions, cache, rate
+  limits, events and logging. Each opens with a real task whose code was run
+  against the skeleton before it was written up.
+- **admin.php split**: files, sources and dashboards have pages of their own,
+  and admin.php (1,300 lines, now 700) keeps the module reference. Old
+  `admin.html#…` links land on a note pointing to the new page.
+
+Kept up from here by the gate itself: a new building block ships with its page.
 
 ## Default admin modules
 
