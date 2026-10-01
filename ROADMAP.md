@@ -3,11 +3,12 @@
 Unreleased intent. Each item graduates to a spec (in hydra-foundation's
 `specs/`) when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.21.0 — Live, from anywhere: module changes**
-(`ModuleChanges::publish()` makes a table written outside the admin live in
-one call; the queue dispatches `QueueChanged` once per batch; the skeleton's
-Jobs, Failed jobs, Mail, Sessions and Audit lists are live). Before it,
-**0.20.0 — Live, part three: notifications**, which completed M2.
+Last shipped: **0.22.0 — Settle** (a pause after M2: a module slug that is
+not a topic segment fails at boot instead of breaking every write once live,
+15-minute listen tokens with a resync after a lost stream, `key:generate` on
+a fresh `.env`, errors that name their fix, `make:job`, and `AGENTS.md` in the
+skeleton). Before it, **0.21.0 — Live, from anywhere: module changes**, which
+finished M2.
 
 ## Principles
 
@@ -256,6 +257,14 @@ that shows it working, and the features built on it belong to apps.
 
 Visible result: open the Users list in two tabs, create a user in a third (or
 run `make:user`), and watch the row appear. The skeleton has no public sign-up.
+
+### Done: Settle (0.22.0)
+
+A review of M1 and M2 against this roadmap and the code, and a release of
+what it found: one bug (module slugs), the listen-token lifetime, the stream
+client's resync, the nginx error log, `key:generate`, five errors, and the
+gate items two milestones had skipped (`make:job`, `AGENTS.md`). What it found
+and did not fix is under "Gate debt" and in the backlog.
 
 ### M3. Publishing
 
