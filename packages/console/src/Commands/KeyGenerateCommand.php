@@ -10,6 +10,7 @@ use Hydra\Console\Contracts\InputInterface;
 use Hydra\Console\Contracts\OutputInterface;
 use Hydra\Console\ExitCode;
 use Hydra\Console\Option;
+use Hydra\Core\Environment;
 
 /**
  * Generates a 256-bit application key (64 hex chars) and writes it to APP_KEY
@@ -58,19 +59,39 @@ final class KeyGenerateCommand extends Command
         return ExitCode::Success;
     }
 
-    /** The current APP_KEY value, or '' when unset/empty. */
+    /**
+     * The current APP_KEY value as the application would read it, or '' when
+     * unset or empty. The loader's own rule, so `APP_KEY=   # comment`, the
+     * line .env.example ships, is empty here too rather than a key.
+     */
     private function currentKey(string $contents): string
     {
-        return preg_match('/^APP_KEY=(.*)$/m', $contents, $m) === 1 ? trim($m[1]) : '';
+        return preg_match('/^APP_KEY=(.*)$/m', $contents, $m) === 1 ? Environment::parseValue(trim($m[1])) : '';
     }
 
-    /** Replace the APP_KEY line in place, or append one if the file has none. */
+    /**
+     * Replace the APP_KEY line in place, keeping its trailing comment, or
+     * append one if the file has none.
+     */
     private function withKey(string $contents, string $key): string
     {
-        if (preg_match('/^APP_KEY=.*$/m', $contents) === 1) {
-            return preg_replace('/^APP_KEY=.*$/m', "APP_KEY={$key}", $contents, 1);
+        if (preg_match('/^APP_KEY=(.*)$/m', $contents, $m) !== 1) {
+            return rtrim($contents, "\n") . "\nAPP_KEY={$key}\n";
         }
 
-        return rtrim($contents, "\n") . "\nAPP_KEY={$key}\n";
+        $raw = rtrim($m[1]);
+        // A line that is only a comment keeps all of it, its alignment
+        // included; a value keeps only what the loader would strip as one (`#`
+        // after whitespace). Either way the comment needs whitespace in front,
+        // or behind the new key `#bare` would read as part of it.
+        $comment = Environment::parseValue(trim($raw)) === ''
+            ? (str_contains($raw, '#') ? $raw : '')
+            : (preg_match('/\s+#.*$/', $raw, $c) === 1 ? $c[0] : '');
+
+        if ($comment !== '' && !ctype_space($comment[0])) {
+            $comment = " {$comment}";
+        }
+
+        return preg_replace_callback('/^APP_KEY=.*$/m', static fn (): string => "APP_KEY={$key}{$comment}", $contents, 1);
     }
 }

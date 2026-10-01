@@ -8,6 +8,7 @@ use Hydra\Console\Commands\KeyGenerateCommand;
 use Hydra\Console\ExitCode;
 use Hydra\Console\ArrayInput;
 use Hydra\Console\Testing\FakeOutput;
+use Hydra\Core\Environment;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -43,11 +44,12 @@ final class KeyGenerateCommandTest extends TestCase
             ->execute(ArrayInput::withFlags($flags), $this->output);
     }
 
+    /** APP_KEY as the application would read it, comment and quotes stripped. */
     private function key(): string
     {
         preg_match('/^APP_KEY=(.*)$/m', file_get_contents($this->envPath), $m);
 
-        return $m[1] ?? '';
+        return Environment::parseValue(trim($m[1] ?? ''));
     }
 
     public function test_writes_a_key_when_app_key_is_empty(): void
@@ -95,5 +97,46 @@ final class KeyGenerateCommandTest extends TestCase
         // setUp() never created the file.
         $this->assertSame(ExitCode::Failure, $this->generate());
         $this->output->assertError('No .env');
+    }
+
+    public function test_an_inline_comment_is_not_a_key(): void
+    {
+        // The skeleton's .env.example line, copied to .env on a fresh install.
+        file_put_contents($this->envPath, "APP_KEY=                          # Generate with: php bin/console key:generate\n");
+
+        $this->assertSame(ExitCode::Success, $this->generate());
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $this->key());
+    }
+
+    public function test_writing_the_key_keeps_the_lines_comment(): void
+    {
+        file_put_contents($this->envPath, "APP_KEY=   # Generate with: php bin/console key:generate\nAPP_DEBUG=false\n");
+
+        $this->generate();
+
+        $this->assertMatchesRegularExpression(
+            '/^APP_KEY=[0-9a-f]{64}   # Generate with: php bin\/console key:generate$/m',
+            file_get_contents($this->envPath),
+        );
+        $this->assertStringContainsString("\nAPP_DEBUG=false\n", file_get_contents($this->envPath));
+    }
+
+    public function test_a_quoted_key_is_a_key(): void
+    {
+        file_put_contents($this->envPath, "APP_KEY=\"existing\"\n");
+
+        $this->assertSame(ExitCode::Failure, $this->generate());
+        $this->output->assertError('already set');
+        $this->assertSame('existing', $this->key());
+    }
+
+    public function test_a_comment_with_no_space_before_it_stays_a_comment(): void
+    {
+        // Glued straight on, `#bare` would read as part of the new key.
+        file_put_contents($this->envPath, "APP_KEY=#bare\n");
+
+        $this->assertSame(ExitCode::Success, $this->generate());
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $this->key());
+        $this->assertMatchesRegularExpression('/^APP_KEY=[0-9a-f]{64} #bare$/m', file_get_contents($this->envPath));
     }
 }

@@ -49,7 +49,7 @@ final class Environment
                 continue;
             }
 
-            $value = $this->parseValue(trim($value));
+            $value = self::parseValue(trim($value));
 
             $this->data[$key] = $value;
             $_ENV[$key] = $value;
@@ -77,8 +77,11 @@ final class Environment
         return $value === false ? null : $value;
     }
 
-    /** Strips surrounding quotes and any trailing `# comment`. */
-    private function parseValue(string $value): string
+    /**
+     * Strips surrounding quotes and any trailing `# comment`. Public so that
+     * anything else reading a .env line (key:generate) reads it the same way.
+     */
+    public static function parseValue(string $value): string
     {
         if (strlen($value) >= 2) {
             $first = $value[0];
