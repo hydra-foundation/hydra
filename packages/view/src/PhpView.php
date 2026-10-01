@@ -44,6 +44,25 @@ final class PhpView implements ViewInterface
     }
 
     /**
+     * The search path, each directory named below the one they all share
+     * (`views, vendor/hydrakit/admin/views`): enough to see which directory a
+     * template was missing from, with no absolute path for a message that may
+     * reach a page.
+     */
+    private function searched(): string
+    {
+        $split = array_map(static fn (string $path): array => explode('/', trim($path, '/')), $this->paths);
+        $shared = 0;
+        $limit = min(array_map(count(...), $split)) - 1;
+
+        while ($shared < $limit && count(array_unique(array_column($split, $shared))) === 1) {
+            $shared++;
+        }
+
+        return implode(', ', array_map(static fn (array $parts): string => implode('/', array_slice($parts, $shared)), $split));
+    }
+
+    /**
      * Shared data reaches partials too, which the parent's own data deliberately
      * does not: it belongs to the view rather than to any one render, and a
      * layout or partial that needs it cannot be handed it by a caller that does
@@ -90,7 +109,9 @@ final class PhpView implements ViewInterface
             }
         }
 
-        throw new RuntimeException("View not found: \"{$template}\".");
+        // Every directory, fallbacks included: a template that is in the wrong
+        // one is the usual cause, and the list is what shows it.
+        throw new RuntimeException(sprintf('View not found: "%s"; looked in %s.', $template, $this->searched()));
     }
 
     /**

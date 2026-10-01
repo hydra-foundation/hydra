@@ -260,6 +260,7 @@ final class RedisSubscriberTest extends TestCase
 
         $this->assertNull($subscriber->socket());
         $this->assertStringStartsWith('Could not subscribe to Redis: Could not connect to Redis at 127.0.0.1:1: ', $this->logger->messages()[0]);
+        $this->assertStringContainsString('check REDIS_HOST and REDIS_PORT', $this->logger->messages()[0]);
     }
 
     public function test_close_drops_the_socket(): void

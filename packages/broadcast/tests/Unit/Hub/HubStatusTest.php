@@ -64,7 +64,8 @@ final class HubStatusTest extends TestCase
     public function test_the_health_check_fails_when_the_hub_is_not_running(): void
     {
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('The SSE hub is not running.');
+        // Names the fix: what to start, and where it runs under Docker.
+        $this->expectExceptionMessageMatches('/The SSE hub is not running.*bin\/console sse:serve.*`sse`/');
 
         (new HubHealthCheck(new FakeHubStatus))->check();
     }

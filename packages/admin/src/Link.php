@@ -25,7 +25,7 @@ final class Link
         private readonly string $label,
     ) {
         if ($key === '') {
-            throw new LogicException("Admin link \"{$label}\" has no key to live at.");
+            throw new LogicException("Admin link \"{$label}\" has no key: its URLs carry one, made from the label or given to keyed(), and it needs a letter or a digit.");
         }
     }
 

@@ -90,4 +90,12 @@ final class RedisConnectionTest extends TestCase
 
         $this->markTestSkipped($why);
     }
+
+    public function test_a_refused_connection_names_the_settings_to_check(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('check REDIS_HOST and REDIS_PORT');
+
+        RedisConnection::open($this->config(port: 63999));
+    }
 }

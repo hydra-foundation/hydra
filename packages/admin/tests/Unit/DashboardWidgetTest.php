@@ -266,4 +266,12 @@ final class DashboardWidgetTest extends TestCase
             allowed: $allowed,
         );
     }
+
+    public function test_a_widget_with_no_key_says_what_the_key_is_for(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('An admin widget has no key: its URLs carry the key. Pass a non-empty one to Widget::make().');
+
+        Widget::make('', 'cards/count');
+    }
 }

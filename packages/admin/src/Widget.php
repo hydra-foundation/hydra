@@ -64,7 +64,7 @@ final class Widget
     public static function make(string $key, string $template): self
     {
         if ($key === '') {
-            throw new LogicException('An admin widget has no key to live at.');
+            throw new LogicException('An admin widget has no key: its URLs carry the key. Pass a non-empty one to Widget::make().');
         }
 
         return new self($key, $template);

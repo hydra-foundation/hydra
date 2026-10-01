@@ -207,6 +207,27 @@ final class PhpViewTest extends ViewContractTestCase
         $this->view->render('does-not-exist');
     }
 
+    public function test_a_missing_template_names_every_directory_searched(): void
+    {
+        try {
+            $this->viewWithFallback()->render('does-not-exist');
+            $this->fail('A missing template rendered.');
+        } catch (RuntimeException $e) {
+            // Named below the directory they share, so no absolute path is
+            // disclosed (see the traversal test below), yet a template in the
+            // wrong one still shows where it was looked for.
+            $this->assertStringContainsString('"does-not-exist"; looked in views, package-views.', $e->getMessage());
+            $this->assertStringNotContainsString($this->root, $e->getMessage());
+        }
+    }
+
+    public function test_a_null_byte_is_not_echoed_or_explained(): void
+    {
+        $this->expectExceptionMessageMatches('/^View not found\\.$/');
+
+        $this->view->render("page\0");
+    }
+
     public function test_a_template_only_a_fallback_has_is_still_found(): void
     {
         $view = $this->viewWithFallback();

@@ -57,7 +57,7 @@ final class RedisSubscriber implements Subscriber
             $socket = @stream_socket_client("tcp://{$where}", $errno, $error, $redis->timeout);
 
             if ($socket === false) {
-                throw new RuntimeException("Could not connect to Redis at {$where}: {$error}");
+                throw new RuntimeException("Could not connect to Redis at {$where}: {$error}; check REDIS_HOST and REDIS_PORT.");
             }
 
             return $socket;

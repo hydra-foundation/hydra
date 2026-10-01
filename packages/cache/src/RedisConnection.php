@@ -34,7 +34,7 @@ final class RedisConnection
             // Silenced: phpredis raises a warning beside the exception it throws,
             // and a displayed warning sends the headers, so a 503 goes out as 200.
             if (@$redis->connect($config->host, $config->port, $config->timeout) === false) {
-                throw new RuntimeException("Could not connect to Redis at {$where}.");
+                throw new RuntimeException("Could not connect to Redis at {$where}; check REDIS_HOST and REDIS_PORT.");
             }
 
             // The connect timeout covers the handshake and nothing after it.
@@ -53,8 +53,16 @@ final class RedisConnection
                 throw new RuntimeException("Redis at {$where} has no database {$config->database}.");
             }
         } catch (RedisException $e) {
+            // phpredis throws, rather than returning false, for a refused
+            // connection; then the address is the setting to check. A failure
+            // after connecting is the server answering, and says so itself.
             throw new RuntimeException(
-                sprintf('Could not open the Redis connection to %s: %s', $where, $e->getMessage()),
+                sprintf(
+                    'Could not open the Redis connection to %s: %s%s',
+                    $where,
+                    $e->getMessage(),
+                    $redis->isConnected() ? '' : '; check REDIS_HOST and REDIS_PORT.',
+                ),
                 previous: $e,
             );
         }

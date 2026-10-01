@@ -22,7 +22,7 @@ final readonly class HubHealthCheck implements HealthCheckInterface
         $report = $this->status->read();
 
         if ($report === null) {
-            throw new RuntimeException('The SSE hub is not running.');
+            throw new RuntimeException('The SSE hub is not running: start it with bin/console sse:serve (under Docker, the `sse` service).');
         }
 
         if (!$report->subscribed) {

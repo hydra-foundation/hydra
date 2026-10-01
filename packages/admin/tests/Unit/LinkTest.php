@@ -100,4 +100,12 @@ final class LinkTest extends TestCase
             ->links(...$links)
             ->fields(Field::id());
     }
+
+    public function test_a_label_with_no_key_in_it_says_what_a_key_needs(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Admin link "!!!" has no key: its URLs carry one, made from the label or given to keyed(), and it needs a letter or a digit.');
+
+        Link::make('!!!');
+    }
 }
