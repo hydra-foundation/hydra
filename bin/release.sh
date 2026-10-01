@@ -179,8 +179,9 @@ done
 REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
 REDIS_PORT="${REDIS_PORT:-6379}"
 
-# The framework checkout as the php container sees it: compose mounts the
-# parent of both repositories, so hydra/ is a sibling of app/ in there too.
+# The framework checkout as the php container sees it. The stack mounts only
+# app/; app/docker-compose.local.yml (copied from its .example) mounts this
+# checkout beside it, so hydra/ is a sibling of app/ in there too.
 CONTAINER_DIR="/var/www/html/$(basename "$DIR/hydra")"
 
 suite_dir="$DIR/hydra"
