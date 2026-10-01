@@ -23,9 +23,9 @@
     "require": {
         "php": ">=8.2",
         "ext-pdo": "*",
-        "hydrakit/core": "^0.21",
-        "hydrakit/validation": "^0.21",
-        "hydrakit/console": "^0.21"
+        "hydrakit/core": "^0.22",
+        "hydrakit/validation": "^0.22",
+        "hydrakit/console": "^0.22"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0",
@@ -35,7 +35,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.21.x-dev"
+            "dev-main": "0.22.x-dev"
         }
     }
 }
