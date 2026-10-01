@@ -34,19 +34,34 @@ This is a gate on every milestone, not a milestone of its own.
 - **Recipes.** Every building block ships with a wiki page that shows a real
   task from start to finish ("keep a file's original name", "take a
   payment"). A person follows it, and an agent reads it as a spec.
-- **Generators.** `make:migration` exists. Add `make:module`, `make:source`,
-  `make:job`, `make:listener` and `make:controller`, so new code starts out
-  in the house style instead of from a blank file or a guess.
+- **Generators.** Every kind of class an app writes has one: `make:migration`,
+  `make:controller`, `make:ability`, `make:listener`, `make:job`, and the
+  table-shaped `make:admin`, `make:source`, `make:module`, `make:entity`,
+  `make:repository` and `make:source-test`. The rule from here: a new
+  building block with boilerplate ships its generator.
 - **Errors say what to do.** The admin already does this ("Register
   FilesystemServiceProvider ahead of the AdminServiceProvider"). Make it the
   rule: a misconfiguration names the fix.
 - **One obvious way.** One documented pattern per task. Agents copy the first
   example they find, so a second way to do something is how it spreads.
-- **Agent context in the skeleton.** An `AGENTS.md` in `app/` holding the
-  conventions, commands and boundaries, checked against the wiki so the two
-  never disagree.
+- **Agent context in the skeleton.** `AGENTS.md` in `app/` (0.22.0) holds the
+  commands, where things go, one way per task and the boundaries; `CLAUDE.md`
+  imports it. A test checks every command, script and path it names, so a
+  rename fails the suite. Kept in step with the wiki by hand.
 - **Contract test cases** (`*ContractTestCase`) for every interface an app is
   expected to implement, so a new driver or source proves it is correct.
+  Twenty-six ship; a new interface an app implements ships with its own.
+
+### Gate debt
+
+What the gate above says and the docs do not yet do, found in the October 2026
+review. Each is a release of its own, not a milestone.
+
+- **Recipe pages** for building blocks that have none: cache, rate limits
+  (`throttle`), sessions, events, logging, and files outside the admin (today
+  a section of admin.php).
+- **Split admin.php**, at 1,300 lines a quarter of the docs, into the module,
+  sources, dashboards and files pages a reader looks for.
 
 ## Default admin modules
 
@@ -307,6 +322,11 @@ Building blocks with a case of their own and no milestone yet:
   Files needs the admin's `Uploads` to know the Files module's slug, or the
   application to publish around every upload.
 - **Remember me**: "stay signed in on this device", as an opt-in in `auth`.
+- **After commit**: `ConnectionInterface::afterCommit(fn)`, run at once
+  outside a transaction, so a publish inside one waits for the commit. Today
+  the rule is documented (live.php: publish after the write commits) and no
+  skeleton writer publishes inside a transaction. Decided against Principle 3
+  with the SQL helpers, when a second writer needs it.
 - **SQL helpers**, each justified by repositories that need it, never as a
   bundle: binding a list to `IN (?)`, mapping a row to a typed entity,
   single-row inserts and updates by id with columns checked against a fixed
