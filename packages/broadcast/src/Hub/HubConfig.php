@@ -29,12 +29,18 @@ final readonly class HubConfig
     /** Seconds between status writes; the key lives three times as long. */
     public const STATUS_EVERY = 10;
 
+    /**
+     * @param int $tokenTtl seconds a listen token lasts. Expiry is the only
+     *        revocation, so this is the longest an open stream outlives a
+     *        sign-out or a lost ability; fifteen minutes, not an hour, since
+     *        a fresh token costs the page one request.
+     */
     public function __construct(
         public string $host = '0.0.0.0',
         public int $port = 8080,
         public int $maxConnections = 1000,
         public int $heartbeat = 15,
-        public int $tokenTtl = 3600,
+        public int $tokenTtl = 900,
         public string $channelPrefix = 'broadcast.',
         public string $statusKey = 'sse:hub',
     ) {
@@ -65,7 +71,7 @@ final readonly class HubConfig
             port: (int) substr($listen, $at + 1),
             maxConnections: $env->int('SSE_MAX_CONNECTIONS', 1000),
             heartbeat: $env->int('SSE_HEARTBEAT', 15),
-            tokenTtl: $env->int('STREAM_TOKEN_TTL', 3600),
+            tokenTtl: $env->int('STREAM_TOKEN_TTL', 900),
             channelPrefix: $prefix . 'broadcast.',
             statusKey: $prefix . 'sse:hub',
         );

@@ -129,8 +129,10 @@ hub checks the token and never reads a session:
 
 A stream is closed when its token expires. Nothing is stored and nothing
 revokes a token, so a sign-out reaches an open tab within
-`STREAM_TOKEN_TTL` (3600 seconds). Tokens never reach a log line: one in a
-log is a stream anyone can open.
+`STREAM_TOKEN_TTL` (900 seconds). A client that reconnects with a fresh token
+should refetch what it shows, since anything published while it renewed was
+missed. Tokens never reach a log line: one in a log is a stream anyone can
+open.
 
 ### Who may listen
 

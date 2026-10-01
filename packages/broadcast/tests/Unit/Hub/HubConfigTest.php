@@ -24,7 +24,7 @@ final class HubConfigTest extends TestCase
         $this->assertSame(8080, $config->port);
         $this->assertSame(1000, $config->maxConnections);
         $this->assertSame(15, $config->heartbeat);
-        $this->assertSame(3600, $config->tokenTtl);
+        $this->assertSame(900, $config->tokenTtl);
         $this->assertSame('broadcast.', $config->channelPrefix);
         $this->assertSame('sse:hub', $config->statusKey);
     }
