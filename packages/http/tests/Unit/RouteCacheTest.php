@@ -105,6 +105,21 @@ final class RouteCacheTest extends TestCase
         $this->assertSame($this->sampleRoutes(), $cache->load());
     }
 
+    /**
+     * The console writes the cache as whoever runs it (root, in the skeleton's
+     * php container) and php-fpm reads it as www-data. tempnam() makes 0600,
+     * which only the writer can read: every request then fails at boot.
+     */
+    public function test_stored_file_is_readable_by_every_user(): void
+    {
+        $path = $this->dir . '/routes.php';
+
+        $this->cache($path)->store($this->sampleRoutes());
+
+        clearstatcache();
+        $this->assertSame('0644', sprintf('%04o', fileperms($path) & 0777));
+    }
+
     public function test_stored_file_is_plain_php_returning_fingerprint_and_routes(): void
     {
         $path = $this->dir . '/routes.php';

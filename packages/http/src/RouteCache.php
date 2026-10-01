@@ -41,7 +41,8 @@ final class RouteCache
 
     /**
      * Written via a temp file and rename so a concurrent reader never sees a
-     * half-written artifact.
+     * half-written artifact, and made world-readable: the console that writes
+     * it and the php-fpm that reads it are usually different users.
      *
      * @param list<RouteDefinition> $routes
      */
@@ -63,6 +64,10 @@ final class RouteCache
 
         $tmp = tempnam($dir, 'routes-');
         file_put_contents($tmp, $contents);
+        // tempnam() makes the file 0600, readable only by whoever ran the
+        // console. php-fpm is usually someone else (www-data), and a cache it
+        // cannot read fails every request at boot.
+        chmod($tmp, 0644);
         rename($tmp, $this->path);
 
         // Drop any previously-compiled version opcache may be holding for this
