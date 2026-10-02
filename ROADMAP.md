@@ -3,12 +3,12 @@
 Unreleased intent. Each item graduates to a spec (in hydra-foundation's
 `specs/`) when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.22.0 — Settle** (a pause after M2: a module slug that is
-not a topic segment fails at boot instead of breaking every write once live,
-15-minute listen tokens with a resync after a lost stream, `key:generate` on
-a fresh `.env`, errors that name their fix, `make:job`, and `AGENTS.md` in the
-skeleton). Before it, **0.21.0 — Live, from anywhere: module changes**, which
-finished M2.
+Last shipped: **0.23.0 — Assets**, the first piece of M3: `$this->asset()`
+links a stylesheet or script under a name carrying its content's hash, and the
+skeleton's nginx keeps those names for a year. Before it, **0.22.1 — Deploy**
+and **0.22.0 — Settle** (a pause after M2: module slugs checked at boot,
+15-minute listen tokens with a resync, errors that name their fix, `make:job`
+and `AGENTS.md`).
 
 ## Principles
 
@@ -281,9 +281,16 @@ What any site that publishes needs:
 - **HTTP caching**: `ETag`, `Last-Modified`, `304 Not Modified`, and
   `Cache-Control` from `Responder`.
 - **Feeds and SEO helpers**: an Atom feed and `sitemap.xml` built from a list
-  of entries on request and cached, plus meta and Open Graph tags from a view
-  helper.
-- **Asset fingerprinting**: `app.3f2a1c.css` with far-future caching.
+  of entries on request, plus meta and Open Graph tags from one value, in a new
+  `hydrakit/seo`. Not cached in the package: the XML is cheap to build, the
+  caller caches what is expensive to read, and HTTP caching adds the `304`.
+- **Live updates for visitors who are not signed in**: listen tokens on a
+  `public.*` topic family for anyone, throttled per address, so a public page
+  can update itself (an approved comment appearing, a release number
+  changing) as the admin's lists already do.
+- **Done (0.23.0): asset fingerprinting.** `$this->asset('/css/app.css')`
+  prints `/css/app.5267ab8c9f.css`; nginx keeps hashed names a year and
+  revalidates plain ones. No build step, no manifest.
 - **Spam helpers**: a honeypot validation rule. Per-IP throttling is already
   there in `throttle`, and gets a recipe.
 
