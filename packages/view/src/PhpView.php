@@ -31,6 +31,8 @@ final class PhpView implements ViewInterface
      *
      * @param list<string> $fallbacks searched in order when the base path has no such template
      * @param array<string, mixed> $shared data every render begins with
+     * @param Assets|null $assets what `$this->asset()` fingerprints with; optional
+     *                            so a view that links no assets needs none
      */
     public function __construct(
         string $basePath,
@@ -39,6 +41,7 @@ final class PhpView implements ViewInterface
         private readonly ?string $baseUrl = null,
         array $fallbacks = [],
         private readonly array $shared = [],
+        private readonly ?Assets $assets = null,
     ) {
         $this->paths = [$basePath, ...array_values($fallbacks)];
     }
@@ -74,7 +77,7 @@ final class PhpView implements ViewInterface
     {
         $data = [...$this->shared, ...$data];
 
-        return (new Template($this, $data, $this->cspNonce, $layout, $this->csrf, $this->baseUrl))->resolve($template);
+        return (new Template($this, $data, $this->cspNonce, $layout, $this->csrf, $this->baseUrl, $this->assets))->resolve($template);
     }
 
     public function has(string $template): bool

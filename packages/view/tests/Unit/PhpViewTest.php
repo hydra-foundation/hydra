@@ -7,6 +7,7 @@ namespace Hydra\View\Tests\Unit;
 use Hydra\Core\Security\Signer;
 use Hydra\Csrf\CsrfGuard;
 use Hydra\Session\Stores\ArraySessionStore;
+use Hydra\View\Assets;
 use Hydra\View\HtmlView;
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
@@ -461,5 +462,30 @@ final class PhpViewTest extends ViewContractTestCase
         [$outer, $inner] = explode('|', $view->render('x'));
 
         $this->assertSame($outer, $inner);
+    }
+
+    public function test_asset_prints_the_fingerprinted_url_in_a_layout_and_a_partial(): void
+    {
+        $public = $this->root . '/public';
+        mkdir($public . '/css', 0777, true);
+        file_put_contents($public . '/css/app.css', 'a{}');
+        $hashed = '/css/app.' . substr(hash('xxh128', 'a{}'), 0, 10) . '.css';
+
+        $view = new PhpView($this->dir, new CspNonce, assets: new Assets($public));
+        $this->writeTemplate('layouts/page', '<?= $this->asset("/css/app.css") ?>|<?= $this->section("content") ?>');
+        $this->writeTemplate('link', '<?= $this->asset("/css/app.css") ?>');
+        $this->writeTemplate('page', '<?php $this->extends("layouts/page") ?><?= $this->partial("link") ?>');
+
+        $this->assertSame("$hashed|$hashed", $view->render('page'));
+    }
+
+    public function test_asset_throws_with_the_fix_when_no_assets_are_configured(): void
+    {
+        $this->writeTemplate('x', '<?= $this->asset("/css/app.css") ?>');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('pass an Assets to PhpView');
+
+        $this->view->render('x');
     }
 }

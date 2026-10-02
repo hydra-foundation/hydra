@@ -32,6 +32,7 @@ final class Template
         private readonly bool $wrapLayout = true,
         private readonly ?CsrfGuard $csrf = null,
         private readonly ?string $baseUrl = null,
+        private readonly ?Assets $assets = null,
     ) {}
 
     public function resolve(string $template): string
@@ -138,6 +139,24 @@ final class Template
         }
 
         return $this->csrf->token();
+    }
+
+    /**
+     * A file under the public directory by its fingerprinted URL:
+     * `/css/app.css` becomes `/css/app.3f2a1c9b0e.css`. Escape it like any
+     * other value; the URL is safe, but one way to write a src is the rule.
+     *
+     * @throws AssetNotFound for a path that names no file the app serves
+     */
+    public function asset(string $path): string
+    {
+        if ($this->assets === null) {
+            throw new RuntimeException(
+                'asset() needs the public directory: pass an Assets to PhpView (assets: new Assets($publicPath)).',
+            );
+        }
+
+        return $this->assets->url($path);
     }
 
     /** A hidden form field carrying the CSRF token. */
