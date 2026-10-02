@@ -54,6 +54,7 @@ jobs:
           - php-di
           - queue
           - scheduler
+          - seo
           - session
           - symfony-console
           - throttle
