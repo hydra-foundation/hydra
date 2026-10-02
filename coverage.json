@@ -18,6 +18,7 @@
     "php-di": 100,
     "queue": 100,
     "scheduler": 100,
+    "seo": 100,
     "session": 99,
     "symfony-console": 96.3,
     "throttle": 96,
