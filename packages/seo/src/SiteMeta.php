@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Seo;
 
+use DateTimeInterface;
 use InvalidArgumentException;
 
 /**
@@ -48,6 +49,24 @@ final class SiteMeta
         return new Meta($this, $title, $description, self::path($path));
     }
 
+    /**
+     * A post: og:type article, its dates and tags, and its own image when it
+     * has one, the site's default when not.
+     *
+     * @param list<string> $tags
+     */
+    public function article(
+        string $title,
+        string $description,
+        string $path,
+        DateTimeInterface $publishedAt,
+        ?DateTimeInterface $modifiedAt = null,
+        array $tags = [],
+        ?Image $image = null,
+    ): Meta {
+        return new Meta($this, $title, $description, self::path($path), $image, $publishedAt, $modifiedAt, $tags);
+    }
+
     /** The <title> for a page title, in this site's format. */
     public function title(string $title): string
     {
@@ -62,10 +81,12 @@ final class SiteMeta
     }
 
     /**
-     * A page's own path: it becomes the canonical URL, so it is the page
-     * without a query or fragment, from the site root.
+     * A path this site serves, from its root: it becomes a canonical or feed
+     * URL, so it is the page itself, without a query or fragment.
+     *
+     * @internal Meta checks a feed's path with it too
      */
-    private static function path(string $path): string
+    public static function path(string $path): string
     {
         if (!str_starts_with($path, '/') || str_starts_with($path, '//')) {
             throw new InvalidArgumentException(sprintf('Meta path must start with "/"; got "%s".', $path));

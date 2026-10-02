@@ -7,6 +7,7 @@ namespace Hydra\Seo\Tests\Unit;
 use Hydra\Seo\Image;
 use Hydra\Seo\Meta;
 use Hydra\Seo\SiteMeta;
+use DateTimeImmutable;
 use Hydra\View\HtmlView;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -134,5 +135,134 @@ final class MetaTest extends TestCase
         $this->expectExceptionMessage('Meta path must start with "/"');
 
         $this->site->page('X', 'Y', '//evil.example/x');
+    }
+
+    public function test_an_article_carries_its_dates_tags_and_image(): void
+    {
+        $out = (string) $this->site->article(
+            title: 'Rewriting this site',
+            description: 'Third framework.',
+            path: '/blog/rewriting',
+            publishedAt: new DateTimeImmutable('2026-10-14T09:30:00-06:00'),
+            modifiedAt: new DateTimeImmutable('2026-10-15T10:00:00-06:00'),
+            tags: ['code', 'hydra & php'],
+            image: new Image('/img/posts/rewrite.jpg', 1600, 900, 'A diff on a screen'),
+        );
+
+        self::assertStringContainsString('<meta property="og:type" content="article">', $out);
+        self::assertStringNotContainsString('content="website"', $out);
+        self::assertStringContainsString('<meta property="og:image" content="https://williamhleucka.com/img/posts/rewrite.jpg">', $out);
+        self::assertStringContainsString('<meta property="og:image:width" content="1600">', $out);
+        self::assertStringContainsString('<meta property="og:image:alt" content="A diff on a screen">', $out);
+        self::assertStringContainsString(
+            '<meta name="twitter:card" content="summary_large_image">' . "\n"
+            . '<meta property="article:published_time" content="2026-10-14T09:30:00-06:00">' . "\n"
+            . '<meta property="article:modified_time" content="2026-10-15T10:00:00-06:00">' . "\n"
+            . '<meta property="article:tag" content="code">' . "\n"
+            . '<meta property="article:tag" content="hydra &amp; php">' . "\n",
+            $out,
+        );
+    }
+
+    public function test_an_article_without_an_image_or_modified_time_uses_the_default_and_omits_it(): void
+    {
+        $out = (string) $this->site->article('A', 'B', '/blog/a', new DateTimeImmutable('2026-10-14T09:30:00Z'));
+
+        self::assertStringContainsString('content="https://williamhleucka.com/img/share.png"', $out);
+        self::assertStringContainsString('<meta property="article:published_time" content="2026-10-14T09:30:00+00:00">', $out);
+        self::assertStringNotContainsString('article:modified_time', $out);
+        self::assertStringNotContainsString('article:tag', $out);
+    }
+
+    public function test_an_article_path_is_checked_like_a_page_path(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Meta path must start with "/"; got "blog/a".');
+
+        $this->site->article('A', 'B', 'blog/a', new DateTimeImmutable);
+    }
+
+    public function test_with_no_index_adds_robots_and_leaves_the_original_alone(): void
+    {
+        $meta = $this->site->page('A', 'B', '/a');
+        $hidden = $meta->withNoIndex();
+
+        self::assertNotSame($meta, $hidden);
+        self::assertStringEndsWith('<meta name="robots" content="noindex">' . "\n", (string) $hidden);
+        self::assertStringNotContainsString('robots', (string) $meta);
+    }
+
+    public function test_with_feed_adds_an_absolute_alternate_link(): void
+    {
+        $meta = $this->site->page('A', 'B', '/a');
+        $fed = $meta->withFeed('Writing & more', '/feed.xml')->withFeed('Comments', '/comments.xml');
+
+        self::assertStringContainsString(
+            '<link rel="alternate" type="application/atom+xml" title="Writing &amp; more" href="https://williamhleucka.com/feed.xml">' . "\n"
+            . '<link rel="alternate" type="application/atom+xml" title="Comments" href="https://williamhleucka.com/comments.xml">' . "\n",
+            (string) $fed,
+        );
+        self::assertStringNotContainsString('alternate', (string) $meta);
+    }
+
+    public function test_a_feed_path_is_checked(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Meta path must start with "/"; got "feed.xml".');
+
+        $this->site->page('A', 'B', '/a')->withFeed('Writing', 'feed.xml');
+    }
+
+    public function test_feeds_come_before_noindex_whatever_the_order_they_were_added(): void
+    {
+        $out = (string) $this->site->page('A', 'B', '/a')->withNoIndex()->withFeed('F', '/f.xml');
+
+        self::assertLessThan(strpos($out, 'robots'), strpos($out, 'alternate'));
+    }
+
+    public function test_with_title_replaces_the_title_and_can_skip_the_format(): void
+    {
+        $meta = $this->site->page('Home', 'B', '/');
+
+        self::assertStringStartsWith('<title>William Hleucka</title>', (string) $meta->withTitle('William Hleucka', format: false));
+        self::assertStringContainsString('<meta property="og:title" content="William Hleucka">', (string) $meta->withTitle('William Hleucka', format: false));
+        self::assertStringStartsWith('<title>About — William Hleucka</title>', (string) $meta->withTitle('About'));
+        self::assertStringStartsWith('<title>Home — William Hleucka</title>', (string) $meta);
+    }
+
+    public function test_a_long_description_is_cut_on_a_word_boundary_at_200_characters(): void
+    {
+        $long = str_repeat('word ', 60); // 300 characters
+        $out = (string) $this->site->page('A', $long, '/a');
+
+        preg_match('#<meta name="description" content="([^"]*)">#', $out, $m);
+        $description = html_entity_decode($m[1]);
+
+        self::assertLessThanOrEqual(200, mb_strlen($description));
+        self::assertStringEndsWith('word…', $description);
+        self::assertStringNotContainsString('wor…', $description);
+        self::assertStringContainsString('<meta property="og:description" content="' . $m[1] . '">', $out);
+    }
+
+    public function test_a_description_of_exactly_200_characters_is_kept_whole(): void
+    {
+        $exact = str_repeat('a', 199) . 'é';
+        $out = (string) $this->site->page('A', $exact, '/a');
+
+        self::assertStringContainsString('content="' . $exact . '"', $out);
+    }
+
+    public function test_a_long_word_with_no_space_is_cut_hard(): void
+    {
+        $out = (string) $this->site->page('A', str_repeat('x', 250), '/a');
+
+        self::assertStringContainsString('content="' . str_repeat('x', 199) . '…"', $out);
+    }
+
+    public function test_a_description_is_collapsed_to_one_line(): void
+    {
+        $out = (string) $this->site->page('A', "  First line.\n\n  Second\tline.  ", '/a');
+
+        self::assertStringContainsString('<meta name="description" content="First line. Second line.">', $out);
     }
 }
