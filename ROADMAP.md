@@ -3,12 +3,10 @@
 Unreleased intent. Each item graduates to a spec (in hydra-foundation's
 `specs/`) when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.23.0 — Assets**, the first piece of M3: `$this->asset()`
-links a stylesheet or script under a name carrying its content's hash, and the
-skeleton's nginx keeps those names for a year. Before it, **0.22.1 — Deploy**
-and **0.22.0 — Settle** (a pause after M2: module slugs checked at boot,
-15-minute listen tokens with a resync, errors that name their fix, `make:job`
-and `AGENTS.md`).
+Last shipped: **0.24.0 — SEO**, the second piece of M3: `hydrakit/seo` prints
+a page's meta and preview tags from one value and builds `sitemap.xml` and an
+Atom feed, and the skeleton's pages without meta say `noindex`. Before it,
+**0.23.0 — Assets** (fingerprinted stylesheets and scripts, kept a year).
 
 ## Principles
 
@@ -280,14 +278,14 @@ What any site that publishes needs:
   `srcset`). This also gives the Files module its thumbnails.
 - **HTTP caching**: `ETag`, `Last-Modified`, `304 Not Modified`, and
   `Cache-Control` from `Responder`.
-- **Feeds and SEO helpers**: an Atom feed and `sitemap.xml` built from a list
-  of entries on request, plus meta and Open Graph tags from one value, in a new
-  `hydrakit/seo`. Not cached in the package: the XML is cheap to build, the
-  caller caches what is expensive to read, and HTTP caching adds the `304`.
 - **Live updates for visitors who are not signed in**: listen tokens on a
   `public.*` topic family for anyone, throttled per address, so a public page
   can update itself (an approved comment appearing, a release number
   changing) as the admin's lists already do.
+- **Done (0.24.0): feeds and SEO helpers.** `hydrakit/seo`: a page's head
+  tags from one `Meta`, `sitemap.xml` and an Atom feed, escaped once with every
+  URL absolute. Not cached in the package: the XML is cheap to build, and what
+  it lists is the caller's to cache.
 - **Done (0.23.0): asset fingerprinting.** `$this->asset('/css/app.css')`
   prints `/css/app.5267ab8c9f.css`; nginx keeps hashed names a year and
   revalidates plain ones. No build step, no manifest.
