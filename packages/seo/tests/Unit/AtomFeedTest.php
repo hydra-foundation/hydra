@@ -94,8 +94,10 @@ final class AtomFeedTest extends TestCase
     {
         $feed = self::feed();
         $feed->add(self::entry('first', '2026-10-02T09:00:00Z'));
-        $xpath = self::xpath($feed->xml());
+        $xml = $feed->xml();
+        $xpath = self::xpath($xml);
 
+        self::assertStringStartsWith('<?xml version="1.0" encoding="UTF-8"?>' . "\n", $xml);
         self::assertSame('https://williamhleucka.com/feed.xml', self::text($xpath, '/a:feed/a:id'));
         self::assertSame('William Hleucka — Writing', self::text($xpath, '/a:feed/a:title'));
         self::assertSame('Code, hockey, and whatever else is on my mind.', self::text($xpath, '/a:feed/a:subtitle'));

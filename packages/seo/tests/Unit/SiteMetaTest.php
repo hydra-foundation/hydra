@@ -24,6 +24,7 @@ final class SiteMetaTest extends TestCase
         yield 'http' => ['http://hydra.localhost'];
         yield 'port' => ['http://127.0.0.1:8080'];
         yield 'subdomain' => ['https://blog.example.co.uk'];
+        yield 'upper case' => ['HTTPS://Example.COM'];
     }
 
     #[DataProvider('goodBaseUrls')]
@@ -44,6 +45,8 @@ final class SiteMetaTest extends TestCase
         yield 'a query' => ['https://example.com?x=1'];
         yield 'empty' => [''];
         yield 'credentials' => ['https://user:pass@example.com'];
+        yield 'something before the scheme' => ['xhttps://example.com'];
+        yield 'a trailing newline' => ["https://example.com\n"];
     }
 
     #[DataProvider('badBaseUrls')]
@@ -69,6 +72,19 @@ final class SiteMetaTest extends TestCase
         $this->expectExceptionMessage('An image needs a positive width and height');
 
         new Image('/img/share.png', 0, 630, 'Site');
+    }
+
+    public function test_an_image_url_on_another_host_may_be_upper_case(): void
+    {
+        self::assertSame('HTTPS://CDN.example.net/a.png', (new Image('HTTPS://CDN.example.net/a.png', 1, 1, 'A'))->url);
+    }
+
+    public function test_an_image_url_with_anything_before_the_scheme_is_refused(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('got "img https://cdn.example.net/a.png"');
+
+        new Image('img https://cdn.example.net/a.png', 1, 1, 'A');
     }
 
     public function test_an_image_url_is_a_path_or_an_https_url(): void

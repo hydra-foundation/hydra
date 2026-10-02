@@ -246,6 +246,15 @@ final class MetaTest extends TestCase
         self::assertStringContainsString('<meta property="og:description" content="' . $m[1] . '">', $out);
     }
 
+    public function test_a_long_description_is_cut_by_characters_not_bytes(): void
+    {
+        // 'été ' is four characters and six bytes: a byte-based cut would land
+        // mid-character or mid-word, and lose the start.
+        $out = (string) $this->site->page('A', str_repeat('été ', 60), '/a');
+
+        self::assertStringContainsString('content="' . rtrim(str_repeat('été ', 49)) . '…"', $out);
+    }
+
     public function test_a_description_of_exactly_200_characters_is_kept_whole(): void
     {
         $exact = str_repeat('a', 199) . 'é';
