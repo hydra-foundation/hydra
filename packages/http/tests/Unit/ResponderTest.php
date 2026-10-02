@@ -53,6 +53,23 @@ final class ResponderTest extends TestCase
         $this->assertSame(404, $this->responder()->text('x', Status::NotFound)->getStatusCode());
     }
 
+    public function test_xml_response(): void
+    {
+        $response = $this->responder()->xml('<urlset/>');
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('application/xml; charset=utf-8', $response->getHeaderLine('Content-Type'));
+        $this->assertSame('<urlset/>', (string) $response->getBody());
+    }
+
+    public function test_xml_takes_a_type_and_a_status(): void
+    {
+        $response = $this->responder()->xml('<feed/>', 'application/atom+xml', 404);
+
+        $this->assertSame(404, $response->getStatusCode());
+        $this->assertSame('application/atom+xml; charset=utf-8', $response->getHeaderLine('Content-Type'));
+    }
+
     public function test_json_response(): void
     {
         $response = $this->responder()->json(['name' => 'will', 'roles' => ['admin']]);

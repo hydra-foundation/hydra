@@ -36,6 +36,12 @@ final class Responder
         return $this->make($body, $status, 'text/html; charset=utf-8');
     }
 
+    /** A sitemap or a feed: application/xml, or the type given, in UTF-8. */
+    public function xml(string $body, string $contentType = 'application/xml', int|Status $status = Status::Ok): ResponseInterface
+    {
+        return $this->make($body, $status, $contentType . '; charset=utf-8');
+    }
+
     public function json(mixed $data, int|Status $status = Status::Ok): ResponseInterface
     {
         $body = json_encode(
