@@ -15,3 +15,7 @@ its own share image; `withNoIndex()`, `withFeed('Writing', '/feed.xml')` and
 `withTitle('Name', format: false)` return a changed copy. A description is
 collapsed to one line and cut on a word at 200 characters, since front matter
 is written without counting.
+`Sitemap` builds `sitemap.xml` from paths and the time each last changed:
+absolute `<loc>`s, `<lastmod>` in UTC, no `priority` or `changefreq` (Google
+ignores both). A path added twice is listed once, with the later time, and
+past 50,000 URLs it refuses rather than write a file crawlers reject.

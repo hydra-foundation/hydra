@@ -28,12 +28,7 @@ final class SiteMeta
         public readonly ?string $twitterSite = null,
         public readonly string $titleFormat = '%s · {site}',
     ) {
-        if (preg_match('#^https?://[a-z0-9.-]+(:[0-9]{1,5})?$#iD', $baseUrl) !== 1) {
-            throw new InvalidArgumentException(sprintf(
-                'SiteMeta baseUrl must look like https://example.com (no path, no trailing slash); got "%s".',
-                $baseUrl,
-            ));
-        }
+        Url::base($baseUrl, 'SiteMeta');
 
         if (!str_contains($titleFormat, '%s')) {
             throw new InvalidArgumentException(sprintf(
@@ -80,25 +75,9 @@ final class SiteMeta
         return str_starts_with($pathOrUrl, '/') ? $this->baseUrl . $pathOrUrl : $pathOrUrl;
     }
 
-    /**
-     * A path this site serves, from its root: it becomes a canonical or feed
-     * URL, so it is the page itself, without a query or fragment.
-     *
-     * @internal Meta checks a feed's path with it too
-     */
+    /** @internal Meta checks a feed's path with it too */
     public static function path(string $path): string
     {
-        if (!str_starts_with($path, '/') || str_starts_with($path, '//')) {
-            throw new InvalidArgumentException(sprintf('Meta path must start with "/"; got "%s".', $path));
-        }
-
-        if (strpbrk($path, '?#') !== false) {
-            throw new InvalidArgumentException(sprintf(
-                'Meta path cannot carry a query or fragment; got "%s". The canonical URL is the page without them.',
-                $path,
-            ));
-        }
-
-        return $path;
+        return Url::path($path, 'Meta path');
     }
 }

@@ -7,11 +7,13 @@ namespace Hydra\Seo\Tests\Unit;
 use Hydra\Seo\Image;
 use Hydra\Seo\SiteMeta;
 use InvalidArgumentException;
+use Hydra\Seo\Url;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(SiteMeta::class)]
+#[CoversClass(Url::class)]
 #[CoversClass(Image::class)]
 final class SiteMetaTest extends TestCase
 {

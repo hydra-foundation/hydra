@@ -10,10 +10,12 @@ use Hydra\Seo\SiteMeta;
 use DateTimeImmutable;
 use Hydra\View\HtmlView;
 use InvalidArgumentException;
+use Hydra\Seo\Url;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Meta::class)]
+#[CoversClass(Url::class)]
 #[CoversClass(SiteMeta::class)]
 #[CoversClass(Image::class)]
 final class MetaTest extends TestCase
