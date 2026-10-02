@@ -19,3 +19,7 @@ is written without counting.
 absolute `<loc>`s, `<lastmod>` in UTC, no `priority` or `changefreq` (Google
 ignores both). A path added twice is listed once, with the later time, and
 past 50,000 URLs it refuses rather than write a file crawlers reject.
+`AtomFeed` builds an Atom 1.0 feed from its details and a `FeedEntry` per
+post: each entry's URL is its id, entries come out newest first, and the feed
+takes the newest entry's time. Content goes in as escaped HTML rather than
+CDATA, so a post containing `]]>` cannot break it.
