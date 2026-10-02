@@ -86,8 +86,10 @@ final class SocketStreamTest extends TestCase
 
     public function test_nothing_listening_is_a_transport_error_naming_the_address(): void
     {
+        // Bind the replacement before closing, or port 0 can hand back the port just freed.
+        $replacement = stream_socket_server('tcp://127.0.0.1:0') ?: throw new \RuntimeException('no socket');
         fclose($this->server);
-        $this->server = stream_socket_server('tcp://127.0.0.1:0') ?: throw new \RuntimeException('no socket');
+        $this->server = $replacement;
 
         $this->expectException(TransportException::class);
         $this->expectExceptionMessage("Could not connect to the SMTP server at 127.0.0.1:{$this->port}");
