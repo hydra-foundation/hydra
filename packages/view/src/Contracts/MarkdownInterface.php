@@ -24,4 +24,14 @@ interface MarkdownInterface
      * @throws InvalidFrontMatter when the front matter is malformed, or not a mapping
      */
     public function parse(string $source, bool $trusted = false): Document;
+
+    /**
+     * A content file's front matter alone, [] when it has none. The body is
+     * not rendered, so listing a directory of posts costs no Markdown.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws InvalidFrontMatter when the front matter is malformed, or not a mapping
+     */
+    public function frontMatter(string $source): array;
 }

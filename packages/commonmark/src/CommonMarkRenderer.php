@@ -12,6 +12,7 @@ use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
 use League\CommonMark\Extension\ExternalLink\ExternalLinkProcessor;
 use League\CommonMark\Extension\FrontMatter\FrontMatterExtension;
+use League\CommonMark\Extension\FrontMatter\FrontMatterParser;
 use League\CommonMark\Extension\FrontMatter\Output\RenderedContentWithFrontMatter;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
@@ -47,6 +48,14 @@ final class CommonMarkRenderer implements MarkdownInterface
 
         /** @var array<string, mixed> $meta YamlFrontMatter only ever returns a mapping */
         return new Document($meta ?? [], new HtmlView($result->getContent()));
+    }
+
+    public function frontMatter(string $source): array
+    {
+        // The parser the converters use, so a listing and a page never
+        // disagree about where the front matter ends.
+        /** @var array<string, mixed> YamlFrontMatter only ever returns a mapping */
+        return (new FrontMatterParser(new YamlFrontMatter))->parse($source)->getFrontMatter() ?? [];
     }
 
     private function converter(bool $trusted): MarkdownConverter

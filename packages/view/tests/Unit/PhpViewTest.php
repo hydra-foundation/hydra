@@ -489,6 +489,11 @@ final class PhpViewTest extends ViewContractTestCase
             {
                 return new Document([], $this->toHtml($source, $trusted));
             }
+
+            public function frontMatter(string $source): array
+            {
+                return [];
+            }
         };
     }
 

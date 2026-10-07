@@ -117,6 +117,41 @@ final class FrontMatterTest extends TestCase
         $this->assertStringContainsString('<b>x</b>', (string) $this->markdown->parse('<b>x</b>', trusted: true)->html);
     }
 
+    /** @return iterable<string, array{string}> */
+    public static function files(): iterable
+    {
+        yield 'none' => ["# Title\n\nBody."];
+        yield 'only a comment' => ["---\n# title: not yet\n---\nBody."];
+        yield 'a post' => ["---\ntitle: First post\ndate: 2026-10-10\ntags: [code, hydra]\ndraft: true\n---\n\nBody."];
+        yield 'nothing below it' => ["---\ntitle: Empty\n---\n"];
+        yield 'a rule, not front matter' => ["Intro\n\n---\ntitle: no\n---\n"];
+    }
+
+    /** What a listing reads: the same meta as parse(), without the body. */
+    #[DataProvider('files')]
+    public function test_front_matter_alone_matches_a_full_parse(string $source): void
+    {
+        $this->assertEquals($this->markdown->parse($source)->meta, $this->markdown->frontMatter($source));
+    }
+
+    #[DataProvider('broken')]
+    public function test_front_matter_alone_fails_the_same_way(string $source): void
+    {
+        $this->expectException(InvalidFrontMatter::class);
+
+        $this->markdown->frontMatter($source);
+    }
+
+    public function test_front_matter_alone_never_builds_a_converter(): void
+    {
+        // A body nested far past the limit would be work to render; reading
+        // the front matter must not even look at it.
+        $meta = $this->markdown->frontMatter("---\ntitle: Deep\n---\n" . str_repeat('> ', 10_000) . 'x');
+
+        $this->assertSame(['title' => 'Deep'], $meta);
+        $this->assertSame([], (new \ReflectionProperty(CommonMarkRenderer::class, 'converters'))->getValue($this->markdown));
+    }
+
     public function test_the_failure_says_what_and_where(): void
     {
         try {
