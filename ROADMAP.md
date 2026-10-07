@@ -270,7 +270,6 @@ and did not fix is under "Gate debt" and in the backlog.
 
 What any site that publishes needs:
 
-- **Markdown** rendering, with safe defaults (no raw HTML unless allowed).
 - **File-backed sources**: a source that reads a directory of front-matter
   files, so content kept in git lists in the admin (read only) beside the
   database-backed modules.
@@ -293,6 +292,11 @@ What any site that publishes needs:
   never see and a signed start time; `rules()` checks both, and a trapped post
   is an ordinary validation error. The wiki's "Protect a public form" puts it
   beside the per-route throttle recipe.
+- **Done (0.28.0): Markdown.** `$this->markdown($text)` through view's
+  `MarkdownInterface`, filled by the new `hydrakit/commonmark`: a visitor's raw
+  HTML shown as text, unsafe links refused, front matter read with the body
+  (dates as dates), and fenced code highlighted on the server. Needs PHP 8.4,
+  which 0.27.0 made the floor.
 
 ### M4. Conversations
 
