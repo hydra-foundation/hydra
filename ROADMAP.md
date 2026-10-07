@@ -3,10 +3,10 @@
 Unreleased intent. Each item graduates to a spec (in hydra-foundation's
 `specs/`) when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.24.0 — SEO**, the second piece of M3: `hydrakit/seo` prints
-a page's meta and preview tags from one value and builds `sitemap.xml` and an
-Atom feed, and the skeleton's pages without meta say `noindex`. Before it,
-**0.23.0 — Assets** (fingerprinted stylesheets and scripts, kept a year).
+Last shipped: **0.25.0 — Date filters**: `filterable()` on a date or datetime
+field narrows an admin list by a From and a To day in the reader's zone, and
+ten of the skeleton's lists use it. Before it, **0.24.0 — SEO**, the second
+piece of M3 (`hydrakit/seo`: meta and preview tags, `sitemap.xml`, Atom feeds).
 
 ## Principles
 
