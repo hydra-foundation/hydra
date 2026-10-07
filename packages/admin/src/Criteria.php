@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Hydra\Admin;
 
+use DateTimeZone;
 use Hydra\Http\Paging;
 use Hydra\Http\Query;
 
 /**
- * A list screen's request state: which page, which order, which filters. The
+ * A list screen's request state: which page, which order, which filters, which
+ * days. The
  * constructor normalises what a source interpolates rather than binds; only
  * fromQuery() can whitelist sort and filter keys against the blueprint.
  */
@@ -45,13 +47,25 @@ final readonly class Criteria
     public ?string $search;
 
     /**
+     * The days each filterable date or datetime is narrowed to, keyed by field
+     * name. Apart from $filters because a range is never an exact match, so a
+     * source that only knows equality cannot misread one as such.
+     *
+     * @var array<string, DateRange>
+     */
+    public array $ranges;
+
+    /**
      * The filter link this view sits on, or null when the list is being read
      * without one. Its own filters are folded into $filters below, so a source
      * answers a link without ever being told one was clicked.
      */
     public ?Link $view;
 
-    /** @param array<string, string> $filters filters asked for on top of $view */
+    /**
+     * @param array<string, string> $filters filters asked for on top of $view
+     * @param array<string, DateRange> $ranges
+     */
     public function __construct(
         int $page = 1,
         int $perPage = 25,
@@ -60,6 +74,7 @@ final readonly class Criteria
         array $filters = [],
         ?string $search = null,
         ?Link $view = null,
+        array $ranges = [],
     ) {
         $this->paging = new Paging($page, $perPage);
         $this->page = $this->paging->page;
@@ -72,6 +87,7 @@ final readonly class Criteria
         // errors on a long paste is worse for the reader than one that matches
         // on as much of it as could ever be useful.
         $this->search = $search === null ? null : mb_substr($search, 0, self::MAX_SEARCH);
+        $this->ranges = $ranges;
     }
 
     /** The view of a list nobody has asked anything of: the module's own defaults. */
@@ -89,8 +105,12 @@ final readonly class Criteria
      * for, and takes its columns off the table while it is on: it is how a
      * link's own tally is counted, where the question is what clicking it would
      * show rather than what is showing now.
+     *
+     * $zone is the reader's, where a day starts and ends; UTC when not given.
+     * A filterable date or datetime is read as `{name}_from` / `{name}_to`
+     * days and never as an exact match.
      */
-    public static function fromQuery(Query $query, Blueprint $blueprint, ?Link $pinned = null): self
+    public static function fromQuery(Query $query, Blueprint $blueprint, ?Link $pinned = null, ?DateTimeZone $zone = null): self
     {
         $view = $pinned ?? $blueprint->link($query->string('view'));
         $sortable = array_map(static fn (Field $field): string => $field->name(), $blueprint->sortable());
@@ -98,8 +118,24 @@ final readonly class Criteria
         $sort = in_array($requested, $sortable, true) ? $requested : $blueprint->defaultSort;
 
         $filters = [];
+        $ranges = [];
 
         foreach ($blueprint->filterable() as $field) {
+            if (self::isDated($field)) {
+                $range = DateRange::fromDays(
+                    $query->string($field->name() . '_from'),
+                    $query->string($field->name() . '_to'),
+                    $field->type(),
+                    $zone ?? new DateTimeZone('UTC'),
+                );
+
+                if ($range !== null) {
+                    $ranges[$field->name()] = $range;
+                }
+
+                continue;
+            }
+
             if ($pinned !== null && array_key_exists($field->name(), $pinned->filters())) {
                 continue;
             }
@@ -123,7 +159,13 @@ final readonly class Criteria
             filters: $filters,
             search: $search === '' ? null : $search,
             view: $view,
+            ranges: $ranges,
         );
+    }
+
+    private static function isDated(Field $field): bool
+    {
+        return $field->type() === FieldType::Date || $field->type() === FieldType::DateTime;
     }
 
     /** The same list, at another page. */
@@ -137,6 +179,7 @@ final readonly class Criteria
             filters: $this->filters,
             search: $this->search,
             view: $this->view,
+            ranges: $this->ranges,
         );
     }
 
@@ -155,6 +198,7 @@ final readonly class Criteria
             filters: $this->filters,
             search: $this->search,
             view: $this->view,
+            ranges: $this->ranges,
         );
     }
 
@@ -216,7 +260,14 @@ final readonly class Criteria
             ? $this->filters
             : array_diff_assoc($this->filters, $this->view->filters());
 
-        return array_filter([...$params, ...$filters], static fn (?string $value): bool => $value !== null);
+        $days = [];
+
+        foreach ($this->ranges as $name => $range) {
+            $days[$name . '_from'] = $range->fromValue();
+            $days[$name . '_to'] = $range->toValue();
+        }
+
+        return array_filter([...$params, ...$filters, ...$days], static fn (?string $value): bool => $value !== null);
     }
 
     /**

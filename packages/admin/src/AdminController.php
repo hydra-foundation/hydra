@@ -101,7 +101,7 @@ final class AdminController
     public function list(Request $request): Response
     {
         [$blueprint] = $this->resolve($request);
-        $criteria = Criteria::fromQuery(Query::fromRequest($request), $blueprint);
+        $criteria = Criteria::fromQuery(Query::fromRequest($request), $blueprint, zone: $this->timezone->zone());
 
         // A live list refetching itself because a row in it changed: the
         // tallies the browser holds are from before, as after a write, so the
@@ -142,7 +142,7 @@ final class AdminController
             // The smallest page there is, rather than none: page() is the whole
             // of what a source promises, and the total rides along with it.
             $counts[$link->key()] = $source->page(
-                Criteria::fromQuery($query, $blueprint, $link)->inPagesOf(1),
+                Criteria::fromQuery($query, $blueprint, $link, $this->timezone->zone())->inPagesOf(1),
             )->total;
         }
 
@@ -152,7 +152,7 @@ final class AdminController
             // both of which are the criteria's to answer.
             'vm' => new ListViewModel(
                 $blueprint,
-                new Page([], 0, Criteria::fromQuery($query, $blueprint)),
+                new Page([], 0, Criteria::fromQuery($query, $blueprint, zone: $this->timezone->zone())),
                 $this->registry->prefix(),
             ),
             'counts' => $counts,
@@ -189,7 +189,7 @@ final class AdminController
             throw new NotFoundException;
         }
 
-        $criteria = Criteria::fromQuery(Query::fromRequest($request), $blueprint);
+        $criteria = Criteria::fromQuery(Query::fromRequest($request), $blueprint, zone: $this->timezone->zone());
         $exported = 0;
 
         $csv = Csv::render(
@@ -753,6 +753,7 @@ final class AdminController
                 ? Query::fromUrl($current)
                 : Query::fromRequest($request),
             $blueprint,
+            zone: $this->timezone->zone(),
         );
     }
 
