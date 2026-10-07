@@ -10,6 +10,7 @@ use Hydra\Admin\FixedTimezone;
 use Hydra\Admin\Tests\Support\AdminHarness;
 use Hydra\Admin\Tests\Support\DatedModule;
 use Hydra\Admin\Tests\Support\DatedSource;
+use Hydra\Admin\ViewModels\ListViewModel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
  */
 #[CoversClass(AdminController::class)]
 #[CoversClass(Criteria::class)]
+#[CoversClass(ListViewModel::class)]
 final class DateFilterTest extends TestCase
 {
     /** Six hours behind UTC and no daylight saving. */
@@ -81,6 +83,39 @@ final class DateFilterTest extends TestCase
 
         $this->assertStringContainsString('deployed', $body);
         $this->assertStringContainsString('of 1', $body);
+    }
+
+    public function test_the_toolbar_offers_a_from_and_a_to_day_under_the_fields_label(): void
+    {
+        $body = $this->list($this->admin(self::ZONE), '?happened_at_from=2026-10-05');
+
+        $this->assertMatchesRegularExpression('/<input[^>]*type="date"[^>]*name="happened_at_from"[^>]*value="2026-10-05"/', $body);
+        $this->assertMatchesRegularExpression('/<input[^>]*type="date"[^>]*name="happened_at_to"[^>]*value=""/', $body);
+        $this->assertStringContainsString('>Happened<', $body);
+        $this->assertStringNotContainsString('name="happened_at"', $body, 'a range is never an exact match');
+    }
+
+    public function test_each_day_is_labelled_for_a_screen_reader(): void
+    {
+        $body = $this->list($this->admin(), '');
+
+        $this->assertMatchesRegularExpression('/<label[^>]*for="admin-filter-happened_at-from"[^>]*>\s*Happened from\s*</', $body);
+        $this->assertMatchesRegularExpression('/<label[^>]*for="admin-filter-happened_at-to"[^>]*>\s*Happened to\s*</', $body);
+    }
+
+    public function test_an_exact_filter_still_draws_as_before(): void
+    {
+        $this->assertStringContainsString('id="admin-filter-kind"', $this->list($this->admin(), ''));
+    }
+
+    public function test_the_links_counts_and_export_carry_the_range(): void
+    {
+        $body = $this->list($this->admin(self::ZONE), '?' . self::FIFTH);
+        $range = 'happened_at_from=2026-10-05&amp;happened_at_to=2026-10-05';
+
+        $this->assertMatchesRegularExpression('#/admin/events\?[^"]*' . preg_quote($range, '#') . '[^"]*view=errors#', $body);
+        $this->assertStringContainsString('/admin/events/counts?' . $range, $body);
+        $this->assertMatchesRegularExpression('#/admin/events/export\?[^"]*' . preg_quote($range, '#') . '#', $body);
     }
 
     private function admin(?string $zone = null): AdminHarness

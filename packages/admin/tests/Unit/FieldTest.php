@@ -25,6 +25,14 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Flag::class)]
 final class FieldTest extends TestCase
 {
+    public function test_only_a_date_or_a_datetime_is_dated(): void
+    {
+        $this->assertTrue(Field::date('due_on')->isDated());
+        $this->assertTrue(Field::datetime('created_at')->isDated());
+        $this->assertFalse(Field::text('created_at')->isDated());
+        $this->assertFalse(Field::number('year')->isDated());
+    }
+
     public function test_it_humanizes_the_name_into_a_default_label(): void
     {
         $this->assertSame('Created at', Field::datetime('created_at')->label());

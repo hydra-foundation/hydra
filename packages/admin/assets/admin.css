@@ -320,6 +320,18 @@
     padding-right: 1.75rem;
 }
 
+/* A day picker is as wide as a date, not as a search: two at the search box's
+   width would push the range onto a line of its own on a laptop. */
+.admin-filters .admin-range .form-control {
+    min-width: 0;
+    width: auto;
+}
+
+.admin-filters .admin-range legend {
+    float: none;
+    font-size: var(--t-micro);
+}
+
 /* Filter links ------------------------------------------------------------- */
 
 /* The module's own named views of its table, above the table and below the

@@ -166,6 +166,18 @@ final readonly class ListViewModel
         return $this->page->criteria->filters[$field->name()] ?? '';
     }
 
+    /** The first day a dated filter is narrowed to, as the date input spells it. */
+    public function rangeFrom(Field $field): string
+    {
+        return ($this->page->criteria->ranges[$field->name()] ?? null)?->fromValue() ?? '';
+    }
+
+    /** The last day a dated filter is narrowed to, as the date input spells it. */
+    public function rangeTo(Field $field): string
+    {
+        return ($this->page->criteria->ranges[$field->name()] ?? null)?->toValue() ?? '';
+    }
+
     public function search(): string
     {
         return $this->page->criteria->search ?? '';

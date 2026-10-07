@@ -376,6 +376,15 @@ final class Field
         return $this->filterable;
     }
 
+    /**
+     * A calendar day or an instant: what a filter narrows by a From and a To
+     * day rather than matching exactly.
+     */
+    public function isDated(): bool
+    {
+        return $this->type === FieldType::Date || $this->type === FieldType::DateTime;
+    }
+
     public function appearsOn(Surface $surface): bool
     {
         return in_array($surface, $this->surfaces, true);

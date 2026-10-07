@@ -17,6 +17,24 @@
     <?php endif ?>
 
     <?php foreach ($vm->filters() as $field): ?>
+        <?php if ($field->isDated()): ?>
+            <?php /* A From and a To day, either left blank for open. One
+               legend for the pair, and a hidden label each, so a screen reader
+               hears "Created from" rather than two unnamed dates. */ ?>
+            <fieldset class="col-auto admin-range">
+                <legend class="form-label"><?= $this->e($field->label()) ?></legend>
+                <div class="d-flex align-items-center gap-1">
+                    <label class="visually-hidden" for="admin-filter-<?= $this->e($field->name()) ?>-from"><?= $this->e($field->label()) ?> from</label>
+                    <input class="form-control" id="admin-filter-<?= $this->e($field->name()) ?>-from" type="date" name="<?= $this->e($field->name()) ?>_from"
+                           value="<?= $this->e($vm->rangeFrom($field)) ?>">
+                    <span class="text-muted" aria-hidden="true">–</span>
+                    <label class="visually-hidden" for="admin-filter-<?= $this->e($field->name()) ?>-to"><?= $this->e($field->label()) ?> to</label>
+                    <input class="form-control" id="admin-filter-<?= $this->e($field->name()) ?>-to" type="date" name="<?= $this->e($field->name()) ?>_to"
+                           value="<?= $this->e($vm->rangeTo($field)) ?>">
+                </div>
+            </fieldset>
+            <?php continue ?>
+        <?php endif ?>
         <div class="col-auto">
             <label class="form-label" for="admin-filter-<?= $this->e($field->name()) ?>"><?= $this->e($field->label()) ?></label>
             <?php if ($field->options() === null): ?>

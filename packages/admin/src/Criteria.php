@@ -121,7 +121,7 @@ final readonly class Criteria
         $ranges = [];
 
         foreach ($blueprint->filterable() as $field) {
-            if (self::isDated($field)) {
+            if ($field->isDated()) {
                 $range = DateRange::fromDays(
                     $query->string($field->name() . '_from'),
                     $query->string($field->name() . '_to'),
@@ -161,11 +161,6 @@ final readonly class Criteria
             view: $view,
             ranges: $ranges,
         );
-    }
-
-    private static function isDated(Field $field): bool
-    {
-        return $field->type() === FieldType::Date || $field->type() === FieldType::DateTime;
     }
 
     /** The same list, at another page. */
