@@ -30,8 +30,8 @@
     ],
     "require": {
         "php": ">=8.4",
-        "hydrakit/core": "^0.30",
-        "hydrakit/view": "^0.30",
+        "hydrakit/core": "^0.31",
+        "hydrakit/view": "^0.31",
         "league/commonmark": "^2.7",
         "symfony/yaml": "^7.0",
         "tempest/highlight": "^2.28"
@@ -43,7 +43,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.30.x-dev"
+            "dev-main": "0.31.x-dev"
         }
     }
 }

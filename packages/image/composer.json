@@ -75,10 +75,10 @@
         "php": ">=8.4",
         "ext-gd": "*",
         "ext-exif": "*",
-        "hydrakit/core": "^0.30",
-        "hydrakit/console": "^0.30",
-        "hydrakit/filesystem": "^0.30",
-        "hydrakit/view": "^0.30",
+        "hydrakit/core": "^0.31",
+        "hydrakit/console": "^0.31",
+        "hydrakit/filesystem": "^0.31",
+        "hydrakit/view": "^0.31",
         "psr/log": "^3.0"
     },
     "require-dev": {
@@ -88,7 +88,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.30.x-dev"
+            "dev-main": "0.31.x-dev"
         }
     }
 }
