@@ -272,8 +272,6 @@ What any site that publishes needs:
 
 - **Image variants**: resize and crop on the public disk (thumbnails,
   `srcset`). This also gives the Files module its thumbnails.
-- **HTTP caching**: `ETag`, `Last-Modified`, `304 Not Modified`, and
-  `Cache-Control` from `Responder`.
 - **Live updates for visitors who are not signed in**: listen tokens on a
   `public.*` topic family for anyone, throttled per address, so a public page
   can update itself (an approved comment appearing, a release number
@@ -300,6 +298,13 @@ What any site that publishes needs:
   module, searched, sorted and filtered in memory, with `map:` for what a site
   derives. A broken file is listed with its reason. The wiki's "Content files"
   builds a Posts module and the public pages from one class.
+- **Done (0.30.0): HTTP caching.** `HttpCache` says how long a page may be
+  kept and what it is made of; the weak ETag mixes in the release (from
+  `APP_RELEASE` or the commit), and `HttpCacheMiddleware` answers `304`s,
+  sends `no-store` for anything silent, and keeps a public page that sets a
+  cookie private. PHP's session no longer stamps its own cache headers.
+  Lazy sessions (so a page without a form sends no cookie and a CDN could
+  keep it) are in the backlog.
 
 ### M4. Conversations
 
@@ -339,6 +344,14 @@ Building blocks with a case of their own and no milestone yet:
   and nginx answers `Range` and `304` itself. A PHP `206 Partial Content`
   fallback covers the dev server. For any app that serves large files.
 - **An HTTP client** (PSR-18), for any app that calls another service.
+- **Lazy sessions**: start the session only when something reads or writes
+  it, so a public page with no form sends no cookie and a shared cache or a
+  CDN can keep it. Touches CSRF and sign-in, so a spec of its own.
+- **A page that read the session is never public**: `HttpCacheMiddleware`
+  could keep any response private when the CSRF token or the session was
+  read while building it, instead of trusting the controller. The skeleton's
+  `layouts/base` carries the CSRF token, which the 0.30.0 recipe works around
+  with a layout of its own.
 - **Long jobs with progress**: queued jobs that report progress over SSE, for
   imports, exports and reports. The hub it needs shipped in 0.18.0.
 - **Scheduled runs and Files, live.** The same `ModuleChanges` recipe, for
