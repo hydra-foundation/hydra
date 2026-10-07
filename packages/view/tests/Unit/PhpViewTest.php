@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Hydra\View\Tests\Unit;
 
 use Hydra\Core\Security\Signer;
+use Hydra\Core\Testing\FrozenClock;
 use Hydra\Csrf\CsrfGuard;
+use Hydra\Csrf\Honeypot;
 use Hydra\Session\Stores\ArraySessionStore;
 use Hydra\View\Assets;
 use Hydra\View\HtmlView;
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
+use Hydra\View\Template;
 use Hydra\View\Contracts\ViewInterface;
 use Hydra\View\Testing\ViewContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -25,6 +28,7 @@ use RuntimeException;
  * place an untrusted string reaches the filesystem.
  */
 #[CoversClass(PhpView::class)]
+#[CoversClass(Template::class)]
 final class PhpViewTest extends ViewContractTestCase
 {
     private string $root;
@@ -425,6 +429,24 @@ final class PhpViewTest extends ViewContractTestCase
 
         $this->assertStringContainsString('name="' . CsrfGuard::FIELD . '"', $out);
         $this->assertStringContainsString('value="' . $guard->token() . '"', $out);
+    }
+
+    public function test_honeypot_prints_the_traps(): void
+    {
+        $honeypot = new Honeypot(Signer::fromHex(str_repeat('ab', 32)), new FrozenClock);
+        $view = new PhpView($this->dir, new CspNonce, honeypot: $honeypot);
+        $this->writeTemplate('form', '<?= $this->honeypot() ?>');
+
+        $this->assertSame($honeypot->markup(), $view->render('form'));
+    }
+
+    public function test_honeypot_throws_when_none_is_configured(): void
+    {
+        $this->writeTemplate('x', '<?= $this->honeypot() ?>');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('pass a Honeypot to PhpView (honeypot: …)');
+        $this->view->render('x');
     }
 
     /**

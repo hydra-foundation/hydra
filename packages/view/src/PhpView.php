@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\View;
 
 use Hydra\Csrf\CsrfGuard;
+use Hydra\Csrf\Honeypot;
 use Hydra\Http\CspNonce;
 use Hydra\View\Contracts\ViewInterface;
 use RuntimeException;
@@ -33,6 +34,8 @@ final class PhpView implements ViewInterface
      * @param array<string, mixed> $shared data every render begins with
      * @param Assets|null $assets what `$this->asset()` fingerprints with; optional
      *                            so a view that links no assets needs none
+     * @param Honeypot|null $honeypot what `$this->honeypot()` prints; optional
+     *                                so a view with no public form needs none
      */
     public function __construct(
         string $basePath,
@@ -42,6 +45,7 @@ final class PhpView implements ViewInterface
         array $fallbacks = [],
         private readonly array $shared = [],
         private readonly ?Assets $assets = null,
+        private readonly ?Honeypot $honeypot = null,
     ) {
         $this->paths = [$basePath, ...array_values($fallbacks)];
     }
@@ -77,7 +81,7 @@ final class PhpView implements ViewInterface
     {
         $data = [...$this->shared, ...$data];
 
-        return (new Template($this, $data, $this->cspNonce, $layout, $this->csrf, $this->baseUrl, $this->assets))->resolve($template);
+        return (new Template($this, $data, $this->cspNonce, $layout, $this->csrf, $this->baseUrl, $this->assets, $this->honeypot))->resolve($template);
     }
 
     public function has(string $template): bool

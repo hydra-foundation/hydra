@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\View;
 
 use Hydra\Csrf\CsrfGuard;
+use Hydra\Csrf\Honeypot;
 use Hydra\Http\CspNonce;
 use RuntimeException;
 use Stringable;
@@ -33,6 +34,7 @@ final class Template
         private readonly ?CsrfGuard $csrf = null,
         private readonly ?string $baseUrl = null,
         private readonly ?Assets $assets = null,
+        private readonly ?Honeypot $honeypot = null,
     ) {}
 
     public function resolve(string $template): string
@@ -167,6 +169,21 @@ final class Template
             CsrfGuard::FIELD,
             $this->e($this->csrfToken()),
         );
+    }
+
+    /**
+     * The spam traps for a public form, unescaped: a field people never see and
+     * a signed start time. Check them with the same Honeypot's rules().
+     */
+    public function honeypot(): string
+    {
+        if ($this->honeypot === null) {
+            throw new RuntimeException(
+                'honeypot() needs the form traps: pass a Honeypot to PhpView (honeypot: …).',
+            );
+        }
+
+        return $this->honeypot->markup();
     }
 
     /**
