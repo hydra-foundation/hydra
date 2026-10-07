@@ -11,6 +11,8 @@ use Hydra\Http\Contracts\ErrorRendererInterface;
 use Hydra\Http\Contracts\PathRedactorInterface;
 use Hydra\Http\Contracts\ServerRequestProviderInterface;
 use Hydra\Http\PlainTextErrorRenderer;
+use Hydra\Http\HttpCache;
+use Hydra\Http\Release;
 use Hydra\Http\Responder;
 use Hydra\Http\RouteCache;
 use Hydra\Http\Router;
@@ -69,6 +71,26 @@ final class HttpServiceProviderTest extends TestCase
             routeCacheEnabled: false,
             routeCachePath: '/nonexistent/routes.php',
         ))->register($this->container);
+    }
+
+    public function test_the_responder_mixes_a_bound_release_into_every_etag(): void
+    {
+        $release = new Release('v9.9.9');
+        $this->container->instance(Release::class, $release);
+        $cache = HttpCache::public()->etag('post');
+
+        $responder = $this->container->get(Responder::class);
+        $etag = $responder->cached($responder->html(''), $cache)->getHeaderLine('ETag');
+
+        $this->assertSame($cache->headers($release)['ETag'] ?? null, $etag);
+    }
+
+    public function test_without_a_release_the_responder_still_works(): void
+    {
+        $cache = HttpCache::public()->etag('post');
+        $responder = $this->container->get(Responder::class);
+
+        $this->assertSame($cache->headers()['ETag'] ?? null, $responder->cached($responder->html(''), $cache)->getHeaderLine('ETag'));
     }
 
     public function test_binds_the_whole_http_chain(): void

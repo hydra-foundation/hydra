@@ -17,6 +17,7 @@ use Hydra\Http\Emitter;
 use Hydra\Http\HttpKernel;
 use Hydra\Http\Pipeline;
 use Hydra\Http\PlainTextErrorRenderer;
+use Hydra\Http\Release;
 use Hydra\Http\Responder;
 use Hydra\Http\RouteCache;
 use Hydra\Http\RouteScanner;
@@ -54,6 +55,9 @@ final class HttpServiceProvider extends ServiceProvider
                 $container->get(ResponseFactoryInterface::class),
                 $container->get(StreamFactoryInterface::class),
                 $container->get(CspNonce::class),
+                // The app binds one (from APP_RELEASE or its commit) to mix
+                // into every ETag; without it, ETags are the parts alone.
+                $container->has(Release::class) ? $container->get(Release::class) : null,
             );
         });
 
