@@ -74,6 +74,21 @@ final class HttpCacheTest extends TestCase
         $this->assertNotSame($a, $b);
     }
 
+    public function test_a_part_that_prints_is_what_it_prints(): void
+    {
+        $uri = new class implements \Stringable {
+            public function __toString(): string
+            {
+                return '/posts/hello';
+            }
+        };
+
+        $this->assertSame(
+            HttpCache::public()->etag('/posts/hello')->headers()['ETag'] ?? null,
+            HttpCache::public()->etag($uri)->headers()['ETag'] ?? null,
+        );
+    }
+
     public function test_an_etag_needs_something_to_be_made_of(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -108,6 +123,7 @@ final class HttpCacheTest extends TestCase
         yield 'one of a list' => [['If-None-Match' => '"x", W/"abc" , "y"'], true];
         yield 'another etag' => [['If-None-Match' => 'W/"abd"'], false];
         yield 'any' => [['If-None-Match' => '*'], true];
+        yield 'any, spaced' => [['If-None-Match' => ' * '], true];
         yield 'not modified since' => [['If-Modified-Since' => self::MODIFIED], true];
         yield 'checked later' => [['If-Modified-Since' => 'Thu, 08 Oct 2026 00:00:00 GMT'], true];
         yield 'checked earlier' => [['If-Modified-Since' => 'Wed, 07 Oct 2026 16:29:59 GMT'], false];
@@ -133,6 +149,7 @@ final class HttpCacheTest extends TestCase
         $request = $this->request('GET', ['If-None-Match' => '*', 'If-Modified-Since' => self::MODIFIED]);
 
         $this->assertFalse(ConditionalGet::fresh($request, '', ''));
+        $this->assertFalse(ConditionalGet::fresh($this->request('GET', ['If-Modified-Since' => self::MODIFIED]), 'W/"a"', ''), 'a date asked for, none to compare');
         $this->assertFalse(ConditionalGet::fresh($this->request('GET', ['If-None-Match' => 'W/"a"']), '', self::MODIFIED), 'an etag asked for, none to compare');
     }
 
@@ -150,6 +167,7 @@ final class HttpCacheTest extends TestCase
         $this->assertNotSame('', $page->getHeaderLine('Last-Modified'));
 
         $this->assertTrue($responder->isFresh($this->request('GET', ['If-None-Match' => $etag]), $cache));
+        $this->assertTrue($responder->isFresh($this->request('GET', ['If-Modified-Since' => $page->getHeaderLine('Last-Modified')]), $cache));
         $this->assertFalse($responder->isFresh($this->request('GET'), $cache));
 
         $notModified = $responder->notModified($cache);

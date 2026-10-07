@@ -32,12 +32,20 @@ final class HttpCacheMiddlewareTest extends TestCase
     /** @var list<string> */
     private array $queued = [];
 
-    /** @var list<string> */
-    private array $logged = [];
+    private AbstractLogger $logger;
 
     protected function setUp(): void
     {
         $this->psr17 = new Psr17Factory;
+        $this->logger = new class extends AbstractLogger {
+            /** @var list<string> */
+            public array $logged = [];
+
+            public function log($level, string|Stringable $message, array $context = []): void
+            {
+                $this->logged[] = "{$level}: " . strtr((string) $message, ['{path}' => (string) ($context['path'] ?? '')]);
+            }
+        };
     }
 
     public function test_a_response_that_says_nothing_is_never_kept(): void
@@ -60,7 +68,7 @@ final class HttpCacheMiddlewareTest extends TestCase
 
         $this->assertSame('private, max-age=60', $response->getHeaderLine('Cache-Control'));
         $this->assertSame('a=b', $response->getHeaderLine('Set-Cookie'), 'the cookie is left alone');
-        $this->assertCount(1, $this->logged);
+        $this->assertSame(['debug: A public response set a cookie, so it was sent as private: /posts/hello'], $this->logged());
     }
 
     public function test_a_cookie_php_queued_itself_counts_too(): void
@@ -78,7 +86,22 @@ final class HttpCacheMiddlewareTest extends TestCase
         $this->queued = ['X-Powered-By: PHP'];
 
         $this->assertSame('public, no-cache', $this->through($this->page('public, no-cache'))->getHeaderLine('Cache-Control'));
-        $this->assertSame([], $this->logged);
+        $this->assertSame([], $this->logged());
+    }
+
+    public function test_public_in_any_case_is_public(): void
+    {
+        $response = $this->through($this->page('Public, max-age=60')->withHeader('Set-Cookie', 'a=b'));
+
+        $this->assertSame('private, max-age=60', $response->getHeaderLine('Cache-Control'));
+    }
+
+    public function test_without_a_logger_it_still_downgrades(): void
+    {
+        $middleware = new HttpCacheMiddleware($this->psr17, queued: static fn (): array => ['Set-Cookie: a=b']);
+        $response = $middleware->process(new ServerRequest('GET', '/'), FakeHandler::respondingWith($this->page('public, no-cache')));
+
+        $this->assertSame('private, no-cache', $response->getHeaderLine('Cache-Control'));
     }
 
     public function test_only_the_public_directive_is_downgraded(): void
@@ -163,6 +186,13 @@ final class HttpCacheMiddlewareTest extends TestCase
         $this->assertSame('public, no-cache', $response->getHeaderLine('Cache-Control'));
     }
 
+    /** @return list<string> */
+    private function logged(): array
+    {
+        /** @var list<string> */
+        return $this->logger->logged ?? [];
+    }
+
     private function validated(): ResponseInterface
     {
         $responder = new Responder($this->psr17, $this->psr17, release: new Release('v1'));
@@ -186,21 +216,10 @@ final class HttpCacheMiddlewareTest extends TestCase
     /** @param array<string, string> $headers */
     private function through(ResponseInterface $response, array $headers = [], string $method = 'GET', ?Release $release = null): ResponseInterface
     {
-        $logged = &$this->logged;
-        $logger = new class ($logged) extends AbstractLogger {
-            /** @param list<string> $logged */
-            public function __construct(private array &$logged) {}
-
-            public function log($level, string|Stringable $message, array $context = []): void
-            {
-                $this->logged[] = "{$level}: {$message}";
-            }
-        };
-
         $middleware = new HttpCacheMiddleware(
             $this->psr17,
             $release ?? new Release('v1'),
-            $logger,
+            $this->logger,
             fn (): array => $this->queued,
         );
 

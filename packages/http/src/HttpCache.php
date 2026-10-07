@@ -26,7 +26,7 @@ final readonly class HttpCache
     /** The HTTP date format, IMF-fixdate (RFC 9110 §5.6.7). */
     public const DATE = 'D, d M Y H:i:s \G\M\T';
 
-    /** @param list<string|int|float|bool>|null $parts */
+    /** @param array<string|int|float|bool>|null $parts */
     private function __construct(
         private string $scope,
         private int $maxAge,
@@ -63,7 +63,7 @@ final readonly class HttpCache
             throw new InvalidArgumentException('An ETag is made of at least one part.');
         }
 
-        $parts = array_values(array_map(static fn (mixed $part): string|int|float|bool => $part instanceof Stringable ? (string) $part : $part, $parts));
+        $parts = array_map(static fn (mixed $part): string|int|float|bool => $part instanceof Stringable ? (string) $part : $part, $parts);
 
         return new self($this->scope, $this->maxAge, $parts, $this->lastModified);
     }
@@ -85,7 +85,7 @@ final readonly class HttpCache
         $headers = ['Cache-Control' => $this->cacheControl()];
 
         if ($this->parts !== null) {
-            $hash = hash('xxh128', json_encode([$release?->id, ...$this->parts], JSON_THROW_ON_ERROR));
+            $hash = hash('xxh128', json_encode([$release?->id, $this->parts], JSON_THROW_ON_ERROR));
             $headers['ETag'] = 'W/"' . $hash . '"';
         }
 

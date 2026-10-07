@@ -50,14 +50,17 @@ final class HttpServiceProvider extends ServiceProvider
 
         $container->singleton(CspNonce::class, fn () => new CspNonce);
 
+        // A default the app replaces with its own (from APP_RELEASE or its
+        // commit). Bound rather than asked about: PHP-DI's has() says yes to
+        // any class it could try to autowire.
+        $container->singleton(Release::class, fn () => new Release(''));
+
         $container->singleton(Responder::class, function () use ($container) {
             return new Responder(
                 $container->get(ResponseFactoryInterface::class),
                 $container->get(StreamFactoryInterface::class),
                 $container->get(CspNonce::class),
-                // The app binds one (from APP_RELEASE or its commit) to mix
-                // into every ETag; without it, ETags are the parts alone.
-                $container->has(Release::class) ? $container->get(Release::class) : null,
+                $container->get(Release::class),
             );
         });
 

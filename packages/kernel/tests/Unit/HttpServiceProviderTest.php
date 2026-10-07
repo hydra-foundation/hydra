@@ -85,12 +85,12 @@ final class HttpServiceProviderTest extends TestCase
         $this->assertSame($cache->headers($release)['ETag'] ?? null, $etag);
     }
 
-    public function test_without_a_release_the_responder_still_works(): void
+    public function test_until_the_app_names_a_release_there_is_an_unnamed_one(): void
     {
-        $cache = HttpCache::public()->etag('post');
-        $responder = $this->container->get(Responder::class);
+        $release = $this->container->get(Release::class);
 
-        $this->assertSame($cache->headers()['ETag'] ?? null, $responder->cached($responder->html(''), $cache)->getHeaderLine('ETag'));
+        $this->assertSame('', $release->id);
+        $this->assertTrue($release->conditional);
     }
 
     public function test_binds_the_whole_http_chain(): void

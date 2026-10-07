@@ -39,7 +39,7 @@ final class ConditionalGet
     /** Weak comparison: `W/"x"` and `"x"` are the same tag. */
     private static function matches(string $header, string $etag): bool
     {
-        if (trim($header) === '*') {
+        if ($header === '*') {
             return true;
         }
 
@@ -61,7 +61,7 @@ final class ConditionalGet
 
     private static function date(string $value): ?DateTimeImmutable
     {
-        $date = DateTimeImmutable::createFromFormat('!' . HttpCache::DATE, $value, new DateTimeZone('UTC'));
+        $date = DateTimeImmutable::createFromFormat(HttpCache::DATE, $value, new DateTimeZone('UTC'));
 
         return $date === false ? null : $date;
     }

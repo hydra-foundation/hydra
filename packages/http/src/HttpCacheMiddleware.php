@@ -42,7 +42,7 @@ final class HttpCacheMiddleware implements MiddlewareInterface
         private readonly ?LoggerInterface $logger = null,
         ?Closure $queued = null,
     ) {
-        $this->queued = $queued ?? static fn (): array => array_values(headers_list());
+        $this->queued = $queued ?? headers_list(...);
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
