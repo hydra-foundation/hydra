@@ -76,6 +76,17 @@ final class FileReferences
      *
      * @return Generator<int, Orphan>
      */
+    /**
+     * Whether a file is a copy the app made of another, not an upload:
+     * hydrakit/image's resized pictures, under `variants/` on the public
+     * disk. Nothing references them and they are not the admin's to tidy;
+     * `image:variants --prune` removes the stale ones.
+     */
+    public static function isDerived(string $disk, string $key): bool
+    {
+        return $disk === Disks::PUBLIC && str_starts_with($key, 'variants/');
+    }
+
     public function orphans(): Generator
     {
         $referenced = [];
@@ -88,7 +99,7 @@ final class FileReferences
             foreach ($this->disks->get($disk)->list() as $file) {
                 $qualified = $this->disks->qualify($disk, $file->key);
 
-                if (!isset($referenced[$qualified]) && !$this->isNew($file)) {
+                if (!isset($referenced[$qualified]) && !$this->isNew($file) && !self::isDerived($disk, $file->key)) {
                     yield new Orphan($qualified, $file);
                 }
             }

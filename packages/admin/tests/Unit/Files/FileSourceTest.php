@@ -176,6 +176,19 @@ final class FileSourceTest extends TestCase
         $this->assertSame('2 files · 3.0KB (private 2.0KB, public 1.0KB)', $page->note);
     }
 
+    public function test_image_copies_are_not_files_to_show(): void
+    {
+        mkdir($this->disks->root . '/public/variants/content', 0o777, true);
+        file_put_contents($this->disks->root . '/public/variants/content/abc-480.webp', str_repeat('c', 4096));
+        $cover = $this->store(Disks::PUBLIC, 'covers', self::DAY, str_repeat('b', 1024));
+
+        $page = $this->source->page(new Criteria);
+
+        $this->assertSame([$cover], array_column($page->rows, 'key'));
+        $this->assertSame('1 file · 1.0KB (private 0B, public 1.0KB)', $page->note);
+        $this->assertNull($this->source->find(FileId::of('public:variants/content/abc-480.webp')));
+    }
+
     public function test_an_empty_storage_lists_nothing(): void
     {
         $page = $this->source->page(new Criteria);

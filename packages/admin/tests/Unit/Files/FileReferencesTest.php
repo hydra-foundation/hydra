@@ -189,6 +189,18 @@ final class FileReferencesTest extends TestCase
         $this->assertSame('image/png', $orphans[0]->file->mimeType);
     }
 
+    public function test_an_image_copy_is_not_an_orphan(): void
+    {
+        // hydrakit/image keeps its copies under variants/ on the public disk:
+        // nothing references them, and they are not uploads to tidy away.
+        mkdir($this->disks->root . '/public/variants/content', 0o777, true);
+        file_put_contents($this->disks->root . '/public/variants/content/abc-480.webp', 'copy');
+        touch($this->disks->root . '/public/variants/content/abc-480.webp', time() - 10 * self::DAY);
+        $upload = $this->stored(Disks::PUBLIC, 'covers', self::DAY + 1);
+
+        $this->assertSame([$upload], $this->qualified($this->orphans($this->files([], []))));
+    }
+
     public function test_a_file_exactly_the_grace_period_old_is_an_orphan_and_one_second_younger_is_not(): void
     {
         $old = $this->stored(Disks::PRIVATE, 'docs', self::DAY);

@@ -121,6 +121,11 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
         }
 
         [$disk, $key] = explode(':', $qualified, 2);
+
+        if (FileReferences::isDerived($disk, $key)) {
+            return null;
+        }
+
         $directory = dirname($key);
 
         foreach ($this->disks->get($disk)->list($directory === '.' ? null : $directory) as $file) {
@@ -196,6 +201,10 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
 
         foreach ($bytes as $disk => $_) {
             foreach ($this->disks->get($disk)->list() as $file) {
+                if (FileReferences::isDerived($disk, $file->key)) {
+                    continue;
+                }
+
                 $qualified = $this->disks->qualify($disk, $file->key);
                 $rows[] = $this->row($disk, $qualified, $file, $uses[$qualified] ?? []);
                 $bytes[$disk] += $file->size;
