@@ -29,7 +29,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "hydrakit/view": "^0.24",
+        "hydrakit/view": "^0.25",
         "psr/clock": "^1.0"
     },
     "require-dev": {
@@ -39,7 +39,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.24.x-dev"
+            "dev-main": "0.25.x-dev"
         }
     }
 }
