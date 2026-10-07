@@ -25,7 +25,7 @@
     ],
     "require": {
         "php": ">=8.4",
-        "hydrakit/core": "^0.29",
+        "hydrakit/core": "^0.30",
         "psr/event-dispatcher": "^1.0"
     },
     "require-dev": {
@@ -35,7 +35,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.29.x-dev"
+            "dev-main": "0.30.x-dev"
         }
     }
 }

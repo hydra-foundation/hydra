@@ -122,26 +122,26 @@
     ],
     "require": {
         "php": ">=8.4",
-        "hydrakit/core": "^0.29",
-        "hydrakit/database": "^0.29",
-        "hydrakit/http": "^0.29",
-        "hydrakit/validation": "^0.29",
-        "hydrakit/view": "^0.29",
-        "hydrakit/auth": "^0.29",
-        "hydrakit/authorization": "^0.29",
-        "hydrakit/cache": "^0.29",
+        "hydrakit/core": "^0.30",
+        "hydrakit/database": "^0.30",
+        "hydrakit/http": "^0.30",
+        "hydrakit/validation": "^0.30",
+        "hydrakit/view": "^0.30",
+        "hydrakit/auth": "^0.30",
+        "hydrakit/authorization": "^0.30",
+        "hydrakit/cache": "^0.30",
         "psr/clock": "^1.0",
         "psr/event-dispatcher": "^1.0",
         "psr/http-message": "^2.0",
         "psr/log": "^3.0",
-        "hydrakit/console": "^0.29",
-        "hydrakit/filesystem": "^0.29"
+        "hydrakit/console": "^0.30",
+        "hydrakit/filesystem": "^0.30"
     },
     "require-dev": {
-        "hydrakit/event": "^0.29",
+        "hydrakit/event": "^0.30",
         "phpunit/phpunit": "^11.0",
         "nyholm/psr7": "^1.8",
-        "hydrakit/broadcast": "^0.29"
+        "hydrakit/broadcast": "^0.30"
     },
     "suggest": {
         "hydrakit/broadcast": "Makes list screens and cards live: admin writes are published, and pages refetch what changed."
@@ -150,7 +150,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.29.x-dev"
+            "dev-main": "0.30.x-dev"
         }
     }
 }
