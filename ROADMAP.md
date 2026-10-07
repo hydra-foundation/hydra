@@ -270,8 +270,6 @@ and did not fix is under "Gate debt" and in the backlog.
 
 What any site that publishes needs:
 
-- **Image variants**: resize and crop on the public disk (thumbnails,
-  `srcset`). This also gives the Files module its thumbnails.
 - **Live updates for visitors who are not signed in**: listen tokens on a
   `public.*` topic family for anyone, throttled per address, so a public page
   can update itself (an approved comment appearing, a release number
@@ -305,6 +303,12 @@ What any site that publishes needs:
   cookie private. PHP's session no longer stamps its own cache headers.
   Lazy sessions (so a page without a form sends no cookie and a CDN could
   keep it) are in the backlog.
+- **Done (0.31.0): image variants.** The new `hydrakit/image`:
+  `$this->image($src, 'content', alt: …)` prints a `srcset` of WebP copies made
+  with GD on first use and kept on the public disk, upright and without
+  metadata, never scaled up, a megapixel limit checked before decoding;
+  `image:variants` makes them in a deploy and `--prune` clears stale ones.
+  Admin thumbnails from the copies, and the private disk, are next.
 
 ### M4. Conversations
 
