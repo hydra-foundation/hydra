@@ -28,7 +28,7 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4",
         "hydrakit/view": "^0.26",
         "psr/clock": "^1.0"
     },

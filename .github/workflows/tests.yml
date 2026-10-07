@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4', '8.5']
+        php: ['8.4', '8.5']
 
     # The counter store the rate limiter rests on is RedisStore, and its
     # atomicity lives in a Lua script no other driver runs. Without a server
@@ -55,7 +55,7 @@ jobs:
       # Before composer, because it needs nothing installed and the answer is
       # about the interpreter. PHPUnit only compiles the files a test reaches,
       # so source no suite loads can hold syntax from a newer PHP and pass the
-      # whole gate; on the 8.2 leg this step is the only thing that says so.
+      # whole gate; on the 8.4 leg this step is the only thing that says so.
       - name: Parse every file
         run: bin/syntax.sh
 
@@ -138,9 +138,9 @@ jobs:
 
       - uses: ramsey/composer-install@v3
 
-      # Infection lives in tools/, not in require-dev: it needs PHP 8.3 while
-      # the framework supports 8.2, and a dev tool must not decide what the
-      # library can be installed on. The 8.2 matrix job is what says so.
+      # Infection lives in tools/, not in require-dev: a dev tool must not
+      # decide what the library can be installed on. The 8.4 matrix job is
+      # what says what it can.
       - name: Install infection
         run: composer install -d tools/infection --no-interaction --no-progress
 

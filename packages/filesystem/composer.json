@@ -25,7 +25,7 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4",
         "ext-fileinfo": "*",
         "hydrakit/core": "^0.26",
         "hydrakit/console": "^0.26",

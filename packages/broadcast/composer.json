@@ -27,7 +27,7 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4",
         "hydrakit/core": "^0.26",
         "hydrakit/cache": "^0.26",
         "hydrakit/console": "^0.26",

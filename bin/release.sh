@@ -208,7 +208,7 @@ elif (cd "$DIR/app" && docker compose exec -T php php -r \
         >/dev/null 2>&1; then
     # PHP 8.4 in the image against 8.5 on the host, so a release verified this
     # way was verified on a different minor than it was written on. Both are
-    # inside the >=8.2 the packages claim, and CI covers the matrix; worth
+    # inside the >=8.4 the packages claim, and CI covers the matrix; worth
     # knowing when a release passes here and fails there.
     suite_dir="$DIR/app"
     suite_where="app-php-1"

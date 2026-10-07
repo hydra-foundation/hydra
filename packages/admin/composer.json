@@ -121,7 +121,7 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4",
         "hydrakit/core": "^0.26",
         "hydrakit/database": "^0.26",
         "hydrakit/http": "^0.26",

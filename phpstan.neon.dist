@@ -34,11 +34,11 @@ parameters:
             paths:
                 - packages/http/tests/Unit/RouteScannerTest.php
 
-    # The packages claim >=8.2, so analyse the whole span rather than whatever
-    # PHP the runner happens to have. Otherwise a call that only exists in 8.4
-    # passes CI and breaks for a user on 8.2.
+    # The packages claim >=8.4, so analyse the whole span rather than whatever
+    # PHP the runner happens to have. Otherwise a call that only exists in 8.5
+    # passes CI and breaks for a user on 8.4.
     phpVersion:
-        min: 80200
+        min: 80400
         max: 80500
 
     # A PHPDoc type is a promise, not a runtime guarantee: callers outside the

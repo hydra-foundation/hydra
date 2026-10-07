@@ -24,7 +24,7 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4",
         "hydrakit/core": "^0.26",
         "psr/event-dispatcher": "^1.0"
     },

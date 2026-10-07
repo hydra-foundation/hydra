@@ -24,7 +24,7 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4",
         "hydrakit/core": "^0.26",
         "php-di/php-di": "^7.0"
     },

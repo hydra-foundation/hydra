@@ -4,7 +4,7 @@
 #
 #   bin/syntax.sh                  # packages, bin, tests and tools/changes
 #   bin/syntax.sh packages/admin   # one directory
-#   PHP=php8.2 bin/syntax.sh       # a particular interpreter
+#   PHP=php8.4 bin/syntax.sh       # a particular interpreter
 #
 # PHPUnit only compiles the files a test reaches, and PHPStan's phpVersion
 # range governs type rules rather than the parser, so nothing else in the gate
