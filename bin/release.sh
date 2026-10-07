@@ -437,10 +437,46 @@ fi
 
 # --no-install because app/vendor holds the symlinks to hydra/packages/*, and a
 # plain update would replace them with copies from Packagist.
+# The skeleton requires hydrakit/image, so composer refuses to resolve it on a
+# PHP without ext-gd and ext-exif, and its suite needs them too. The host may
+# not have them (0.31.0 stopped here); the app stack's image does. So app's
+# composer and checks run on the host when it can, in the php container when
+# it can't, with the clean copy inside app/ where the container sees it.
+if php -r 'exit(extension_loaded("gd") && extension_loaded("exif") ? 0 : 1);' 2>/dev/null; then
+    app_where="this machine"
+    app_run=()
+    verify_parent=$(mktemp -d)
+    verify_in_container=""
+else
+    app_where="app-php-1"
+    app_run=(docker compose exec -T -e XDEBUG_MODE=off)
+    verify_parent="$DIR/app/storage/release-verify"
+    verify_in_container="/var/www/html/app/storage/release-verify"
+fi
+
+# A command in app/ (or, with a container path, in the clean copy), wherever
+# app's PHP is.
+app_exec() {
+    local workdir="$1"
+    shift
+    if [ ${#app_run[@]} -eq 0 ]; then
+        (cd "$workdir" && "$@")
+    else
+        (cd "$DIR/app" && "${app_run[@]}" -w "$(container_path "$workdir")" php "$@")
+    fi
+}
+
+container_path() {
+    case "$1" in
+        "$verify_parent"*) printf '%s%s' "$verify_in_container" "${1#"$verify_parent"}" ;;
+        *) printf '/var/www/html/app' ;;
+    esac
+}
+
 echo
-echo "Locking the skeleton onto $TAG ..."
-(cd "$DIR/app" && composer update "hydrakit/*" --no-install --no-interaction --quiet)
-(cd "$DIR/app" && composer validate --strict --quiet) \
+echo "Locking the skeleton onto $TAG ($app_where) ..."
+app_exec "$DIR/app" composer update "hydrakit/*" --no-install --no-interaction --quiet
+app_exec "$DIR/app" composer validate --strict --quiet \
     || die "app: composer.json and the refreshed lock disagree"
 behind=$(php "$DIR/hydra/bin/lock-behind.php" "$DIR/app/composer.lock" "$TAG")
 [ -z "$behind" ] \
@@ -449,20 +485,31 @@ behind=$(php "$DIR/hydra/bin/lock-behind.php" "$DIR/app/composer.lock" "$TAG")
 # The lock is only a claim until something installs from it. This is the check
 # app's own CI runs, brought forward to where it can still stop the tag.
 echo "Verifying the skeleton against the published packages ..."
-verify=$(mktemp -d)
+mkdir -p "$verify_parent"
+verify=$(mktemp -d "$verify_parent/$TAG.XXXXXX")
 # Cleared only on success. When a check below fails this directory is the
 # only copy of the tree it judged, and removing it regardless is the other
-# half of why the last failure could not be looked at.
-trap '[ "${VERIFY_OK:-0}" = 1 ] && rm -rf "$verify"' EXIT
+# half of why the last failure could not be looked at. Removed from inside the
+# container when that is where it was installed: the files are root's there.
+cleanup_verify() {
+    [ "${VERIFY_OK:-0}" = 1 ] || return 0
+    if [ ${#app_run[@]} -eq 0 ]; then
+        rm -rf "$verify"
+    else
+        (cd "$DIR/app" && "${app_run[@]}" php rm -rf "$(container_path "$verify")")
+        rmdir "$verify_parent" 2>/dev/null || true
+    fi
+}
+trap cleanup_verify EXIT
 git -C "$DIR/app" archive --format=tar "$BRANCH" | tar -x -C "$verify"
 cp "$DIR/app/composer.lock" "$verify/composer.lock"
 
-run_checked "app: composer install against $TAG" "$verify" \
-    composer install --no-interaction --no-progress \
+run_checked "app: composer install against $TAG" "$DIR/app" \
+    app_exec "$verify" composer install --no-interaction --no-progress \
     || die "app: the skeleton does not install from $TAG. hydra is tagged; app is not. Fix the skeleton, then re-run for the next patch. The tree it judged is kept at $verify"
-run_checked "app: phpunit against $TAG" "$verify" ./vendor/bin/phpunit \
+run_checked "app: phpunit against $TAG" "$DIR/app" app_exec "$verify" ./vendor/bin/phpunit \
     || die "app: the suite fails against $TAG. hydra is tagged; app is not. The tree it judged is kept at $verify"
-run_checked "app: phpstan against $TAG" "$verify" ./vendor/bin/phpstan analyse --no-progress \
+run_checked "app: phpstan against $TAG" "$DIR/app" app_exec "$verify" ./vendor/bin/phpstan analyse --no-progress \
     || die "app: phpstan fails against $TAG. hydra is tagged; app is not. The tree it judged is kept at $verify"
 VERIFY_OK=1
 echo "  installs, tests and analyses clean"
