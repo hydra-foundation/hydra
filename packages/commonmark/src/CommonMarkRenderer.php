@@ -17,6 +17,7 @@ use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkProcessor;
 use League\CommonMark\MarkdownConverter;
+use Tempest\Highlight\CommonMark\HighlightExtension;
 
 /**
  * Markdown through league/commonmark, with the defaults a public page needs.
@@ -83,6 +84,12 @@ final class CommonMarkRenderer implements MarkdownInterface
 
         if ($this->options->headingIds) {
             $environment->addExtension(new HeadingPermalinkExtension);
+        }
+
+        // Escapes the code it colours, and a language it doesn't know comes
+        // out as plain escaped text: nothing inside a fence is ever markup.
+        if ($this->options->highlight) {
+            $environment->addExtension(new HighlightExtension);
         }
 
         return $environment;

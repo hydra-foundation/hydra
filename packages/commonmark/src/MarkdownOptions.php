@@ -19,11 +19,14 @@ final readonly class MarkdownOptions
      *                        can't recurse its way through the stack
      * @param list<string> $internalHosts links to these hosts are the site's
      *                                    own and keep their referrer
+     * @param bool $highlight colour fenced code on the server; off leaves
+     *                        `<pre><code class="language-…">` for the page's own
      */
     public function __construct(
         public bool $headingIds = true,
         public int $maxNesting = 20,
         public array $internalHosts = [],
+        public bool $highlight = true,
     ) {
         if ($maxNesting < 1) {
             throw new InvalidArgumentException("maxNesting must be at least 1, got {$maxNesting}.");
