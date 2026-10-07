@@ -122,6 +122,46 @@ final class VariantsCommandTest extends TestCase
         $this->assertSame($before, $this->files(), 'a picture that failed may still be named by a page');
     }
 
+    public function test_prune_is_a_flag_it_declares(): void
+    {
+        $options = new ImageOptions([]);
+        $command = new VariantsCommand(new GdImages($options, $this->root, $this->disk), $options, $this->root, $this->disk);
+
+        $this->assertSame(['prune'], array_map(static fn ($option): string => $option->name, $command->options()));
+        $this->assertFalse($command->options()[0]->takesValue);
+    }
+
+    public function test_one_picture_is_one_picture(): void
+    {
+        $this->draw($this->root . '/images/PHOTO.JPG', 300, 300);
+        mkdir($this->disk . '/variantsheets');
+
+        [, $output] = $this->command();
+
+        $this->assertStringContainsString('1 picture,', implode("\n", $output->lines()));
+        $this->assertSame(['variants/content/' => 1, 'variants/thumb/' => 1], $this->counted());
+    }
+
+    public function test_a_disk_folder_that_only_begins_like_the_copies_is_walked(): void
+    {
+        mkdir($this->disk . '/variantsheets');
+        $this->draw($this->disk . '/variantsheets/a.png', 300, 300);
+        exec('rm -rf ' . escapeshellarg($this->root . '/images'));
+
+        [, $output] = $this->command();
+
+        $this->assertStringContainsString('1 picture,', implode("\n", $output->lines()));
+    }
+
+    public function test_a_failed_prune_says_why_nothing_went(): void
+    {
+        file_put_contents($this->root . '/images/broken.jpg', 'nope');
+
+        [, $output] = $this->command(prune: true);
+
+        $this->assertStringContainsString('Nothing pruned', implode("\n", $output->lines()));
+    }
+
     public function test_nothing_to_walk_is_fine(): void
     {
         exec('rm -rf ' . escapeshellarg($this->root . '/images'));

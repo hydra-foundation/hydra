@@ -106,9 +106,6 @@ final class GdResizer
             throw new ImageRefused(basename($path) . ' would not decode.');
         }
 
-        // A GIF or palette PNG decodes to a palette; resampling wants colour.
-        imagepalettetotruecolor($image);
-
         return $image;
     }
 

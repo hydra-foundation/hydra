@@ -41,7 +41,7 @@ final readonly class Preset
             }
         }
 
-        $widths = array_values(array_unique($widths));
+        $widths = array_unique($widths);
         sort($widths);
 
         return new self($widths);

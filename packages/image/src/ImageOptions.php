@@ -17,6 +17,9 @@ final readonly class ImageOptions
     /** A preset's name is part of a path, so it is a plain segment. */
     private const NAME = '/^[a-z0-9][a-z0-9_-]*$/D';
 
+    /** @var list<string> without a trailing slash */
+    public array $directories;
+
     /**
      * @param array<string, Preset> $presets by name
      * @param list<string> $directories under the document root, from `/`: where
@@ -27,8 +30,9 @@ final readonly class ImageOptions
         public array $presets,
         public int $quality = 82,
         public int $maxMegapixels = 40,
-        public array $directories = ['/images'],
+        array $directories = ['/images'],
     ) {
+
         if ($quality < 1 || $quality > 100) {
             throw new InvalidArgumentException("Quality is 1 to 100; {$quality} was given.");
         }
@@ -42,6 +46,9 @@ final readonly class ImageOptions
                 throw new InvalidArgumentException("A directory is a path under the document root, from \"/\"; \"{$directory}\" was given.");
             }
         }
+
+        // '/images/' and '/images' are one directory; '/' is the whole root.
+        $this->directories = array_map(static fn (string $directory): string => rtrim($directory, '/'), $directories);
 
         foreach (array_keys($presets) as $name) {
             if (preg_match(self::NAME, (string) $name) !== 1) {

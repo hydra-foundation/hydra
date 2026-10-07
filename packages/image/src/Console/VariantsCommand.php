@@ -35,12 +35,19 @@ final class VariantsCommand extends Command
 {
     private const PICTURES = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
+    private readonly string $documentRoot;
+
+    private readonly string $diskRoot;
+
     public function __construct(
         private readonly GdImages $images,
         private readonly ImageOptions $options,
-        private readonly string $documentRoot,
-        private readonly string $diskRoot,
-    ) {}
+        string $documentRoot,
+        string $diskRoot,
+    ) {
+        $this->documentRoot = rtrim($documentRoot, '/');
+        $this->diskRoot = rtrim($diskRoot, '/');
+    }
 
     public function options(): array
     {
@@ -94,11 +101,9 @@ final class VariantsCommand extends Command
 
         foreach ($this->options->directories as $directory) {
             foreach ($this->pictures($this->documentRoot . $directory) as $relative) {
-                $sources[] = rtrim($directory, '/') . '/' . $relative;
+                $sources[] = $directory . '/' . $relative;
             }
         }
-
-        sort($sources);
 
         return $sources;
     }
@@ -115,7 +120,7 @@ final class VariantsCommand extends Command
 
         foreach ($files as $file) {
             if ($file->isFile() && in_array(strtolower($file->getExtension()), self::PICTURES, true)) {
-                $found[] = substr($file->getPathname(), strlen(rtrim($directory, '/')) + 1);
+                $found[] = substr($file->getPathname(), strlen($directory) + 1);
             }
         }
 

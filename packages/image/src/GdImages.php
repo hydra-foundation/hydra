@@ -38,9 +38,8 @@ final class GdImages implements ImagesInterface
         private readonly string $diskRoot,
         string $diskUrl = '/storage',
         private readonly ?LoggerInterface $logger = null,
-        ?GdResizer $resizer = null,
     ) {
-        $this->resizer = $resizer ?? new GdResizer($options);
+        $this->resizer = new GdResizer($options);
         $this->diskUrl = rtrim($diskUrl, '/');
     }
 
@@ -113,14 +112,11 @@ final class GdImages implements ImagesInterface
         }
 
         $plan = $this->plan($file, $preset);
+        $missing = array_filter(array_keys($plan), fn (string $name): bool => !is_file($this->diskRoot . '/' . $name));
 
-        foreach (array_keys($plan) as $name) {
-            if (!is_file($this->diskRoot . '/' . $name)) {
-                $names = array_combine(array_map(static fn (Variant $v): int => $v->width, $plan), array_keys($plan));
-                $this->resizer->make($file['path'], $this->options->preset($preset), fn (int $w): string => $this->diskRoot . '/' . $names[$w]);
-
-                break;
-            }
+        if ($missing !== []) {
+            $names = array_combine(array_map(static fn (Variant $v): int => $v->width, $plan), array_keys($plan));
+            $this->resizer->make($file['path'], $this->options->preset($preset), fn (int $w): string => $this->diskRoot . '/' . $names[$w]);
         }
 
         return array_values($plan);
@@ -141,7 +137,7 @@ final class GdImages implements ImagesInterface
         }
 
         [$width, $height] = $this->resizer->inspect($file['path']);
-        $hash = substr(hash('xxh128', json_encode([$file['identity'], $chosen->widths, $chosen->ratio, $this->options->quality], JSON_THROW_ON_ERROR)), 0, 16);
+        $hash = hash('xxh128', json_encode([$file['identity'], $chosen->widths, $chosen->ratio, $this->options->quality], JSON_THROW_ON_ERROR));
         $plan = [];
 
         foreach ($chosen->sizes($width, $height) as [$w, $h]) {
@@ -167,7 +163,9 @@ final class GdImages implements ImagesInterface
      */
     private function locate(string $source): array
     {
-        if (str_contains($source, "\0") || strpbrk($source, '?#') !== false || str_starts_with($source, '//')) {
+        // A query or a fragment would be a URL's, not a file's; realpath()
+        // refuses the rest (another host's //…, a null byte, a missing file).
+        if (strpbrk($source, "?#\0") !== false) {
             throw new ImageNotFound(sprintf('"%s" is not a picture\'s path or key.', $source));
         }
 
@@ -179,7 +177,7 @@ final class GdImages implements ImagesInterface
                 throw new ImageNotFound(sprintf('%s is not a file in %s.', $source, $this->documentRoot));
             }
 
-            return ['path' => $real, 'url' => $source, 'identity' => $source . '|' . filesize($real) . '|' . filemtime($real)];
+            return ['path' => $real, 'url' => $source, 'identity' => json_encode(['file', $source, filesize($real), filemtime($real)], JSON_THROW_ON_ERROR)];
         }
 
         try {
@@ -194,7 +192,7 @@ final class GdImages implements ImagesInterface
             throw new ImageNotFound(sprintf('%s is not a picture on the public disk.', $key));
         }
 
-        return ['path' => $path, 'url' => $this->diskUrl . '/' . $key, 'identity' => 'disk:' . $key];
+        return ['path' => $path, 'url' => $this->diskUrl . '/' . $key, 'identity' => json_encode(['disk', $key], JSON_THROW_ON_ERROR)];
     }
 
     /** @param array<string, string> $attributes */

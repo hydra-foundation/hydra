@@ -23,6 +23,7 @@ final class PresetTest extends TestCase
     public function test_widths_are_kept_narrowest_first_once_each(): void
     {
         $this->assertSame([480, 960, 1440], Preset::widths(1440, 480, 960, 480)->widths);
+        $this->assertSame([1, 4096], Preset::widths(4096, 1)->widths, 'the bounds themselves');
     }
 
     /** @return iterable<string, array{list<int>}> */
@@ -43,6 +44,15 @@ final class PresetTest extends TestCase
         Preset::widths(...$widths);
     }
 
+    public function test_a_crop_keeps_the_widths_and_names_its_shape(): void
+    {
+        $preset = Preset::widths(640, 1280)->crop(16, 9);
+
+        $this->assertSame([640, 1280], $preset->widths);
+        $this->assertSame([16, 9], $preset->ratio);
+        $this->assertNull(Preset::widths(640)->ratio);
+    }
+
     public function test_a_crop_needs_a_real_ratio(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -61,6 +71,7 @@ final class PresetTest extends TestCase
         yield 'cropped 16:9 from a 4:3' => [Preset::widths(640, 1280)->crop(16, 9), 4000, 3000, [[640, 360], [1280, 720]]];
         yield 'cropped square from a portrait' => [Preset::widths(160)->crop(1, 1), 3000, 4000, [[160, 160]]];
         yield 'a crop no wider than the source allows' => [Preset::widths(640, 1280)->crop(16, 9), 1000, 1000, [[640, 360], [1000, 563]]];
+        yield 'a third rounds down' => [Preset::widths(100), 3000, 1000, [[100, 33]]];
     }
 
     /** @param list<array{int, int}> $expected */
@@ -77,6 +88,10 @@ final class PresetTest extends TestCase
         yield 'wide from a 4:3, the middle band' => [Preset::widths(100)->crop(16, 9), 4000, 3000, [0, 375, 4000, 2250]];
         yield 'square from a landscape, the middle' => [Preset::widths(100)->crop(1, 1), 400, 300, [50, 0, 300, 300]];
         yield 'square from a portrait, the middle' => [Preset::widths(100)->crop(1, 1), 300, 400, [0, 50, 300, 300]];
+        yield 'tall from a landscape, the middle' => [Preset::widths(100)->crop(9, 16), 4000, 3000, [1156, 0, 1688, 3000]];
+        yield 'a width that rounds down' => [Preset::widths(100)->crop(9, 16), 1000, 1001, [218, 0, 563, 1001]];
+        yield 'a height that rounds down' => [Preset::widths(100)->crop(16, 9), 1001, 1001, [0, 219, 1001, 563]];
+        yield 'a height that rounds up' => [Preset::widths(100)->crop(16, 9), 1009, 1009, [0, 220, 1009, 568]];
     }
 
     /** @param array{int, int, int, int} $region */
@@ -97,12 +112,28 @@ final class PresetTest extends TestCase
         $this->assertSame(['/images'], $options->directories);
     }
 
+    public function test_options_at_their_bounds_are_fine(): void
+    {
+        $this->assertSame(1, (new ImageOptions([], quality: 1))->quality);
+        $this->assertSame(100, (new ImageOptions([], quality: 100))->quality);
+        $this->assertSame(1, (new ImageOptions([], maxMegapixels: 1))->maxMegapixels);
+        $this->assertSame(['/images', '', '/a/b'], (new ImageOptions([], directories: ['/images/', '/', '/a/b']))->directories);
+    }
+
+    public function test_with_no_presets_a_name_is_a_typo_too(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('the presets are none');
+
+        (new ImageOptions([]))->preset('content');
+    }
+
     public function test_an_unknown_preset_is_a_typo_and_says_which(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('"hero"');
+        $this->expectExceptionMessage('There is no image preset "hero"; the presets are content, thumb.');
 
-        (new ImageOptions(['content' => Preset::widths(480)]))->preset('hero');
+        (new ImageOptions(['content' => Preset::widths(480), 'thumb' => Preset::widths(160)]))->preset('hero');
     }
 
     /** @return iterable<string, array{array<string, mixed>}> */

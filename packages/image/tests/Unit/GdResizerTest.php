@@ -138,6 +138,26 @@ final class GdResizerTest extends TestCase
         $this->assertSame('green', $this->colourAt($this->out('turned'), ...$this->corner($green, $width, $height)));
     }
 
+    /** @return iterable<string, array{int|null}> */
+    public static function noTurn(): iterable
+    {
+        yield 'EXIF without an orientation' => [null];
+        yield 'an orientation that is no orientation' => [9];
+        yield 'zero' => [0];
+    }
+
+    #[DataProvider('noTurn')]
+    public function test_a_photo_without_a_real_orientation_is_as_stored(?int $orientation): void
+    {
+        $source = $this->quadrants(80, 40, $orientation);
+
+        $this->assertSame([80, 40], $this->resizer()->inspect($source));
+        $this->resizer()->make($source, Preset::widths(80), $this->to('as-stored'));
+
+        $this->assertSame('red', $this->colourAt($this->out('as-stored'), 20, 10));
+        $this->assertSame('green', $this->colourAt($this->out('as-stored'), 60, 10));
+    }
+
     public function test_nothing_of_the_original_metadata_comes_out(): void
     {
         $source = $this->quadrants(80, 40, 1, comment: 'GPS 51.0447 -114.0719');
@@ -165,9 +185,21 @@ final class GdResizerTest extends TestCase
         file_put_contents($source, substr_replace($bytes, pack('NN', 10_000, 5_000), 16, 8));
 
         $this->expectException(ImageRefused::class);
-        $this->expectExceptionMessage('50 megapixels');
+        $this->expectExceptionMessage('bomb.png is 50 megapixels, over the limit of 40.');
 
         $this->resizer()->inspect($source);
+    }
+
+    public function test_the_limit_itself_is_allowed_and_a_pixel_more_is_not(): void
+    {
+        $limit = new GdResizer(new ImageOptions([], maxMegapixels: 1));
+
+        $this->assertSame([1000, 1000], $limit->inspect($this->draw('png', 1000, 1000)));
+
+        $this->expectException(ImageRefused::class);
+        $this->expectExceptionMessage('is 1.3 megapixels');
+
+        $limit->inspect($this->draw('png', 1250, 1000));
     }
 
     public function test_the_limit_is_the_options(): void
@@ -185,6 +217,7 @@ final class GdResizerTest extends TestCase
         file_put_contents($source = $this->dir . '/note.jpg', 'not a picture at all');
 
         $this->expectException(ImageRefused::class);
+        $this->expectExceptionMessage('note.jpg is not a picture GD can read.');
 
         $this->resizer()->inspect($source);
     }
@@ -197,20 +230,38 @@ final class GdResizerTest extends TestCase
         imagebmp($image, $source);
 
         $this->expectException(ImageRefused::class);
-        $this->expectExceptionMessage('JPEG, PNG, GIF or WebP');
+        $this->expectExceptionMessage('a.bmp is not a JPEG, PNG, GIF or WebP.');
 
         $this->resizer()->inspect($source);
     }
 
     public function test_a_picture_whose_body_is_broken_is_refused_when_decoded(): void
     {
-        // A JPEG header GD reads the size from, and nothing behind it.
-        $bytes = (string) file_get_contents($this->draw('jpg', 40, 20));
-        file_put_contents($source = $this->dir . '/torn.jpg', substr($bytes, 0, 200));
+        // A WebP header getimagesize() reads the size from, and nothing of
+        // the picture behind it: it passes the checks and fails in GD.
+        $bytes = (string) file_get_contents($this->draw('webp', 40, 20));
+        file_put_contents($source = $this->dir . '/torn.webp', substr($bytes, 0, 30));
+        $this->assertSame([40, 20], $this->resizer()->inspect($source));
 
         $this->expectException(ImageRefused::class);
+        $this->expectExceptionMessage('torn.webp would not decode.');
 
         $this->resizer()->make($source, Preset::widths(40), $this->to('torn'));
+    }
+
+    public function test_a_copy_that_cannot_be_written_says_where(): void
+    {
+        $source = $this->draw('png', 40, 20);
+        file_put_contents($this->dir . '/blocked', 'a file where a directory should be');
+
+        try {
+            $this->resizer()->make($source, Preset::widths(40), fn (): string => $this->dir . '/blocked/copy.webp');
+            $this->fail('A copy with nowhere to go must not pass silently.');
+        } catch (ImageRefused $e) {
+            $this->assertSame('A copy could not be written to ' . $this->dir . '/blocked.', $e->getMessage());
+        }
+
+        $this->assertSame([$this->dir . '/blocked', $source], $this->files());
     }
 
     public function test_no_temporary_file_is_left_behind(): void
@@ -287,7 +338,7 @@ final class GdResizerTest extends TestCase
     }
 
     /** A JPEG of four coloured quadrants, with an EXIF orientation and a comment spliced in. */
-    private function quadrants(int $width, int $height, int $orientation, string $comment = ''): string
+    private function quadrants(int $width, int $height, ?int $orientation, string $comment = ''): string
     {
         $image = imagecreatetruecolor($width, $height);
         $this->assertInstanceOf(GdImage::class, $image);
@@ -303,10 +354,14 @@ final class GdResizerTest extends TestCase
 
         // APP1 "Exif": a big-endian TIFF header, one IFD with one entry,
         // Orientation (0x0112), SHORT, count 1, the value left-aligned.
-        $tiff = 'MM' . pack('nN', 42, 8) . pack('n', 1) . pack('nnNnn', 0x0112, 3, 1, $orientation, 0) . pack('N', 0);
+        // With no orientation, the one entry is Make (0x010F, ASCII "Abc").
+        $entry = $orientation === null
+            ? pack('nnN', 0x010F, 2, 4) . "Abc\0"
+            : pack('nnNnn', 0x0112, 3, 1, $orientation, 0);
+        $tiff = 'MM' . pack('nN', 42, 8) . pack('n', 1) . $entry . pack('N', 0);
         $app1 = "\xFF\xE1" . pack('n', strlen('Exif' . "\0\0" . $tiff) + 2) . "Exif\0\0" . $tiff;
         $com = $comment === '' ? '' : "\xFF\xFE" . pack('n', strlen($comment) + 2) . $comment;
-        $path = "{$this->dir}/photo-{$orientation}.jpg";
+        $path = "{$this->dir}/photo-" . ($orientation ?? 'none') . '.jpg';
         file_put_contents($path, "\xFF\xD8" . $app1 . $com . substr($jpeg, 2));
 
         return $path;

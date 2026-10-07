@@ -6,7 +6,6 @@ namespace Hydra\Image\Tests\Unit;
 
 use GdImage;
 use Hydra\Image\GdImages;
-use Hydra\Image\GdResizer;
 use Hydra\Image\ImageNotFound;
 use Hydra\Image\ImageOptions;
 use Hydra\Image\ImageRefused;
@@ -66,7 +65,7 @@ final class GdImagesTest extends TestCase
         $this->assertSame([[480, 360], [960, 720], [1440, 1080]], array_map(static fn (Variant $v): array => [$v->width, $v->height], $variants));
 
         foreach ($variants as $variant) {
-            $this->assertMatchesRegularExpression('#^/storage/variants/content/[0-9a-f]{16}-\d+\.webp$#', $variant->url);
+            $this->assertMatchesRegularExpression('#^/storage/variants/content/[0-9a-f]{32}-\d+\.webp$#', $variant->url);
             $file = $this->disk . substr($variant->url, strlen('/storage'));
             $this->assertFileExists($file);
             $this->assertSame([$variant->width, $variant->height], array_slice((array) getimagesize($file), 0, 2));
@@ -128,6 +127,35 @@ final class GdImagesTest extends TestCase
         $this->assertNotSame($edited, $wider->variants('/images/a.jpg', 'content')[0]->url);
     }
 
+    public function test_a_picture_saved_again_at_the_same_time_but_another_size_is_new(): void
+    {
+        $path = $this->root . '/images/a.jpg';
+        $this->draw($path, 1000, 500);
+        touch($path, 1_790_000_000);
+        clearstatcache();
+        $before = $this->images()->variants('/images/a.jpg', 'thumb')[0]->url;
+
+        file_put_contents($path, (string) file_get_contents($path) . str_repeat("\0", 10));
+        touch($path, 1_790_000_000);
+        clearstatcache();
+
+        $this->assertNotSame($before, $this->images()->variants('/images/a.jpg', 'thumb')[0]->url);
+    }
+
+    public function test_a_picture_touched_but_the_same_size_is_new(): void
+    {
+        $path = $this->root . '/images/a.jpg';
+        $this->draw($path, 1000, 500);
+        touch($path, 1_790_000_000);
+        clearstatcache();
+        $before = $this->images()->variants('/images/a.jpg', 'thumb')[0]->url;
+
+        touch($path, 1_790_000_100);
+        clearstatcache();
+
+        $this->assertNotSame($before, $this->images()->variants('/images/a.jpg', 'thumb')[0]->url);
+    }
+
     public function test_the_same_picture_in_two_places_is_two_sets(): void
     {
         $this->draw($this->root . '/images/a.jpg', 1000, 500);
@@ -167,6 +195,15 @@ final class GdImagesTest extends TestCase
         $this->assertStringNotContainsString('sizes=', $html, 'no sizes unless given');
     }
 
+    public function test_of_two_sizes_the_larger_is_the_src(): void
+    {
+        $this->draw($this->root . '/images/wide.jpg', 2000, 1000);
+
+        $html = (string) $this->images()->img('/images/wide.jpg', 'cover', alt: '');
+
+        $this->assertStringContainsString('width="1280" height="720"', $html);
+    }
+
     public function test_one_size_is_a_plain_img(): void
     {
         $this->draw($this->root . '/images/icon.png', 400, 400);
@@ -190,6 +227,8 @@ final class GdImagesTest extends TestCase
         yield 'a key not on the disk' => ['posts/nope.png'];
         yield 'a key climbing out' => ['../public/images/a.jpg'];
         yield 'a copy, not a source' => ['variants/content/abc-480.webp'];
+        yield 'back out and in again' => ['/images/../images/a.jpg'];
+        yield 'a fragment' => ['/images/a.jpg#top'];
     }
 
     #[DataProvider('badSources')]
@@ -212,6 +251,38 @@ final class GdImagesTest extends TestCase
         $this->images()->variants('/images/linked/a.png', 'content');
     }
 
+    public function test_a_link_to_a_sibling_whose_name_begins_like_the_root_is_refused(): void
+    {
+        // /tmp/x/publicity starts with /tmp/x/public: a prefix check without
+        // the separator would let it through.
+        mkdir($this->root . 'ity');
+        $this->draw($this->root . 'ity/a.png', 100, 100);
+        symlink($this->root . 'ity', $this->root . '/images/sibling');
+
+        $this->expectException(ImageNotFound::class);
+
+        $this->images()->variants('/images/sibling/a.png', 'content');
+    }
+
+    public function test_a_key_that_only_begins_like_the_copies_is_a_source(): void
+    {
+        mkdir($this->disk . '/variantsheets');
+        $this->draw($this->disk . '/variantsheets/a.png', 600, 300);
+
+        $this->assertCount(2, $this->images()->variants('variantsheets/a.png', 'content'));
+    }
+
+    public function test_roots_given_with_a_trailing_slash_are_the_same_roots(): void
+    {
+        $this->draw($this->root . '/images/a.jpg', 600, 300);
+        $images = new GdImages($this->options(), $this->root . '/', $this->disk . '/', '/storage/');
+
+        $url = $images->variants('/images/a.jpg', 'thumb')[0]->url;
+
+        $this->assertStringStartsWith('/storage/variants/thumb/', $url);
+        $this->assertFileExists($this->disk . '/' . substr($url, strlen('/storage/')));
+    }
+
     public function test_an_unknown_preset_is_a_mistake(): void
     {
         $this->draw($this->root . '/images/a.jpg', 100, 100);
@@ -228,8 +299,15 @@ final class GdImagesTest extends TestCase
         $html = (string) $this->images()->img('/images/broken.jpg', 'content', alt: 'Broken', sizes: '100vw');
 
         $this->assertSame('<img src="/images/broken.jpg" alt="Broken" loading="lazy" decoding="async">', $html);
-        $this->assertCount(1, $this->lines());
-        $this->assertStringStartsWith('warning: /images/broken.jpg', $this->lines()[0]);
+        $this->assertSame(['warning: /images/broken.jpg is shown as it is, without smaller copies: broken.jpg is not a picture GD can read.'], $this->lines());
+    }
+
+    public function test_without_a_logger_a_broken_picture_is_still_shown(): void
+    {
+        file_put_contents($this->root . '/images/broken.jpg', 'not a picture');
+        $images = new GdImages($this->options(), $this->root, $this->disk);
+
+        $this->assertStringStartsWith('<img src="/images/broken.jpg"', (string) $images->img('/images/broken.jpg', 'content', alt: ''));
     }
 
     public function test_an_upload_that_wont_decode_links_its_own_url(): void
@@ -257,6 +335,38 @@ final class GdImagesTest extends TestCase
         $this->assertSame([], $this->lines());
     }
 
+    public function test_a_drawing_in_capitals_is_still_a_drawing(): void
+    {
+        file_put_contents($this->root . '/images/LOGO.SVG', '<svg xmlns="http://www.w3.org/2000/svg"/>');
+
+        $this->assertStringStartsWith('<img src="/images/LOGO.SVG"', (string) $this->images()->img('/images/LOGO.SVG', 'content', alt: ''));
+    }
+
+    public function test_a_drawing_still_needs_a_preset_that_exists(): void
+    {
+        file_put_contents($this->root . '/images/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>');
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->images()->variants('/images/logo.svg', 'hero');
+    }
+
+    public function test_the_files_a_picture_is_kept_in_are_named_without_making_them(): void
+    {
+        $this->draw($this->root . '/images/a.jpg', 1000, 500);
+        file_put_contents($this->root . '/images/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>');
+
+        $files = $this->images()->files('/images/a.jpg', 'content');
+
+        $this->assertCount(3, $files);
+        $this->assertFileDoesNotExist($this->disk . '/' . $files[0]);
+        $this->assertSame(
+            array_map(static fn (Variant $v): string => substr($v->url, strlen('/storage/')), $this->images()->variants('/images/a.jpg', 'content')),
+            $files,
+        );
+        $this->assertSame([], $this->images()->files('/images/logo.svg', 'content'), 'nothing is made of a drawing');
+    }
+
     public function test_the_disk_url_is_the_configured_one(): void
     {
         $this->draw($this->root . '/images/a.jpg', 600, 300);
@@ -267,7 +377,7 @@ final class GdImagesTest extends TestCase
 
     private function images(): GdImages
     {
-        return new GdImages($this->options(), $this->root, $this->disk, '/storage', $this->logger, new GdResizer($this->options()));
+        return new GdImages($this->options(), $this->root, $this->disk, '/storage', $this->logger);
     }
 
     private function options(): ImageOptions
