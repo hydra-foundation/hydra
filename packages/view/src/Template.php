@@ -7,6 +7,7 @@ namespace Hydra\View;
 use Hydra\Csrf\CsrfGuard;
 use Hydra\Csrf\Honeypot;
 use Hydra\Http\CspNonce;
+use Hydra\View\Contracts\ImagesInterface;
 use Hydra\View\Contracts\MarkdownInterface;
 use RuntimeException;
 use Stringable;
@@ -37,6 +38,7 @@ final class Template
         private readonly ?Assets $assets = null,
         private readonly ?Honeypot $honeypot = null,
         private readonly ?MarkdownInterface $markdown = null,
+        private readonly ?ImagesInterface $images = null,
     ) {}
 
     public function resolve(string $template): string
@@ -201,6 +203,21 @@ final class Template
         }
 
         return $this->markdown->toHtml($markdown, $trusted);
+    }
+
+    /**
+     * A picture at the preset's sizes: an `<img>` with its `srcset`, width
+     * and height. $alt is required; '' marks the picture decorative.
+     */
+    public function image(string $source, string $preset, string $alt, ?string $sizes = null, bool $eager = false): HtmlView
+    {
+        if ($this->images === null) {
+            throw new RuntimeException(
+                'image() needs images: pass an ImagesInterface to PhpView (images: …), such as hydrakit/image\'s.',
+            );
+        }
+
+        return $this->images->img($source, $preset, $alt, $sizes, $eager);
     }
 
     /**

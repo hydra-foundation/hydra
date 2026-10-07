@@ -11,9 +11,11 @@ use Hydra\Csrf\Honeypot;
 use Hydra\Session\Stores\ArraySessionStore;
 use Hydra\View\Assets;
 use Hydra\View\HtmlView;
+use Hydra\View\Variant;
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
 use Hydra\View\Template;
+use Hydra\View\Contracts\ImagesInterface;
 use Hydra\View\Contracts\MarkdownInterface;
 use Hydra\View\Contracts\ViewInterface;
 use Hydra\View\Document;
@@ -474,6 +476,48 @@ final class PhpViewTest extends ViewContractTestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('pass a MarkdownInterface to PhpView (markdown: …)');
         $this->view->render('x');
+    }
+
+    public function test_image_prints_what_the_images_made_unescaped(): void
+    {
+        $view = new PhpView($this->dir, new CspNonce, images: self::images());
+        $this->writeTemplate('post', '<?= $this->image("/a.jpg", "content", alt: "A & B", sizes: "100vw", eager: true) ?>');
+
+        $this->assertSame('<img data-args="/a.jpg|content|A & B|100vw|eager">', $view->render('post'));
+    }
+
+    public function test_image_defaults_to_no_sizes_and_lazy(): void
+    {
+        $view = new PhpView($this->dir, new CspNonce, images: self::images());
+        $this->writeTemplate('post', '<?= $this->image("k.png", "thumb", alt: "") ?>');
+
+        $this->assertSame('<img data-args="k.png|thumb|||lazy">', $view->render('post'));
+    }
+
+    public function test_image_throws_when_none_is_configured(): void
+    {
+        $this->writeTemplate('x', '<?= $this->image("/a.jpg", "content", alt: "") ?>');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('pass an ImagesInterface to PhpView (images: …)');
+
+        $this->view->render('x');
+    }
+
+    /** Echoes what reached it, so a test can see the arguments arrive intact. */
+    private static function images(): ImagesInterface
+    {
+        return new class implements ImagesInterface {
+            public function img(string $source, string $preset, string $alt, ?string $sizes = null, bool $eager = false): HtmlView
+            {
+                return new HtmlView('<img data-args="' . implode('|', [$source, $preset, $alt, $sizes ?? '', $eager ? 'eager' : 'lazy']) . '">');
+            }
+
+            public function variants(string $source, string $preset): array
+            {
+                return [new Variant('/v.webp', 1, 1)];
+            }
+        };
     }
 
     /** Wraps its input without touching it, so a test can see what reached it. */

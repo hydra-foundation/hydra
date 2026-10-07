@@ -7,6 +7,7 @@ namespace Hydra\View;
 use Hydra\Csrf\CsrfGuard;
 use Hydra\Csrf\Honeypot;
 use Hydra\Http\CspNonce;
+use Hydra\View\Contracts\ImagesInterface;
 use Hydra\View\Contracts\MarkdownInterface;
 use Hydra\View\Contracts\ViewInterface;
 use RuntimeException;
@@ -40,6 +41,8 @@ final class PhpView implements ViewInterface
      * @param MarkdownInterface|null $markdown what `$this->markdown()` renders
      *                                         with; optional so a view that
      *                                         prints no Markdown needs none
+     * @param ImagesInterface|null $images what `$this->image()` sizes pictures
+     *                                     with; optional likewise
      */
     public function __construct(
         string $basePath,
@@ -51,6 +54,7 @@ final class PhpView implements ViewInterface
         private readonly ?Assets $assets = null,
         private readonly ?Honeypot $honeypot = null,
         private readonly ?MarkdownInterface $markdown = null,
+        private readonly ?ImagesInterface $images = null,
     ) {
         $this->paths = [$basePath, ...array_values($fallbacks)];
     }
@@ -86,7 +90,7 @@ final class PhpView implements ViewInterface
     {
         $data = [...$this->shared, ...$data];
 
-        return (new Template($this, $data, $this->cspNonce, $layout, $this->csrf, $this->baseUrl, $this->assets, $this->honeypot, $this->markdown))->resolve($template);
+        return (new Template($this, $data, $this->cspNonce, $layout, $this->csrf, $this->baseUrl, $this->assets, $this->honeypot, $this->markdown, $this->images))->resolve($template);
     }
 
     public function has(string $template): bool
