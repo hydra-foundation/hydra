@@ -1,13 +1,17 @@
 <?php /** @var \Hydra\View\Template $this */ ?>
 <?php /** @var \Hydra\Admin\ViewModels\ListViewModel $vm */ ?>
 <div hx-nonce="<?= $this->e($this->cspNonce()) ?>" class="admin-filters d-flex justify-content-between align-items-end gap-3">
+<?php /* change is debounced: a date input fires it for every complete
+   value, and a year typed digit by digit passes through 0002, 0020 and 0202 on
+   the way to 2026. Asked for at once, those raced and the list settled on one
+   of them. */ ?>
 <form class="row g-2 align-items-end"
       hx-nonce="<?= $this->e($this->cspNonce()) ?>"
       hx-get="<?= $this->e($vm->url()) ?>"
       hx-target="#admin-body"
       hx-include="#admin-sort-state"
       hx-push-url="true"
-      hx-trigger="submit, change, input from:#admin-search changed delay:300ms">
+      hx-trigger="submit, change delay:250ms, input from:#admin-search changed delay:300ms">
     <?php if ($vm->isSearchable()): ?>
         <div class="col-auto">
             <label class="form-label" for="admin-search">Search</label>

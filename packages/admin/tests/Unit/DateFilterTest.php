@@ -103,6 +103,16 @@ final class DateFilterTest extends TestCase
         $this->assertMatchesRegularExpression('/<label[^>]*for="admin-filter-happened_at-to"[^>]*>\s*Happened to\s*</', $body);
     }
 
+    public function test_a_day_typed_digit_by_digit_asks_once(): void
+    {
+        // A date input fires change for every complete value, and typing a
+        // year passes through 0002, 0020 and 0202 on the way to 2026. Asked
+        // for at once, those raced and the list could settle on year 20.
+        $body = $this->list($this->admin(), '');
+
+        $this->assertMatchesRegularExpression('/<form[^>]*hx-trigger="[^"]*\bchange delay:\d+ms/', $body);
+    }
+
     public function test_an_exact_filter_still_draws_as_before(): void
     {
         $this->assertStringContainsString('id="admin-filter-kind"', $this->list($this->admin(), ''));
