@@ -26,8 +26,8 @@
     ],
     "require": {
         "php": ">=8.4",
-        "hydrakit/core": "^0.27",
-        "hydrakit/http": "^0.27",
+        "hydrakit/core": "^0.28",
+        "hydrakit/http": "^0.28",
         "nyholm/psr7": "^1.8",
         "nyholm/psr7-server": "^1.0",
         "psr/http-message": "^2.0"
@@ -39,7 +39,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.27.x-dev"
+            "dev-main": "0.28.x-dev"
         }
     }
 }
