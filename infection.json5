@@ -1,5 +1,5 @@
 {
-    // Mutation testing over six packages, not the tree.
+    // Mutation testing over seven packages, not the tree.
     //
     // Coverage says a line ran; this says a test would have noticed it change.
     // Mutating all 2400 lines would take long enough that it would be run
@@ -7,8 +7,9 @@
     // broken code costs the most: the validation rules, the rate limiter and
     // the client-address resolver it keys on, the HTTP layer every request
     // passes through, the storage keys that stand between an upload and a
-    // path on disk, the topic names a listen token is checked against, and the
-    // escaping that carries a post's title into an attribute or a feed.
+    // path on disk, the topic names a listen token is checked against, the
+    // escaping that carries a post's title into an attribute or a feed, and
+    // the Markdown settings that keep a visitor's text from running script.
     $schema: "tools/infection/vendor/infection/infection/resources/schema.json",
     source: {
         directories: [
@@ -17,7 +18,8 @@
             "packages/http/src",
             "packages/filesystem/src",
             "packages/broadcast/src",
-            "packages/seo/src"
+            "packages/seo/src",
+            "packages/commonmark/src"
         ],
         // Relative to each directory above, not to the root: written as
         // packages/*/src/Testing it matched nothing, and went unnoticed only

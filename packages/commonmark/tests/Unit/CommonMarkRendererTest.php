@@ -161,8 +161,19 @@ final class CommonMarkRendererTest extends TestCase
         $this->assertStringContainsString('deep', $html);
     }
 
-    public function test_the_limits_are_checked_where_they_are_set(): void
+    public function test_by_default_twenty_levels_nest_and_no_more(): void
     {
+        $twenty = (string) $this->renderer()->toHtml(str_repeat('> ', 20) . 'deep');
+        $fifty = (string) $this->renderer()->toHtml(str_repeat('> ', 50) . 'deep');
+
+        $this->assertSame(20, $this->query($twenty, '//blockquote')->length);
+        $this->assertSame(20, $this->query($fifty, '//blockquote')->length);
+    }
+
+    public function test_one_level_is_the_least_a_limit_can_be(): void
+    {
+        $this->assertSame(1, (new MarkdownOptions(maxNesting: 1))->maxNesting);
+
         $this->expectException(\InvalidArgumentException::class);
 
         new MarkdownOptions(maxNesting: 0);

@@ -30,6 +30,7 @@
     ],
     "require": {
         "php": ">=8.4",
+        "hydrakit/core": "^0.26",
         "hydrakit/view": "^0.26",
         "league/commonmark": "^2.7",
         "symfony/yaml": "^7.0",

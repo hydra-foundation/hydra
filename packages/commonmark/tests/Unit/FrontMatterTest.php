@@ -33,6 +33,14 @@ final class FrontMatterTest extends TestCase
         $this->assertStringContainsString('<h1', (string) $document->html);
     }
 
+    public function test_front_matter_with_nothing_but_a_comment_is_none(): void
+    {
+        $document = $this->markdown->parse("---\n# title: not yet\n---\nBody.");
+
+        $this->assertSame([], $document->meta);
+        $this->assertStringContainsString('Body.', (string) $document->html);
+    }
+
     public function test_the_front_matter_is_read_and_left_out_of_the_body(): void
     {
         $document = $this->markdown->parse(<<<MD
@@ -103,13 +111,19 @@ final class FrontMatterTest extends TestCase
         $this->markdown->parse($source);
     }
 
-    public function test_the_failure_says_where(): void
+    public function test_a_parsed_file_is_untrusted_unless_it_says_so(): void
+    {
+        $this->assertStringContainsString('&lt;b&gt;', (string) $this->markdown->parse('<b>x</b>')->html);
+        $this->assertStringContainsString('<b>x</b>', (string) $this->markdown->parse('<b>x</b>', trusted: true)->html);
+    }
+
+    public function test_the_failure_says_what_and_where(): void
     {
         try {
             $this->markdown->parse("---\ntitle: ok\ntags: [unclosed\n---\nx");
             $this->fail('Malformed front matter must not parse.');
         } catch (InvalidFrontMatter $e) {
-            $this->assertMatchesRegularExpression('/line \d+/i', $e->getMessage());
+            $this->assertMatchesRegularExpression('/^The front matter .*line \d+/is', $e->getMessage());
         }
     }
 }

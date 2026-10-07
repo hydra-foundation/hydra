@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Hydra\CommonMark;
 
-use DateTimeImmutable;
-use DateTimeInterface;
 use Hydra\View\InvalidFrontMatter;
 use League\CommonMark\Extension\FrontMatter\Data\FrontMatterDataParserInterface;
 use Symfony\Component\Yaml\Exception\ParseException;
@@ -13,8 +11,9 @@ use Symfony\Component\Yaml\Yaml;
 
 /**
  * The YAML at the top of a content file, as a mapping. Unquoted dates come
- * back as DateTimeImmutable: left to itself symfony/yaml turns `2026-10-10`
- * into a Unix timestamp, an int no caller would expect a date to be.
+ * back as DateTimeImmutable (PARSE_DATETIME): left to itself symfony/yaml
+ * turns `2026-10-10` into a Unix timestamp, an int no caller would expect a
+ * date to be.
  */
 final class YamlFrontMatter implements FrontMatterDataParserInterface
 {
@@ -36,15 +35,6 @@ final class YamlFrontMatter implements FrontMatterDataParserInterface
         }
 
         /** @var array<string, mixed> */
-        return self::immutable($data);
-    }
-
-    private static function immutable(mixed $value): mixed
-    {
-        return match (true) {
-            $value instanceof DateTimeInterface => DateTimeImmutable::createFromInterface($value),
-            is_array($value) => array_map(self::immutable(...), $value),
-            default => $value,
-        };
+        return $data;
     }
 }

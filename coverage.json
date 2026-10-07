@@ -4,6 +4,7 @@
     "authorization": 100,
     "broadcast": 97.4,
     "cache": 89.8,
+    "commonmark": 100,
     "console": 95.3,
     "core": 95.6,
     "csrf": 97.3,
