@@ -14,7 +14,9 @@ use Hydra\View\HtmlView;
 use Hydra\Http\CspNonce;
 use Hydra\View\PhpView;
 use Hydra\View\Template;
+use Hydra\View\Contracts\MarkdownInterface;
 use Hydra\View\Contracts\ViewInterface;
+use Hydra\View\Document;
 use Hydra\View\Testing\ViewContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -447,6 +449,47 @@ final class PhpViewTest extends ViewContractTestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('pass a Honeypot to PhpView (honeypot: …)');
         $this->view->render('x');
+    }
+
+    public function test_markdown_prints_the_renderers_html_unescaped(): void
+    {
+        $view = new PhpView($this->dir, new CspNonce, markdown: self::markdown());
+        $this->writeTemplate('post', '<?= $this->markdown("# Hi") ?>');
+
+        $this->assertSame('<p data-trusted="no"># Hi</p>', $view->render('post'));
+    }
+
+    public function test_markdown_passes_trust_through(): void
+    {
+        $view = new PhpView($this->dir, new CspNonce, markdown: self::markdown());
+        $this->writeTemplate('post', '<?= $this->markdown("x", trusted: true) ?>');
+
+        $this->assertSame('<p data-trusted="yes">x</p>', $view->render('post'));
+    }
+
+    public function test_markdown_throws_when_none_is_configured(): void
+    {
+        $this->writeTemplate('x', '<?= $this->markdown("x") ?>');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('pass a MarkdownInterface to PhpView (markdown: …)');
+        $this->view->render('x');
+    }
+
+    /** Wraps its input without touching it, so a test can see what reached it. */
+    private static function markdown(): MarkdownInterface
+    {
+        return new class implements MarkdownInterface {
+            public function toHtml(string $markdown, bool $trusted = false): HtmlView
+            {
+                return new HtmlView('<p data-trusted="' . ($trusted ? 'yes' : 'no') . '">' . $markdown . '</p>');
+            }
+
+            public function parse(string $source, bool $trusted = false): Document
+            {
+                return new Document([], $this->toHtml($source, $trusted));
+            }
+        };
     }
 
     /**

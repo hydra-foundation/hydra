@@ -7,6 +7,7 @@ namespace Hydra\View;
 use Hydra\Csrf\CsrfGuard;
 use Hydra\Csrf\Honeypot;
 use Hydra\Http\CspNonce;
+use Hydra\View\Contracts\MarkdownInterface;
 use RuntimeException;
 use Stringable;
 use Throwable;
@@ -35,6 +36,7 @@ final class Template
         private readonly ?string $baseUrl = null,
         private readonly ?Assets $assets = null,
         private readonly ?Honeypot $honeypot = null,
+        private readonly ?MarkdownInterface $markdown = null,
     ) {}
 
     public function resolve(string $template): string
@@ -184,6 +186,21 @@ final class Template
         }
 
         return $this->honeypot->markup();
+    }
+
+    /**
+     * Markdown as HTML, ready to print. Raw HTML in it is shown as text unless
+     * $trusted: trust content the site's owner wrote, never a visitor's.
+     */
+    public function markdown(string $markdown, bool $trusted = false): HtmlView
+    {
+        if ($this->markdown === null) {
+            throw new RuntimeException(
+                'markdown() needs a renderer: pass a MarkdownInterface to PhpView (markdown: …), such as hydrakit/commonmark\'s.',
+            );
+        }
+
+        return $this->markdown->toHtml($markdown, $trusted);
     }
 
     /**
