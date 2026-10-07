@@ -270,9 +270,6 @@ and did not fix is under "Gate debt" and in the backlog.
 
 What any site that publishes needs:
 
-- **File-backed sources**: a source that reads a directory of front-matter
-  files, so content kept in git lists in the admin (read only) beside the
-  database-backed modules.
 - **Image variants**: resize and crop on the public disk (thumbnails,
   `srcset`). This also gives the Files module its thumbnails.
 - **HTTP caching**: `ETag`, `Last-Modified`, `304 Not Modified`, and
@@ -297,6 +294,12 @@ What any site that publishes needs:
   HTML shown as text, unsafe links refused, front matter read with the body
   (dates as dates), and fenced code highlighted on the server. Needs PHP 8.4,
   which 0.27.0 made the floor.
+- **Done (0.29.0): file-backed sources.** view's `ContentDirectory` reads a
+  folder of Markdown files with front matter (front matter only to list, a
+  slug or nothing to find); admin's `ContentSource` lists it as a read-only
+  module, searched, sorted and filtered in memory, with `map:` for what a site
+  derives. A broken file is listed with its reason. The wiki's "Content files"
+  builds a Posts module and the public pages from one class.
 
 ### M4. Conversations
 
