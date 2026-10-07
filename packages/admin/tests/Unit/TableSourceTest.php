@@ -87,6 +87,26 @@ final class TableSourceTest extends TestCase
         $this->assertSame(1, $page->total);
     }
 
+    public function test_a_range_over_unix_seconds_is_read_in_seconds(): void
+    {
+        $source = $this->build(
+            columns: [...self::COLUMNS, 'stamped_at'],
+            filterable: ['stamped_at'],
+            unixTime: ['stamped_at'],
+        );
+        $page = $source->page(new Criteria(perPage: 10, ranges: ['stamped_at' => $this->days('2026-09-02', '2026-09-03')]));
+
+        $this->assertSame(['2026-09-02 10:00:00', '2026-09-03 10:00:00'], array_column($page->rows, 'created_at'));
+    }
+
+    public function test_it_refuses_a_unix_time_column_it_does_not_read(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('unixTime names "stamped_at"');
+
+        $this->build(unixTime: ['stamped_at']);
+    }
+
     public function test_a_range_over_a_column_that_is_not_filterable_is_ignored(): void
     {
         $page = $this->source()->page(new Criteria(perPage: 10, ranges: ['created_at' => $this->days('2026-09-05', null)]));
@@ -284,6 +304,7 @@ final class TableSourceTest extends TestCase
      * @param list<string>|null $sortable
      * @param list<string>|null $searchable
      * @param list<string>|null $filterable
+     * @param list<string> $unixTime
      */
     private function build(
         string $table = 'audit',
@@ -292,6 +313,7 @@ final class TableSourceTest extends TestCase
         ?array $searchable = null,
         ?array $filterable = null,
         string $defaultSort = 'id',
+        array $unixTime = [],
     ): TableSource {
         return new TableSource(
             new PdoConnection($this->database()),
@@ -301,6 +323,7 @@ final class TableSourceTest extends TestCase
             $searchable ?? ['table_name', 'message'],
             $filterable ?? ['table_name'],
             $defaultSort,
+            $unixTime,
         );
     }
 
@@ -318,6 +341,7 @@ final class TableSourceTest extends TestCase
                 message TEXT NOT NULL,
                 secret TEXT NOT NULL,
                 created_at TEXT NOT NULL,
+                stamped_at INTEGER NOT NULL DEFAULT 0,
                 undeclared TEXT NOT NULL DEFAULT \'\'
             )'
         );
@@ -331,8 +355,8 @@ final class TableSourceTest extends TestCase
         ];
 
         foreach ($rows as $row) {
-            $pdo->prepare('INSERT INTO audit (table_name, message, secret, created_at) VALUES (?, ?, ?, ?)')
-                ->execute($row);
+            $pdo->prepare('INSERT INTO audit (table_name, message, secret, created_at, stamped_at) VALUES (?, ?, ?, ?, ?)')
+                ->execute([...$row, strtotime($row[3] . ' UTC')]);
         }
 
         return $pdo;

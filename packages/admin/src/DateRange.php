@@ -78,11 +78,13 @@ final readonly class DateRange
 
     /**
      * The range as a condition over one column, and the values to bind to it.
-     * See {@see Window::condition()}, which this reads the same way.
+     * See {@see Window::condition()}, which this reads the same way, format
+     * and all: 'U' for a datetime column that holds unix seconds. A date
+     * column is always compared as `Y-m-d`.
      *
      * @return array{0: string, 1: list<string>}
      */
-    public function condition(string $column): array
+    public function condition(string $column, string $format = 'Y-m-d H:i:s'): array
     {
         ColumnName::check($column, 'a date range');
 
@@ -107,12 +109,12 @@ final readonly class DateRange
 
         if ($this->from !== null) {
             $sql[] = "{$column} >= ?";
-            $bindings[] = $this->from->setTimezone($utc)->format('Y-m-d H:i:s');
+            $bindings[] = $this->from->setTimezone($utc)->format($format);
         }
 
         if ($this->to !== null) {
             $sql[] = "{$column} < ?";
-            $bindings[] = $this->dayAfter()->setTimezone($utc)->format('Y-m-d H:i:s');
+            $bindings[] = $this->dayAfter()->setTimezone($utc)->format($format);
         }
 
         return [implode(' AND ', $sql), $bindings];

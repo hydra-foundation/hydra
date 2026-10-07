@@ -53,6 +53,9 @@ class TableSource implements SourceInterface, RowSourceInterface, DescribesColum
      * @param list<string> $searchable columns the search box looks in
      * @param list<string> $filterable columns a toolbar filter matches exactly, or
      *                                  narrows by day when the field is a date or datetime
+     * @param list<string> $unixTime datetime columns stored as unix seconds (an INT, as
+     *                               the queue and the scheduler write them) rather than
+     *                               as a DATETIME, so a day range binds seconds
      */
     public function __construct(
         protected readonly ConnectionInterface $db,
@@ -62,6 +65,7 @@ class TableSource implements SourceInterface, RowSourceInterface, DescribesColum
         private readonly array $searchable = [],
         private readonly array $filterable = [],
         private readonly string $defaultSort = 'id',
+        private readonly array $unixTime = [],
     ) {
         $this->columns = array_values($columns);
 
@@ -158,7 +162,10 @@ class TableSource implements SourceInterface, RowSourceInterface, DescribesColum
 
         foreach ($this->filterable as $column) {
             if (isset($criteria->ranges[$column])) {
-                [$clauses[], $bounds] = $criteria->ranges[$column]->condition($column);
+                [$clauses[], $bounds] = $criteria->ranges[$column]->condition(
+                    $column,
+                    in_array($column, $this->unixTime, true) ? 'U' : 'Y-m-d H:i:s',
+                );
                 $params = [...$params, ...$bounds];
             } elseif (isset($criteria->filters[$column])) {
                 $clauses[] = $column . ' = ?';
@@ -202,6 +209,7 @@ class TableSource implements SourceInterface, RowSourceInterface, DescribesColum
             'sortable' => $this->sortable,
             'searchable' => $this->searchable,
             'filterable' => $this->filterable,
+            'unixTime' => $this->unixTime,
             'defaultSort' => [$this->defaultSort],
         ];
 

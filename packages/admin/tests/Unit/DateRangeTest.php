@@ -75,6 +75,23 @@ final class DateRangeTest extends TestCase
         );
     }
 
+    public function test_a_datetime_stored_as_epoch_seconds_is_read_in_them(): void
+    {
+        // As Window::condition() takes a format: an INT column of unix time
+        // compares against seconds, not against a formatted string.
+        $this->assertSame(
+            ['started_at >= ? AND started_at < ?', ['1790834400', '1791266400']],
+            $this->range('2026-10-01', '2026-10-05')?->condition('started_at', 'U'),
+        );
+    }
+
+    public function test_a_date_range_is_written_as_days_whatever_the_format(): void
+    {
+        $range = DateRange::fromDays('2026-10-01', null, FieldType::Date, new DateTimeZone(self::ZONE));
+
+        $this->assertSame(['due_on >= ?', ['2026-10-01']], $range?->condition('due_on', 'U'));
+    }
+
     public function test_one_end_is_one_clause(): void
     {
         $this->assertSame(['created_at >= ?', ['2026-10-01 06:00:00']], $this->range('2026-10-01', null)?->condition('created_at'));
