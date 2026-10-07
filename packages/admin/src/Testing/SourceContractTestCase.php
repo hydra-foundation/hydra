@@ -6,8 +6,12 @@ namespace Hydra\Admin\Testing;
 
 use Hydra\Admin\Contracts\DescribesColumnsInterface;
 use Hydra\Admin\Contracts\SourceInterface;
+use DateTimeZone;
 use Hydra\Admin\Criteria;
+use Hydra\Admin\DateRange;
+use Hydra\Admin\FieldType;
 use Hydra\Admin\Page;
+use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -36,7 +40,8 @@ use PHPUnit\Framework\TestCase;
  * own conditions never match the key it named passes that check, builds no
  * clause, and answers a narrowed request with the whole table. Nothing errors,
  * the toolbar renders, and the count beside a filter link reads like an answer.
- * {@see filterValues()} is what turns that declaration into something run.
+ * {@see filterValues()} is what turns that declaration into something run, and
+ * {@see rangeValues()} does the same for a timestamp filtered by day.
  */
 abstract class SourceContractTestCase extends TestCase
 {
@@ -96,6 +101,31 @@ abstract class SourceContractTestCase extends TestCase
     }
 
     /**
+     * A day range that holds some but not all rows, for each date or datetime
+     * column the source narrows by day, as `column => DateRange`. Build one
+     * with {@see days()}.
+     *
+     * The same promise as {@see filterValues()}: a column the source describes
+     * as filterable belongs in one of the two.
+     *
+     * @return array<string, DateRange>
+     */
+    protected function rangeValues(): array
+    {
+        return [];
+    }
+
+    /**
+     * A range of whole days, read in UTC, the zone rows are stored in. A date
+     * column is compared day for day; pass FieldType::Date for one.
+     */
+    final protected function days(?string $from, ?string $to, FieldType $type = FieldType::DateTime): DateRange
+    {
+        return DateRange::fromDays($from, $to, $type, new DateTimeZone('UTC'))
+            ?? throw new LogicException(sprintf('"%s" to "%s" is not a range of days.', $from ?? '', $to ?? ''));
+    }
+
+    /**
      * Whether the source counts what it matches. Counting is the expensive half
      * of a paginated query and {@see \Hydra\Admin\Extractor} deliberately does
      * not rely on it, but {@see Page::pages()} and every pagination control do,
@@ -116,13 +146,17 @@ abstract class SourceContractTestCase extends TestCase
         return (string) $row['id'];
     }
 
-    /** @param array<string, string> $filters */
+    /**
+     * @param array<string, string> $filters
+     * @param array<string, DateRange> $ranges
+     */
     final protected function criteria(
         int $page = 1,
         int $perPage = 25,
         string $direction = 'asc',
         ?string $search = null,
         array $filters = [],
+        array $ranges = [],
     ): Criteria {
         return new Criteria(
             page: $page,
@@ -131,6 +165,7 @@ abstract class SourceContractTestCase extends TestCase
             direction: $direction,
             filters: $filters,
             search: $search,
+            ranges: $ranges,
         );
     }
 
@@ -143,6 +178,7 @@ abstract class SourceContractTestCase extends TestCase
      * finds in production rather than here.
      *
      * @param array<string, string> $filters
+     * @param array<string, DateRange> $ranges
      * @return list<array<string, mixed>>
      */
     final protected function walk(
@@ -150,6 +186,7 @@ abstract class SourceContractTestCase extends TestCase
         string $direction = 'asc',
         ?string $search = null,
         array $filters = [],
+        array $ranges = [],
     ): array {
         $rows = [];
 
@@ -157,7 +194,7 @@ abstract class SourceContractTestCase extends TestCase
         // number returns the same full page for ever, and the assertion below
         // says that plainly instead of the suite hanging.
         for ($page = 1; $page <= $this->rowCount() + 2; $page++) {
-            $slice = $this->source()->page($this->criteria($page, $perPage, $direction, $search, $filters))->rows;
+            $slice = $this->source()->page($this->criteria($page, $perPage, $direction, $search, $filters, $ranges))->rows;
             $rows = [...$rows, ...$slice];
 
             if (count($slice) < $perPage) {
@@ -334,6 +371,7 @@ abstract class SourceContractTestCase extends TestCase
         $uncovered = array_values(array_diff(
             $source->describe()->filterable,
             array_keys($this->filterValues()),
+            array_keys($this->rangeValues()),
         ));
 
         // Only this direction, the way admin:check reports only this one: a
@@ -343,7 +381,7 @@ abstract class SourceContractTestCase extends TestCase
             [],
             $uncovered,
             sprintf(
-                'The source says it filters by %s, and filterValues() gives no value for it, so nothing here ever '
+                'The source says it filters by %s, and neither filterValues() nor rangeValues() gives a value for it, so nothing here ever '
                 . 'runs that filter. admin:check reads the same declaration and would pass too.',
                 implode(', ', $uncovered),
             ),
@@ -378,6 +416,38 @@ abstract class SourceContractTestCase extends TestCase
                     . 'answers a narrowed request with the whole table — or the value matches everything and proves nothing.',
                     $column,
                     $value,
+                ),
+            );
+        }
+    }
+
+    public function test_each_day_range_narrows_what_comes_back(): void
+    {
+        $ranges = $this->rangeValues();
+
+        if ($ranges === []) {
+            $this->expectNotToPerformAssertions();
+
+            return;
+        }
+
+        foreach ($ranges as $column => $range) {
+            $days = ($range->fromValue() ?? '…') . ' to ' . ($range->toValue() ?? '…');
+            $matched = $this->walk(ranges: [$column => $range]);
+
+            $this->assertNotSame(
+                [],
+                $matched,
+                sprintf('Narrowing %s to %s matched no row, so the range cannot say whether the filter works.', $column, $days),
+            );
+            $this->assertLessThan(
+                $this->rowCount(),
+                count($matched),
+                sprintf(
+                    'Narrowing %s to %s returned every row. Either the source does not apply the range — the list '
+                    . 'answers a narrowed request with the whole table — or the days hold everything and prove nothing.',
+                    $column,
+                    $days,
                 ),
             );
         }

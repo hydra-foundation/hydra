@@ -39,7 +39,7 @@ final class SourceContractFiltersTest extends TestCase
         $case = $this->caseFor(new AdvertisedFilterSource, []);
 
         $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessage('filterValues() gives no value for it');
+        $this->expectExceptionMessage('neither filterValues() nor rangeValues() gives a value for it');
 
         $case->test_every_filter_the_source_advertises_has_a_value_to_check_it_with();
     }

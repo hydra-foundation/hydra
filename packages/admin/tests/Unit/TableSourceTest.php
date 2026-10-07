@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Unit;
 
+use DateTimeZone;
 use Hydra\Admin\Criteria;
+use Hydra\Admin\DateRange;
+use Hydra\Admin\FieldType;
 use Hydra\Admin\SourceDescription;
 use Hydra\Admin\Sources\TableSource;
 use Hydra\Database\PdoConnection;
@@ -58,6 +61,45 @@ final class TableSourceTest extends TestCase
         $page = $this->source()->page(new Criteria(perPage: 10, filters: ['message' => 'renamed the account']));
 
         $this->assertSame(5, $page->total, 'message is not filterable, so the filter must not apply.');
+    }
+
+    public function test_a_day_range_narrows_the_page_to_whole_days(): void
+    {
+        $source = $this->build(filterable: ['table_name', 'created_at']);
+        $page = $source->page(new Criteria(perPage: 10, ranges: ['created_at' => $this->days('2026-09-02', '2026-09-03')]));
+
+        // The 3rd's row is at 10:00, so the To day reaches past its midnight.
+        $this->assertSame(['2026-09-02 10:00:00', '2026-09-03 10:00:00'], array_column($page->rows, 'created_at'));
+        $this->assertSame(2, $page->total);
+    }
+
+    public function test_a_range_an_exact_filter_and_a_search_narrow_together(): void
+    {
+        $source = $this->build(filterable: ['table_name', 'created_at']);
+        $page = $source->page(new Criteria(
+            perPage: 10,
+            filters: ['table_name' => 'settings'],
+            search: 'changed',
+            ranges: ['created_at' => $this->days('2026-09-04', null)],
+        ));
+
+        $this->assertSame(['changed the locale'], array_column($page->rows, 'message'));
+        $this->assertSame(1, $page->total);
+    }
+
+    public function test_a_range_over_a_column_that_is_not_filterable_is_ignored(): void
+    {
+        $page = $this->source()->page(new Criteria(perPage: 10, ranges: ['created_at' => $this->days('2026-09-05', null)]));
+
+        $this->assertSame(5, $page->total, 'created_at is not filterable here, so the range must not apply.');
+    }
+
+    private function days(?string $from, ?string $to): DateRange
+    {
+        $range = DateRange::fromDays($from, $to, FieldType::DateTime, new DateTimeZone('UTC'));
+        $this->assertNotNull($range);
+
+        return $range;
     }
 
     public function test_search_reaches_every_searchable_column(): void

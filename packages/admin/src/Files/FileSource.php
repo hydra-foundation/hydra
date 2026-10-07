@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Files;
 
+use DateTimeImmutable;
 use Hydra\Admin\Widgets\Readable;
 use Hydra\Admin\Contracts\DeleteSourceInterface;
 use Hydra\Admin\Contracts\DescribesColumnsInterface;
@@ -161,7 +162,7 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
             columns: self::COLUMNS,
             sortable: ['name', 'size', 'modified_at', 'uses'],
             searchable: ['name', 'key'],
-            filterable: ['disk', 'kind', 'status'],
+            filterable: ['disk', 'kind', 'status', 'modified_at'],
             defaultSort: 'modified_at',
         );
     }
@@ -278,6 +279,12 @@ final class FileSource implements SourceInterface, RowSourceInterface, DeleteSou
             if ((string) ($row[$column] ?? '') !== $value) {
                 return false;
             }
+        }
+
+        $modified = $criteria->ranges['modified_at'] ?? null;
+
+        if ($modified !== null && !$modified->contains(new DateTimeImmutable('@' . $row['modified_at']))) {
+            return false;
         }
 
         return $criteria->search === null

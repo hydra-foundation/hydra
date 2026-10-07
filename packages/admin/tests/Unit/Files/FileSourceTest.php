@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Hydra\Admin\Tests\Unit\Files;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Hydra\Admin\Criteria;
+use Hydra\Admin\DateRange;
 use Hydra\Admin\Exceptions\WriteRejected;
+use Hydra\Admin\FieldType;
 use Hydra\Admin\Files\FileId;
 use Hydra\Admin\Files\FileReferences;
 use Hydra\Admin\Files\FileSource;
@@ -107,6 +110,23 @@ final class FileSourceTest extends TestCase
         $this->assertSame([$text], array_column($this->rows(filters: ['kind' => 'text']), 'key'));
         $this->assertSame([$avatar], array_column($this->rows(filters: ['status' => 'in_use']), 'key'));
         $this->assertEqualsCanonicalizing([$text, $cover], array_column($this->rows(filters: ['status' => 'orphan']), 'key'));
+    }
+
+    public function test_rows_narrow_to_the_days_they_were_modified_on(): void
+    {
+        $recent = $this->store(Disks::PRIVATE, 'docs', self::DAY);
+        $old = $this->store(Disks::PRIVATE, 'docs', 5 * self::DAY);
+        $utc = new DateTimeZone('UTC');
+        $day = fn (int $daysAgo): string => $this->clock->now()->setTimezone($utc)->modify("-{$daysAgo} days")->format('Y-m-d');
+
+        $since = DateRange::fromDays($day(2), null, FieldType::DateTime, $utc);
+        $until = DateRange::fromDays(null, $day(3), FieldType::DateTime, $utc);
+        $this->assertNotNull($since);
+        $this->assertNotNull($until);
+
+        $this->assertSame([$recent], array_column($this->rows(ranges: ['modified_at' => $since]), 'key'));
+        $this->assertSame([$old], array_column($this->rows(ranges: ['modified_at' => $until]), 'key'));
+        $this->assertContains('modified_at', $this->source->describe()->filterable);
     }
 
     public function test_search_matches_the_name_and_the_key(): void
@@ -256,9 +276,10 @@ final class FileSourceTest extends TestCase
 
     /**
      * @param array<string, string> $filters
+     * @param array<string, DateRange> $ranges
      * @return list<array<string, mixed>>
      */
-    private function rows(array $filters = [], ?string $search = null, ?string $sort = 'modified_at', string $direction = 'desc'): array
+    private function rows(array $filters = [], ?string $search = null, ?string $sort = 'modified_at', string $direction = 'desc', array $ranges = []): array
     {
         return $this->source->page(new Criteria(
             perPage: 100,
@@ -266,6 +287,7 @@ final class FileSourceTest extends TestCase
             direction: $direction,
             filters: $filters,
             search: $search,
+            ranges: $ranges,
         ))->rows;
     }
 

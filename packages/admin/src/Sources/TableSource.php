@@ -51,7 +51,8 @@ class TableSource implements SourceInterface, RowSourceInterface, DescribesColum
      * @param list<string> $columns every column the admin reads, the id among them
      * @param list<string> $sortable columns a list screen may ORDER BY
      * @param list<string> $searchable columns the search box looks in
-     * @param list<string> $filterable columns a toolbar filter matches exactly
+     * @param list<string> $filterable columns a toolbar filter matches exactly, or
+     *                                  narrows by day when the field is a date or datetime
      */
     public function __construct(
         protected readonly ConnectionInterface $db,
@@ -156,7 +157,10 @@ class TableSource implements SourceInterface, RowSourceInterface, DescribesColum
         }
 
         foreach ($this->filterable as $column) {
-            if (isset($criteria->filters[$column])) {
+            if (isset($criteria->ranges[$column])) {
+                [$clauses[], $bounds] = $criteria->ranges[$column]->condition($column);
+                $params = [...$params, ...$bounds];
+            } elseif (isset($criteria->filters[$column])) {
                 $clauses[] = $column . ' = ?';
                 $params[] = $criteria->filters[$column];
             }
