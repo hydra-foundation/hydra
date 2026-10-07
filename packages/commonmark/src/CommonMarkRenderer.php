@@ -11,6 +11,8 @@ use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
 use League\CommonMark\Extension\ExternalLink\ExternalLinkProcessor;
+use League\CommonMark\Extension\FrontMatter\FrontMatterExtension;
+use League\CommonMark\Extension\FrontMatter\Output\RenderedContentWithFrontMatter;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkProcessor;
@@ -39,7 +41,11 @@ final class CommonMarkRenderer implements MarkdownInterface
 
     public function parse(string $source, bool $trusted = false): Document
     {
-        return new Document([], $this->toHtml($source, $trusted));
+        $result = $this->converter($trusted)->convert($source);
+        $meta = $result instanceof RenderedContentWithFrontMatter ? $result->getFrontMatter() : [];
+
+        /** @var array<string, mixed> $meta YamlFrontMatter only ever returns a mapping */
+        return new Document($meta ?? [], new HtmlView($result->getContent()));
     }
 
     private function converter(bool $trusted): MarkdownConverter
@@ -73,6 +79,7 @@ final class CommonMarkRenderer implements MarkdownInterface
         $environment->addExtension(new CommonMarkCoreExtension);
         $environment->addExtension(new GithubFlavoredMarkdownExtension);
         $environment->addExtension(new ExternalLinkExtension);
+        $environment->addExtension(new FrontMatterExtension(new YamlFrontMatter));
 
         if ($this->options->headingIds) {
             $environment->addExtension(new HeadingPermalinkExtension);

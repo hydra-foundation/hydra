@@ -6,6 +6,7 @@ namespace Hydra\View\Contracts;
 
 use Hydra\View\Document;
 use Hydra\View\HtmlView;
+use Hydra\View\InvalidFrontMatter;
 
 /**
  * Markdown to HTML that a page can print as it is. Untrusted is the default:
@@ -17,6 +18,10 @@ interface MarkdownInterface
 {
     public function toHtml(string $markdown, bool $trusted = false): HtmlView;
 
-    /** A content file: its front matter, and its body as HTML. */
+    /**
+     * A content file: its front matter, and its body as HTML.
+     *
+     * @throws InvalidFrontMatter when the front matter is malformed, or not a mapping
+     */
     public function parse(string $source, bool $trusted = false): Document;
 }
