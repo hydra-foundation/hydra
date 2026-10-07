@@ -29,7 +29,8 @@ final class ContentDirectory
      */
     private const FRONT_MATTER = '/\A---\R.*?\R---\R\R*/s';
 
-    private readonly string $directory;
+    /** The directory, without a trailing slash. */
+    public readonly string $directory;
 
     /**
      * @throws InvalidArgumentException when $directory is not a directory: a
