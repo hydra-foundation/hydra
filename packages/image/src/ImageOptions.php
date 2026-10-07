@@ -17,11 +17,17 @@ final readonly class ImageOptions
     /** A preset's name is part of a path, so it is a plain segment. */
     private const NAME = '/^[a-z0-9][a-z0-9_-]*$/D';
 
-    /** @param array<string, Preset> $presets by name */
+    /**
+     * @param array<string, Preset> $presets by name
+     * @param list<string> $directories under the document root, from `/`: where
+     *                                  `image:variants` looks for pictures besides
+     *                                  the public disk
+     */
     public function __construct(
         public array $presets,
         public int $quality = 82,
         public int $maxMegapixels = 40,
+        public array $directories = ['/images'],
     ) {
         if ($quality < 1 || $quality > 100) {
             throw new InvalidArgumentException("Quality is 1 to 100; {$quality} was given.");
@@ -29,6 +35,12 @@ final readonly class ImageOptions
 
         if ($maxMegapixels < 1) {
             throw new InvalidArgumentException("The megapixel limit must be at least 1; {$maxMegapixels} was given.");
+        }
+
+        foreach ($directories as $directory) {
+            if (!str_starts_with($directory, '/') || in_array('..', explode('/', $directory), true)) {
+                throw new InvalidArgumentException("A directory is a path under the document root, from \"/\"; \"{$directory}\" was given.");
+            }
         }
 
         foreach (array_keys($presets) as $name) {

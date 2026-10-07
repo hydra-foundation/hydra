@@ -87,34 +87,74 @@ final class GdImages implements ImagesInterface
     }
 
     /**
+     * The files a source's copies are kept in, relative to the public disk,
+     * without making them: what `image:variants --prune` keeps.
+     *
+     * @return list<string>
+     *
+     * @throws ImageNotFound|ImageRefused
+     */
+    public function files(string $source, string $preset): array
+    {
+        return array_keys($this->plan($this->locate($source), $preset));
+    }
+
+    /**
      * @param array{path: string, url: string, identity: string} $file
      * @return list<Variant>
      */
     private function made(array $file, string $preset): array
     {
+        // Drawn at any size already: nothing to make.
+        if (self::isVector($file['path'])) {
+            $this->options->preset($preset);
+
+            return [new Variant($file['url'], 0, 0)];
+        }
+
+        $plan = $this->plan($file, $preset);
+
+        foreach (array_keys($plan) as $name) {
+            if (!is_file($this->diskRoot . '/' . $name)) {
+                $names = array_combine(array_map(static fn (Variant $v): int => $v->width, $plan), array_keys($plan));
+                $this->resizer->make($file['path'], $this->options->preset($preset), fn (int $w): string => $this->diskRoot . '/' . $names[$w]);
+
+                break;
+            }
+        }
+
+        return array_values($plan);
+    }
+
+    /**
+     * Each copy's file, relative to the public disk, and what it is.
+     *
+     * @param array{path: string, url: string, identity: string} $file
+     * @return array<string, Variant>
+     */
+    private function plan(array $file, string $preset): array
+    {
         $chosen = $this->options->preset($preset);
 
-        // Drawn at any size already: nothing to make.
-        if (str_ends_with(strtolower($file['path']), '.svg')) {
-            return [new Variant($file['url'], 0, 0)];
+        if (self::isVector($file['path'])) {
+            return [];
         }
 
         [$width, $height] = $this->resizer->inspect($file['path']);
         $hash = substr(hash('xxh128', json_encode([$file['identity'], $chosen->widths, $chosen->ratio, $this->options->quality], JSON_THROW_ON_ERROR)), 0, 16);
-        $name = static fn (int $w): string => sprintf('%s/%s/%s-%d.webp', self::DIRECTORY, $preset, $hash, $w);
-        $variants = [];
-        $missing = false;
+        $plan = [];
 
         foreach ($chosen->sizes($width, $height) as [$w, $h]) {
-            $variants[] = new Variant($this->diskUrl . '/' . $name($w), $w, $h);
-            $missing = $missing || !is_file($this->diskRoot . '/' . $name($w));
+            $name = sprintf('%s/%s/%s-%d.webp', self::DIRECTORY, $preset, $hash, $w);
+            $plan[$name] = new Variant($this->diskUrl . '/' . $name, $w, $h);
         }
 
-        if ($missing) {
-            $this->resizer->make($file['path'], $chosen, fn (int $w): string => $this->diskRoot . '/' . $name($w));
-        }
+        return $plan;
+    }
 
-        return $variants;
+    private static function isVector(string $path): bool
+    {
+        return str_ends_with(strtolower($path), '.svg');
     }
 
     /**

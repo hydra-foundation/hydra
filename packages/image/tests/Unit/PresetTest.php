@@ -94,6 +94,7 @@ final class PresetTest extends TestCase
         $this->assertSame($content, $options->preset('content'));
         $this->assertSame(82, $options->quality);
         $this->assertSame(40, $options->maxMegapixels);
+        $this->assertSame(['/images'], $options->directories);
     }
 
     public function test_an_unknown_preset_is_a_typo_and_says_which(): void
@@ -111,6 +112,8 @@ final class PresetTest extends TestCase
         yield 'a quality of nothing' => [['quality' => 0]];
         yield 'no megapixels' => [['maxMegapixels' => 0]];
         yield 'a preset name that is not a path segment' => [['presets' => ['a/b' => Preset::widths(1)]]];
+        yield 'a directory not from the root' => [['directories' => ['images']]];
+        yield 'a directory climbing out' => [['directories' => ['/images/../..']]];
     }
 
     /** @param array<string, mixed> $options */
