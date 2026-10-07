@@ -69,6 +69,9 @@
         <testsuite name="http">
             <directory>packages/http/tests</directory>
         </testsuite>
+        <testsuite name="image">
+            <directory>packages/image/tests</directory>
+        </testsuite>
         <testsuite name="kernel">
             <directory>packages/kernel/tests</directory>
         </testsuite>
@@ -132,6 +135,7 @@
             <directory>packages/event/src</directory>
             <directory>packages/filesystem/src</directory>
             <directory>packages/http/src</directory>
+            <directory>packages/image/src</directory>
             <directory>packages/kernel/src</directory>
             <directory>packages/log/src</directory>
             <directory>packages/mail/src</directory>
