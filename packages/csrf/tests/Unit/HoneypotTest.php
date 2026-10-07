@@ -95,6 +95,32 @@ final class HoneypotTest extends TestCase
         );
     }
 
+    public function test_by_default_a_person_has_three_seconds_and_a_day(): void
+    {
+        $honeypot = new Honeypot(Signer::fromHex(self::KEY_HEX), $this->clock);
+        $input = $this->submitted($honeypot->markup());
+        $error = fn (): ?string => $honeypot->error((new Validator)->validate($input, $honeypot->rules()));
+
+        $this->clock->advance('+2 seconds');
+        $this->assertNotNull($error());
+
+        $this->clock->advance('+1 second');
+        $this->assertNull($error());
+
+        $this->clock->advance('+86397 seconds');
+        $this->assertNull($error());
+
+        $this->clock->advance('+1 second');
+        $this->assertNotNull($error());
+    }
+
+    public function test_a_field_name_that_is_not_valid_utf8_is_substituted_not_dropped(): void
+    {
+        $xpath = $this->parse($this->honeypot(field: "web\xFFsite")->markup());
+
+        $this->assertSame("web\u{FFFD}site", $this->one($xpath, '//div//input')->getAttribute('name'));
+    }
+
     public function test_a_custom_field_name_is_escaped(): void
     {
         $xpath = $this->parse($this->honeypot(field: 'a"b<c')->markup());
@@ -179,7 +205,7 @@ final class HoneypotTest extends TestCase
     private function parse(string $markup): DOMXPath
     {
         $document = new DOMDocument;
-        $document->loadHTML('<!doctype html><html><body>' . $markup . '</body></html>', LIBXML_NOERROR);
+        $document->loadHTML('<!doctype html><html><head><meta charset="utf-8"></head><body>' . $markup . '</body></html>', LIBXML_NOERROR);
 
         return new DOMXPath($document);
     }
