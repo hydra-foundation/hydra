@@ -54,6 +54,7 @@ final class ContentDirectoryTest extends TestCase
     {
         $this->write('zebra.md', "---\ntitle: Z\n---\nz");
         $this->write('hello-world.md', "---\ntitle: Hello\n---\nh");
+        $this->write('hello.md', 'listed by slug, so before hello-world, though not by file name');
         $this->write('2026-10-10.md', 'dated');
         $this->write('notes.txt', 'not markdown');
         $this->write('Draft.md', 'capital');
@@ -64,7 +65,7 @@ final class ContentDirectoryTest extends TestCase
 
         $slugs = array_map(static fn (ContentFile $f): string => $f->slug, $this->directory()->all());
 
-        $this->assertSame(['2026-10-10', 'hello-world', 'zebra'], $slugs);
+        $this->assertSame(['2026-10-10', 'hello', 'hello-world', 'zebra'], $slugs);
     }
 
     public function test_a_file_carries_what_a_listing_needs(): void

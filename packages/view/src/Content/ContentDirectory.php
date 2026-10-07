@@ -98,7 +98,7 @@ final class ContentDirectory
             return new ContentFile($slug, $path, $modifiedAt, [], '', new RuntimeException("{$path} could not be read."));
         }
 
-        $body = (string) preg_replace(self::FRONT_MATTER, '', $source, 1);
+        $body = (string) preg_replace(self::FRONT_MATTER, '', $source);
 
         try {
             return new ContentFile($slug, $path, $modifiedAt, $this->markdown->frontMatter($source), $body);

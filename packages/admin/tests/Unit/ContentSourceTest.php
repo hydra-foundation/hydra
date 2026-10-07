@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hydra\Admin\Tests\Unit;
 
+use Closure;
 use DateTimeImmutable;
 use DateTimeZone;
 use Hydra\Admin\Console\AdminCheckCommand;
@@ -128,6 +129,15 @@ final class ContentSourceTest extends TestCase
         $this->assertSame($slugs, array_column($page->rows, 'slug'));
     }
 
+    public function test_search_folds_case_beyond_ascii(): void
+    {
+        $this->post('ete', ['title: Été à Paris', 'date: 2026-07-01'], 'x');
+
+        $page = $this->source()->page(new Criteria(perPage: 10, search: 'ÉTÉ'));
+
+        $this->assertSame(['ete'], array_column($page->rows, 'slug'));
+    }
+
     public function test_search_ignores_columns_it_was_not_given(): void
     {
         // "first post" is only in hello-world's body.
@@ -148,9 +158,16 @@ final class ContentSourceTest extends TestCase
 
     public function test_text_sorts_naturally_without_case(): void
     {
+        $this->post('apple', ['title: apple pie', 'date: 2026-10-02'], 'x');
+        $this->post('part-10', ['title: Part 10', 'date: 2026-10-02'], 'x');
+        $this->post('part-9', ['title: Part 9', 'date: 2026-10-02'], 'x');
+
         $page = $this->source()->page(new Criteria(perPage: 10, sort: 'title'));
 
-        $this->assertSame(['Another', 'Hello world', 'Not yet', 'Second thoughts', 'Zebra crossing'], array_values(array_filter(array_column($page->rows, 'title'))));
+        $this->assertSame(
+            ['Another', 'apple pie', 'Hello world', 'Not yet', 'Part 9', 'Part 10', 'Second thoughts', 'Zebra crossing'],
+            array_values(array_filter(array_column($page->rows, 'title'))),
+        );
     }
 
     public function test_numbers_sort_as_numbers(): void
@@ -161,6 +178,29 @@ final class ContentSourceTest extends TestCase
         $page = $this->source(columns: [...self::COLUMNS, 'order'], sortable: ['order'])->page(new Criteria(perPage: 10, sort: 'order', direction: 'desc'));
 
         $this->assertSame(['ten', 'nine'], array_slice(array_column($page->rows, 'slug'), 0, 2));
+    }
+
+    public function test_instants_sort_by_when_they_happened_not_how_they_are_written(): void
+    {
+        $at = [
+            'hello-world' => new DateTimeImmutable('2026-10-01T10:00:00+05:00'), // 05:00 UTC
+            'second' => new DateTimeImmutable('2026-10-01T06:00:00+00:00'),
+        ];
+        $source = $this->mapped(['at'], static fn (array $row): array => [...$row, 'at' => $at[$row['slug']] ?? null]);
+
+        $page = $source->page(new Criteria(perPage: 10, sort: 'at', direction: 'desc'));
+
+        $this->assertSame(['second', 'hello-world'], array_slice(array_column($page->rows, 'slug'), 0, 2));
+    }
+
+    public function test_fractions_and_negatives_sort_as_numbers(): void
+    {
+        $score = ['hello-world' => 1.5, 'second' => 1.25, 'same-day' => -10, 'draft' => -5, 'future' => 2];
+        $source = $this->mapped(['score'], static fn (array $row): array => [...$row, 'score' => $score[$row['slug']]]);
+
+        $page = $source->page(new Criteria(perPage: 10, sort: 'score'));
+
+        $this->assertSame(['broken', 'same-day', 'draft', 'second', 'hello-world', 'future'], array_column($page->rows, 'slug'));
     }
 
     public function test_an_undeclared_sort_falls_back_to_the_default(): void
@@ -190,9 +230,11 @@ final class ContentSourceTest extends TestCase
 
     public function test_a_boolean_filters_as_the_admin_spells_it(): void
     {
-        $page = $this->source(columns: [...self::COLUMNS, 'draft'], filterable: ['draft'])->page(new Criteria(perPage: 10, filters: ['draft' => '1']));
+        $this->post('kept', ['title: Kept', 'date: 2026-10-02', 'draft: false'], 'x');
+        $source = $this->source(columns: [...self::COLUMNS, 'draft'], filterable: ['draft']);
 
-        $this->assertSame(['draft'], array_column($page->rows, 'slug'));
+        $this->assertSame(['draft'], array_column($source->page(new Criteria(perPage: 10, filters: ['draft' => '1']))->rows, 'slug'));
+        $this->assertSame(['kept'], array_column($source->page(new Criteria(perPage: 10, filters: ['draft' => '0']))->rows, 'slug'));
     }
 
     public function test_a_filter_it_was_not_declared_with_is_ignored(): void
@@ -276,10 +318,19 @@ final class ContentSourceTest extends TestCase
         $source = new ContentSource(
             new ContentDirectory($this->dir, new LineFrontMatter),
             columns: ['slug'],
-            map: static fn (array $row): array => [...$row, 'nested' => ['a' => 1], 'mixed' => [1, ['x']]],
+            map: static fn (array $row): array => [
+                ...$row,
+                'nested' => ['a' => 1],
+                'mixed' => [1, ['x']],
+                'link' => ['url' => '/a/b', 'name' => 'Été'],
+                'history' => [new DateTimeImmutable('2026-01-01T00:00:00+00:00'), 'later', true],
+            ],
         );
 
         $row = $source->find('odd');
+
+        $this->assertSame('{"url":"/a/b","name":"Été"}', $row['link'] ?? null, 'as written, not escaped');
+        $this->assertSame('2026-01-01T00:00:00+00:00, later, 1', $row['history'] ?? null);
 
         $this->assertSame(3, $row['count'] ?? null);
         $this->assertFalse($row['flag'] ?? null);
@@ -374,6 +425,23 @@ final class ContentSourceTest extends TestCase
         );
 
         $this->assertSame(['id', 'slug', 'body', 'modified_at', 'problem'], $source->describe()->columns);
+    }
+
+    /**
+     * The default declaration plus computed columns, sortable, from $map.
+     *
+     * @param list<string> $extra
+     * @param Closure(array<string, mixed>): array<string, mixed> $map
+     */
+    private function mapped(array $extra, Closure $map): ContentSource
+    {
+        return new ContentSource(
+            new ContentDirectory($this->dir, new LineFrontMatter),
+            columns: [...self::COLUMNS, ...$extra],
+            sortable: $extra,
+            defaultSort: 'slug',
+            map: $map,
+        );
     }
 
     /**

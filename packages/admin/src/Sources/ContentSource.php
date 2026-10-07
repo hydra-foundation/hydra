@@ -77,9 +77,9 @@ class ContentSource implements SourceInterface, RowSourceInterface, DescribesCol
         return new SourceDescription(
             table: $this->directory->directory,
             columns: $this->columns,
-            sortable: array_values($this->sortable),
-            searchable: array_values($this->searchable),
-            filterable: array_values($this->filterable),
+            sortable: $this->sortable,
+            searchable: $this->searchable,
+            filterable: $this->filterable,
             defaultSort: $this->defaultSort,
         );
     }
@@ -93,10 +93,10 @@ class ContentSource implements SourceInterface, RowSourceInterface, DescribesCol
 
     public function page(Criteria $criteria): Page
     {
-        $rows = array_values(array_filter(
+        $rows = array_filter(
             array_map($this->row(...), $this->directory->all()),
             fn (array $row): bool => $this->matches($row, $criteria),
-        ));
+        );
 
         $this->sort($rows, $criteria);
         $withBody = $this->listsBody;
@@ -162,10 +162,10 @@ class ContentSource implements SourceInterface, RowSourceInterface, DescribesCol
         return false;
     }
 
-    /** @param list<array<string, mixed>> $rows */
+    /** @param array<int, array<string, mixed>> $rows a list once sorted */
     private function sort(array &$rows, Criteria $criteria): void
     {
-        $column = in_array($criteria->sort, $this->sortable, true) ? (string) $criteria->sort : $this->defaultSort;
+        $column = in_array($criteria->sort, $this->sortable, true) ? $criteria->sort : $this->defaultSort;
 
         usort($rows, static function (array $a, array $b) use ($column, $criteria): int {
             $order = self::compare($a[$column] ?? null, $b[$column] ?? null);
@@ -176,27 +176,22 @@ class ContentSource implements SourceInterface, RowSourceInterface, DescribesCol
         });
     }
 
-    /** Nothing first, then dates and numbers as such, and text naturally. */
+    /**
+     * Dates and numbers as such, anything else as text, naturally and without
+     * case. Nothing is the empty text, so it comes first going up.
+     */
     private static function compare(mixed $a, mixed $b): int
     {
-        return match (true) {
-            $a === null || $b === null => ($a === null ? 0 : 1) <=> ($b === null ? 0 : 1),
-            $a instanceof DateTimeInterface && $b instanceof DateTimeInterface,
-            (is_int($a) || is_float($a)) && (is_int($b) || is_float($b)) => $a <=> $b,
-            default => strnatcasecmp(self::text($a), self::text($b)),
-        };
+        $dates = $a instanceof DateTimeInterface && $b instanceof DateTimeInterface;
+        $numbers = (is_int($a) || is_float($a)) && (is_int($b) || is_float($b));
+
+        return $dates || $numbers ? $a <=> $b : strnatcasecmp(self::text($a), self::text($b));
     }
 
-    /** A value as a filter, a search or a sort sees it. */
+    /** A value as a filter, a search or a sort sees it: a flag as the admin's "1" or "0". */
     private static function text(mixed $value): string
     {
-        return match (true) {
-            $value === null => '',
-            is_bool($value) => $value ? '1' : '0',
-            is_scalar($value) => (string) $value,
-            $value instanceof DateTimeInterface => $value->format(DATE_ATOM),
-            default => (string) self::printable($value),
-        };
+        return is_bool($value) ? ($value ? '1' : '0') : (string) self::printable($value);
     }
 
     /**
