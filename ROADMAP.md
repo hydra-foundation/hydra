@@ -289,8 +289,10 @@ What any site that publishes needs:
 - **Done (0.23.0): asset fingerprinting.** `$this->asset('/css/app.css')`
   prints `/css/app.5267ab8c9f.css`; nginx keeps hashed names a year and
   revalidates plain ones. No build step, no manifest.
-- **Spam helpers**: a honeypot validation rule. Per-IP throttling is already
-  there in `throttle`, and gets a recipe.
+- **Done (0.26.0): spam helpers.** `$this->honeypot()` prints a field people
+  never see and a signed start time; `rules()` checks both, and a trapped post
+  is an ordinary validation error. The wiki's "Protect a public form" puts it
+  beside the per-route throttle recipe.
 
 ### M4. Conversations
 
