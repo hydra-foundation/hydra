@@ -6,7 +6,6 @@ namespace Hydra\Admin;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use InvalidArgumentException;
 
 /**
  * A period resolved against the clock: the two instants a widget counts
@@ -94,9 +93,7 @@ final readonly class Window
      */
     public function condition(string $column, string $format = 'Y-m-d H:i:s'): array
     {
-        if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/', $column) !== 1) {
-            throw new InvalidArgumentException("\"{$column}\" is not a column a window can be read over.");
-        }
+        ColumnName::check($column, 'a window');
 
         $sql = [];
         $bindings = [];
