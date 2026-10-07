@@ -15,6 +15,7 @@
         "ext-fileinfo": "*",
         "ext-pdo": "*",
         "composer-runtime-api": "^2.0",
+        "league/commonmark": "^2.7",
         "nyholm/psr7": "^1.8",
         "nyholm/psr7-server": "^1.0",
         "php-di/php-di": "^7.0",
@@ -26,7 +27,9 @@
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0",
         "psr/log": "^3.0",
-        "symfony/console": "^7.0"
+        "symfony/console": "^7.0",
+        "symfony/yaml": "^7.0",
+        "tempest/highlight": "^2.28"
     },
     "require-dev": {
         "ext-pdo_sqlite": "*",
@@ -40,6 +43,7 @@
         "hydrakit/authorization": "self.version",
         "hydrakit/broadcast": "self.version",
         "hydrakit/cache": "self.version",
+        "hydrakit/commonmark": "self.version",
         "hydrakit/console": "self.version",
         "hydrakit/core": "self.version",
         "hydrakit/csrf": "self.version",
@@ -68,6 +72,7 @@
             "Hydra\\Authorization\\": "packages/authorization/src",
             "Hydra\\Broadcast\\": "packages/broadcast/src",
             "Hydra\\Cache\\": "packages/cache/src",
+            "Hydra\\CommonMark\\": "packages/commonmark/src",
             "Hydra\\Console\\": "packages/console/src",
             "Hydra\\Core\\": "packages/core/src",
             "Hydra\\Csrf\\": "packages/csrf/src",
@@ -98,6 +103,7 @@
             "Hydra\\Authorization\\Tests\\": "packages/authorization/tests",
             "Hydra\\Broadcast\\Tests\\": "packages/broadcast/tests",
             "Hydra\\Cache\\Tests\\": "packages/cache/tests",
+            "Hydra\\CommonMark\\Tests\\": "packages/commonmark/tests",
             "Hydra\\Console\\Tests\\": "packages/console/tests",
             "Hydra\\Core\\Tests\\": "packages/core/tests",
             "Hydra\\Csrf\\Tests\\": "packages/csrf/tests",

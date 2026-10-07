@@ -45,6 +45,9 @@
         <testsuite name="cache">
             <directory>packages/cache/tests</directory>
         </testsuite>
+        <testsuite name="commonmark">
+            <directory>packages/commonmark/tests</directory>
+        </testsuite>
         <testsuite name="console">
             <directory>packages/console/tests</directory>
         </testsuite>
@@ -121,6 +124,7 @@
             <directory>packages/authorization/src</directory>
             <directory>packages/broadcast/src</directory>
             <directory>packages/cache/src</directory>
+            <directory>packages/commonmark/src</directory>
             <directory>packages/console/src</directory>
             <directory>packages/core/src</directory>
             <directory>packages/csrf/src</directory>

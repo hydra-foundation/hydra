@@ -42,7 +42,7 @@ REPOS=(hydra app)
 # beside the wait loop because the plan counts it before printing, and a count
 # that has to be kept in step by hand is one that drifts the next time a
 # package is added.
-PACKAGES=(admin auth authorization broadcast cache console core csrf database event filesystem http
+PACKAGES=(admin auth authorization broadcast cache commonmark console core csrf database event filesystem http
           kernel log mail nyholm php-di queue scheduler seo session symfony-console throttle
           validation view)
 
