@@ -24,6 +24,11 @@ final class Responder
          * them to be vouched against.
          */
         private readonly ?CspNonce $nonce = null,
+        /**
+         * OPTIONAL, for the same reason: mixed into every ETag so a deploy
+         * makes every page new, and saying whether to answer 304s at all.
+         */
+        private readonly ?Release $release = null,
     ) {}
 
     public function text(string $body, int|Status $status = Status::Ok): ResponseInterface
@@ -137,6 +142,38 @@ final class Responder
     public function redirect(string $location, int|Status $status = Status::Found): ResponseInterface
     {
         return $this->responses->createResponse(Status::toInt($status))->withHeader('Location', $location);
+    }
+
+    /** A response with the caching headers $cache describes; the body is untouched. */
+    public function cached(ResponseInterface $response, HttpCache $cache): ResponseInterface
+    {
+        foreach ($cache->headers($this->release) as $name => $value) {
+            $response = $response->withHeader($name, $value);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Whether the request already holds the page $cache describes, so the
+     * controller can answer notModified() without rendering it. Never in
+     * development (see Release).
+     */
+    public function isFresh(ServerRequestInterface $request, HttpCache $cache): bool
+    {
+        if ($this->release?->conditional === false) {
+            return false;
+        }
+
+        $headers = $cache->headers($this->release);
+
+        return ConditionalGet::fresh($request, $headers['ETag'] ?? '', $headers['Last-Modified'] ?? '');
+    }
+
+    /** A 304: no body, and the validators and policy a 200 would have carried. */
+    public function notModified(HttpCache $cache): ResponseInterface
+    {
+        return $this->cached($this->responses->createResponse(Status::toInt(Status::NotModified)), $cache);
     }
 
     /**
