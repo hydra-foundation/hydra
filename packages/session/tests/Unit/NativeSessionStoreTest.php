@@ -64,6 +64,18 @@ final class NativeSessionStoreTest extends SessionContractTestCase
         $this->assertSame(PHP_SESSION_ACTIVE, session_status());
     }
 
+    public function test_start_leaves_caching_to_the_response(): void
+    {
+        // PHP's default limiter stamps no-store, a 1981 Expires and Pragma on
+        // every response, whatever the controller said. HttpCacheMiddleware
+        // decides instead.
+        ini_set('session.cache_limiter', 'nocache');
+
+        (new NativeSessionStore(new SessionConfig))->start();
+
+        $this->assertSame('', session_cache_limiter());
+    }
+
     public function test_set_save_start_round_trips_through_the_hydra_namespace(): void
     {
         $store = new NativeSessionStore(new SessionConfig);

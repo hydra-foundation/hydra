@@ -30,7 +30,11 @@ final class NativeSessionStore extends SessionStore
             // the cookie, letting them pre-choose a victim's session id. Forcing
             // it here, rather than trusting php.ini (which varies per host),
             // guarantees unknown ids are rejected and replaced on every deploy.
-            session_start(['use_strict_mode' => true]);
+            //
+            // No cache limiter: PHP's default stamps no-store, a 1981 Expires
+            // and Pragma on every response behind the app's back. What a
+            // response may be kept for is HttpCacheMiddleware's to say.
+            session_start(['use_strict_mode' => true, 'cache_limiter' => '']);
         }
 
         $stored = $_SESSION[self::STORAGE_KEY] ?? [];

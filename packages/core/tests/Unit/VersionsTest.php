@@ -65,6 +65,90 @@ final class VersionsTest extends TestCase
         $this->assertMatchesRegularExpression('/^v1\.2\.0-1-g[0-9a-f]{7,}$/', (string) (new Versions($this->dir))->application());
     }
 
+    public function test_no_repository_has_no_commit(): void
+    {
+        $this->assertNull((new Versions($this->dir))->commit());
+    }
+
+    public function test_a_repository_with_no_commits_has_no_commit(): void
+    {
+        $this->git('init', '-q');
+
+        $this->assertNull((new Versions($this->dir))->commit());
+    }
+
+    public function test_the_commit_a_branch_is_on(): void
+    {
+        $this->commit();
+
+        $this->assertSame($this->head(), (new Versions($this->dir))->commit());
+    }
+
+    public function test_the_commit_of_a_packed_branch(): void
+    {
+        $this->commit();
+        $this->git('pack-refs', '--all');
+        $this->assertFileDoesNotExist($this->dir . '/.git/refs/heads/' . $this->branch());
+
+        $this->assertSame($this->head(), (new Versions($this->dir))->commit());
+    }
+
+    public function test_the_commit_a_detached_head_is_on(): void
+    {
+        $this->commit();
+        $first = $this->head();
+        $this->commit();
+        $this->git('checkout', '-q', '--detach', $first);
+
+        $this->assertSame($first, (new Versions($this->dir))->commit());
+    }
+
+    public function test_the_commit_a_worktree_is_on(): void
+    {
+        $this->commit();
+        $this->git('branch', 'other');
+        $this->git('worktree', 'add', '-q', $this->dir . '/wt', 'other');
+        file_put_contents($this->dir . '/wt/x', 'x');
+        $this->gitIn($this->dir . '/wt', 'add', 'x');
+        $this->gitIn($this->dir . '/wt', 'commit', '-q', '-m', 'in the worktree');
+
+        $commit = (new Versions($this->dir . '/wt'))->commit();
+
+        $this->assertNotNull($commit);
+        $this->assertNotSame($this->head(), $commit);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{40}$/', $commit);
+    }
+
+    public function test_a_head_naming_something_odd_has_no_commit(): void
+    {
+        mkdir($this->dir . '/.git');
+        file_put_contents($this->dir . '/.git/HEAD', "ref: ../../etc/passwd\n");
+
+        $this->assertNull((new Versions($this->dir))->commit());
+    }
+
+    private function head(): string
+    {
+        return trim((string) shell_exec('git -C ' . escapeshellarg($this->dir) . ' rev-parse HEAD'));
+    }
+
+    private function branch(): string
+    {
+        return trim((string) shell_exec('git -C ' . escapeshellarg($this->dir) . ' symbolic-ref --short HEAD'));
+    }
+
+    private function gitIn(string $dir, string ...$args): void
+    {
+        $saved = $this->dir;
+        $this->dir = $dir;
+
+        try {
+            $this->git(...$args);
+        } finally {
+            $this->dir = $saved;
+        }
+    }
+
     private function commit(): void
     {
         if (!is_dir($this->dir . '/.git')) {
