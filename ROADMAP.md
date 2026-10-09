@@ -3,10 +3,11 @@
 Unreleased intent. Each item graduates to a spec (in hydra-foundation's
 `specs/`) when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.25.0 — Date filters**: `filterable()` on a date or datetime
-field narrows an admin list by a From and a To day in the reader's zone, and
-ten of the skeleton's lists use it. Before it, **0.24.0 — SEO**, the second
-piece of M3 (`hydrakit/seo`: meta and preview tags, `sitemap.xml`, Atom feeds).
+Last shipped: **0.31.2 — Palettes**: the bell's menu takes the admin's theme,
+and the skeleton's public pages keep the site's palette for a signed-in admin.
+Before it, **0.31.0 — Images** (`hydrakit/image`: `srcset` variants made with
+GD), the last block williamhleucka.com's blog needs, and **0.31.1 — Names**.
+M3 is done except for live updates for anonymous visitors.
 
 ## Principles
 
@@ -266,11 +267,13 @@ client's resync, the nginx error log, `key:generate`, five errors, and the
 gate items two milestones had skipped (`make:job`, `AGENTS.md`). What it found
 and did not fix is under "Gate debt" and in the backlog.
 
-### M3. Publishing
+### M3. Publishing (0.23.0–0.31.0, one item left)
 
-What any site that publishes needs:
+What any site that publishes needs. Its first customer is williamhleucka.com:
+the site shell launched on 0.24.0 and the contact form on 0.26.0, and the blog
+has every block it needs. Comments wait on the item below.
 
-- **Live updates for visitors who are not signed in**: listen tokens on a
+- **Next: live updates for visitors who are not signed in**: listen tokens on a
   `public.*` topic family for anyone, throttled per address, so a public page
   can update itself (an approved comment appearing, a release number
   changing) as the admin's lists already do.
