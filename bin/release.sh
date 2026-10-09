@@ -89,6 +89,27 @@ wiki_tests() {
     run_checked "wiki: phpunit" "$WIKI_DIR" ./vendor/bin/phpunit
 }
 
+# The GitHub release for a tag, from its notes: the title from the front
+# matter, the body without it. Sites that list releases (williamhleucka.com
+# among them) read GitHub's list, where a bare tag does not appear. Best
+# effort: the tag is already out, so a failure prints the command to finish.
+github_release() {
+    local notes="$DIR/hydra/changes/$VERSION.md" title body
+    title=$(sed -n 's/^title: *//p' "$notes" | head -1)
+    body=$(mktemp)
+    awk 'n < 2 && /^---$/ { n++; next } n >= 2' "$notes" >"$body"
+
+    if command -v gh >/dev/null \
+        && (cd "$DIR/hydra" && gh release create "$TAG" --verify-tag --latest \
+            --title "$TAG — $title" --notes-file "$body" >/dev/null); then
+        echo "  GitHub release $TAG published"
+    else
+        echo "warning: no GitHub release for $TAG. Finish with:" >&2
+        echo "  cd $DIR/hydra && gh release create $TAG --verify-tag --title \"$TAG — $title\" --notes-file <(awk 'n < 2 && /^---\$/ { n++; next } n >= 2' changes/$VERSION.md)" >&2
+    fi
+    rm -f "$body"
+}
+
 usage() {
     # The comment block under the shebang, so editing the header cannot
     # desynchronise --help from it.
@@ -330,7 +351,7 @@ echo "Plan for $TAG:"
 [ "$DO_MINOR" -eq 1 ] && \
     echo "  1. rewrite ^$OLD_SERIES -> ^$NEW_SERIES across hydra/packages/*, hydra/ and app/, and commit"
 n=$([ "$DO_MINOR" -eq 1 ] && echo 1 || echo 0)
-echo "  $((n + 1)). tag hydra $TAG and push $BRANCH + tag"
+echo "  $((n + 1)). tag hydra $TAG, push $BRANCH + tag, and publish $TAG's notes as its GitHub release"
 echo "  $((n + 2)). the split workflow regenerates the ${#PACKAGES[@]} package repos at $TAG"
 echo "  $((n + 3)). wait for Packagist to index all ${#PACKAGES[@]} at $TAG, then write version.json$([ "$DO_SECURITY" -eq 1 ] && echo " marking it a security fix") and rebuild the wiki"
 echo "  $((n + 4)). refresh app's lock onto $TAG and verify the skeleton against it"
@@ -384,6 +405,7 @@ git -C "$DIR/hydra" tag -a "$TAG" -m "Release $TAG"
 git -C "$DIR/hydra" push --quiet origin "$BRANCH"
 git -C "$DIR/hydra" push --quiet origin "$TAG"
 echo "  hydra $TAG pushed — the split workflow is regenerating the package repos"
+github_release
 
 # app cannot be locked onto a release that is not resolvable yet, which is the
 # whole reason the two tags are no longer cut together.
