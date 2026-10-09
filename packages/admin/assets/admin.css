@@ -1997,6 +1997,22 @@
     text-align: center;
 }
 
+/* Bootstrap 5.2 writes the dropdown's colours as literals rather than reading
+   the body bridge, so without this the menu is white under every theme. */
+.admin .dropdown-menu {
+    --bs-dropdown-color: var(--ink);
+    --bs-dropdown-bg: var(--surface);
+    --bs-dropdown-border-color: var(--line-strong);
+    --bs-dropdown-divider-bg: var(--line);
+    --bs-dropdown-link-color: var(--ink);
+    --bs-dropdown-link-hover-color: var(--ink-strong);
+    --bs-dropdown-link-hover-bg: var(--sunk);
+    --bs-dropdown-link-active-color: var(--on-accent);
+    --bs-dropdown-link-active-bg: var(--accent);
+    --bs-dropdown-link-disabled-color: var(--muted);
+    --bs-dropdown-header-color: var(--muted);
+}
+
 .admin-bell-menu {
     width: min(22rem, calc(100vw - 2rem));
     max-height: min(28rem, 70vh);
