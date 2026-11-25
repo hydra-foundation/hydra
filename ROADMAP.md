@@ -3,10 +3,11 @@
 Unreleased intent. Each item graduates to a spec (in hydra-foundation's
 `specs/`) when work starts, and to a changelog entry when it ships.
 
-Last shipped: **0.31.2 — Palettes**: the bell's menu takes the admin's theme,
-and the skeleton's public pages keep the site's palette for a signed-in admin.
-Before it, **0.31.0 — Images** (`hydrakit/image`: `srcset` variants made with
-GD), the last block williamhleucka.com's blog needs, and **0.31.1 — Names**.
+Last shipped: **0.32.0 — Poll**: the SSE hub waits through PHP 8.6's
+`Io\Poll`, with no ceiling but the open-file limit, and below 8.6 holds
+`stream_select`'s limit (896 streams) out loud instead of going quiet past it;
+the skeleton moves to PHP 8.6. Before it, **0.31.2 — Palettes** and
+**0.31.0 — Images**, the last block williamhleucka.com's blog needs.
 M3 is done except for live updates for anonymous visitors.
 
 ## Principles
