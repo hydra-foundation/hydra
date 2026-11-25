@@ -24,6 +24,11 @@ final class IoPollerTest extends PollerContractTestCase
         $this->assertContains((new IoPoller)->name(), ['epoll', 'kqueue', 'poll', 'eventports', 'wsapoll']);
     }
 
+    public function test_it_has_no_limit_of_its_own(): void
+    {
+        $this->assertNull((new IoPoller)->capacity());
+    }
+
     public function test_asking_for_writes_twice_changes_nothing(): void
     {
         $poller = new IoPoller;

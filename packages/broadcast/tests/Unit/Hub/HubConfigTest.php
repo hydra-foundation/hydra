@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Hydra\Broadcast\Tests\Unit\Hub;
 
+use Hydra\Broadcast\Hub\HubCapacityException;
 use Hydra\Broadcast\Hub\HubConfig;
+use Hydra\Broadcast\Hub\Poll\Poller;
+use Hydra\Broadcast\Hub\Poll\SelectPoller;
 use Hydra\Broadcast\Tests\Unit\WritesEnvironment;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -22,7 +25,7 @@ final class HubConfigTest extends TestCase
 
         $this->assertSame('0.0.0.0', $config->host);
         $this->assertSame(8080, $config->port);
-        $this->assertSame(1000, $config->maxConnections);
+        $this->assertNull($config->maxConnections, 'unset: the poller decides');
         $this->assertSame(15, $config->heartbeat);
         $this->assertSame(900, $config->tokenTtl);
         $this->assertSame('broadcast.', $config->channelPrefix);
@@ -42,6 +45,53 @@ final class HubConfigTest extends TestCase
         $this->assertSame(['127.0.0.1', 9000, 50, 5, 600], [$config->host, $config->port, $config->maxConnections, $config->heartbeat, $config->tokenTtl]);
         $this->assertSame('hydra:broadcast.', $config->channelPrefix);
         $this->assertSame('hydra:sse:hub', $config->statusKey);
+    }
+
+    public function test_unset_it_is_a_thousand_where_the_poller_has_no_limit(): void
+    {
+        $this->assertSame(1000, (new HubConfig)->for(self::unlimited())->maxConnections);
+    }
+
+    public function test_unset_it_is_what_select_can_watch_on_older_php(): void
+    {
+        $this->assertSame(SelectPoller::CAPACITY, (new HubConfig)->for(new SelectPoller)->maxConnections);
+    }
+
+    public function test_select_can_watch_streams_below_its_descriptor_ceiling(): void
+    {
+        // 1024 descriptors, less the hub's own and its room for request heads.
+        $this->assertSame(896, SelectPoller::CAPACITY);
+    }
+
+    public function test_a_value_select_can_watch_is_kept(): void
+    {
+        $this->assertSame(896, (new HubConfig(maxConnections: 896))->for(new SelectPoller)->maxConnections);
+    }
+
+    public function test_a_value_over_what_select_can_watch_is_refused_with_both_fixes(): void
+    {
+        $this->expectException(HubCapacityException::class);
+        $this->expectExceptionMessage(
+            'SSE_MAX_CONNECTIONS=897 is more than this PHP can watch with stream_select (896). '
+            . 'Lower it to 896 or less, or run the hub on PHP 8.6, which waits through Io\\Poll and has no such limit.',
+        );
+
+        (new HubConfig(maxConnections: 897))->for(new SelectPoller);
+    }
+
+    public function test_a_poller_without_a_limit_takes_any_value(): void
+    {
+        $this->assertSame(5000, (new HubConfig(maxConnections: 5000))->for(self::unlimited())->maxConnections);
+    }
+
+    public function test_resolving_keeps_every_other_setting(): void
+    {
+        $config = new HubConfig(host: '127.0.0.1', port: 9000, heartbeat: 5, tokenTtl: 600, channelPrefix: 'p.', statusKey: 's');
+
+        $this->assertEquals(
+            new HubConfig(host: '127.0.0.1', port: 9000, maxConnections: 1000, heartbeat: 5, tokenTtl: 600, channelPrefix: 'p.', statusKey: 's'),
+            $config->for(self::unlimited()),
+        );
     }
 
     public function test_an_empty_environment_gives_the_defaults(): void
@@ -69,5 +119,32 @@ final class HubConfigTest extends TestCase
         $this->expectExceptionMessage($message);
 
         HubConfig::fromEnvironment($this->environment($env));
+    }
+
+    private static function unlimited(): Poller
+    {
+        return new class implements Poller {
+            public function watch(mixed $socket): void {}
+
+            public function forget(mixed $socket): void {}
+
+            public function wantWrite(mixed $socket, bool $want): void {}
+
+            /** @return array{read: list<resource>, write: list<resource>} */
+            public function wait(float $timeout): array
+            {
+                return ['read' => [], 'write' => []];
+            }
+
+            public function name(): string
+            {
+                return 'epoll';
+            }
+
+            public function capacity(): ?int
+            {
+                return null;
+            }
+        };
     }
 }

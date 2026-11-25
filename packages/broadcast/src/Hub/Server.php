@@ -25,7 +25,7 @@ use Psr\Log\LoggerInterface;
 final class Server
 {
     /** Connections accepted beyond the stream cap, for heads still being read. */
-    private const HEAD_ROOM = 64;
+    public const HEAD_ROOM = 64;
 
     /** @var array<int, Stream> keyed by socket id */
     private array $streams = [];
@@ -36,6 +36,9 @@ final class Server
     private ?bool $lastSubscribed = null;
     private readonly Poller $poller;
 
+    /** The settings with the stream cap settled for the poller: never null. */
+    private readonly HubConfig $config;
+
     /** @var resource|null the Redis socket being watched, swapped when it reconnects */
     private mixed $redis = null;
 
@@ -44,7 +47,7 @@ final class Server
         private readonly mixed $listener,
         private readonly Subscriber $subscriber,
         private readonly StreamToken $tokens,
-        private readonly HubConfig $config,
+        HubConfig $config,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
         private readonly ?HubStatus $status = null,
@@ -52,6 +55,7 @@ final class Server
     ) {
         stream_set_blocking($this->listener, false);
         $this->poller = $poller ?? new SelectPoller;
+        $this->config = $config->for($this->poller);
         $this->poller->watch($this->listener);
         $this->startedAt = $this->now();
     }

@@ -115,4 +115,9 @@ final class IoPoller implements Poller
     {
         return strtolower($this->context->getBackend()->name);
     }
+
+    public function capacity(): ?int
+    {
+        return null;
+    }
 }

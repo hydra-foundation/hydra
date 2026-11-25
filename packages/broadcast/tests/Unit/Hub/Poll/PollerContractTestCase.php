@@ -166,6 +166,13 @@ abstract class PollerContractTestCase extends TestCase
         $this->assertLessThan(3.0, microtime(true) - $started);
     }
 
+    public function test_its_capacity_is_a_number_of_streams_or_none(): void
+    {
+        $capacity = $this->poller()->capacity();
+
+        $this->assertTrue($capacity === null || $capacity > 0);
+    }
+
     public function test_it_says_what_it_is(): void
     {
         $this->assertMatchesRegularExpression('/^[a-z]+$/', $this->poller()->name());

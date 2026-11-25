@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Hydra\Broadcast\Hub\Poll;
 
+use Hydra\Broadcast\Hub\Server;
+
 /**
  * stream_select(), for PHP without Io\Poll (below 8.6).
  *
@@ -15,6 +17,15 @@ namespace Hydra\Broadcast\Hub\Poll;
  */
 final class SelectPoller implements Poller
 {
+    /** select()'s ceiling: descriptors are numbered from 0 to this, less one. */
+    private const FD_SETSIZE = 1024;
+
+    /** Descriptors the hub holds besides browsers: stdio, the listener, Redis, the log. */
+    private const RESERVE = 64;
+
+    /** Streams it can serve, once the connections still sending a head are counted too. */
+    public const CAPACITY = self::FD_SETSIZE - self::RESERVE - Server::HEAD_ROOM;
+
     /** @var array<int, resource> keyed by socket id */
     private array $sockets = [];
 
@@ -72,5 +83,10 @@ final class SelectPoller implements Poller
     public function name(): string
     {
         return 'select';
+    }
+
+    public function capacity(): int
+    {
+        return self::CAPACITY;
     }
 }

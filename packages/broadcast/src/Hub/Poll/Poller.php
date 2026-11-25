@@ -49,4 +49,7 @@ interface Poller
 
     /** What it waits with, for the log and System Health: "epoll", "select", … */
     public function name(): string;
+
+    /** Streams it can watch at most, or null when only the open-file limit bounds it. */
+    public function capacity(): ?int;
 }
