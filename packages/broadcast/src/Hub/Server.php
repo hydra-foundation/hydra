@@ -420,7 +420,7 @@ final class Server
         $this->lastStatus = $now;
         $this->lastSubscribed = $subscribed;
         $this->status->publish(
-            new HubReport((int) getmypid(), $this->startedAt, $this->streams(), $subscribed, $now),
+            new HubReport((int) getmypid(), $this->startedAt, $this->streams(), $subscribed, $now, $this->poller->name()),
             HubConfig::STATUS_EVERY * 3,
         );
     }

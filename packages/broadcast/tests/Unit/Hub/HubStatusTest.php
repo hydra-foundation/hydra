@@ -20,10 +20,19 @@ final class HubStatusTest extends TestCase
 {
     public function test_a_report_round_trips(): void
     {
-        $report = new HubReport(pid: 12, startedAt: 1000, connections: 3, subscribed: true, writtenAt: 1010);
+        $report = new HubReport(pid: 12, startedAt: 1000, connections: 3, subscribed: true, writtenAt: 1010, poller: 'epoll');
 
         $this->assertEquals($report, HubReport::fromJson($report->toJson()));
-        $this->assertSame('{"pid":12,"started_at":1000,"connections":3,"redis":"subscribed","written_at":1010}', $report->toJson());
+        $this->assertSame('{"pid":12,"started_at":1000,"connections":3,"redis":"subscribed","written_at":1010,"poller":"epoll"}', $report->toJson());
+    }
+
+    public function test_a_report_from_a_hub_older_than_the_poller_reads_without_one(): void
+    {
+        $report = HubReport::fromJson('{"pid":12,"started_at":1000,"connections":3,"redis":"subscribed","written_at":1010}');
+
+        $this->assertNotNull($report);
+        $this->assertNull($report->poller);
+        $this->assertSame(3, $report->connections);
     }
 
     public function test_reconnecting_is_written_out(): void

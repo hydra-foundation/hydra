@@ -15,6 +15,8 @@ final readonly class HubReport
         public int $connections,
         public bool $subscribed,
         public int $writtenAt,
+        /** What the hub waits through ("epoll", "select"); null from a hub older than 0.32. */
+        public ?string $poller = null,
     ) {}
 
     public function toJson(): string
@@ -25,6 +27,7 @@ final readonly class HubReport
             'connections' => $this->connections,
             'redis' => $this->subscribed ? 'subscribed' : 'reconnecting',
             'written_at' => $this->writtenAt,
+            'poller' => $this->poller,
         ], JSON_THROW_ON_ERROR);
     }
 
@@ -47,6 +50,10 @@ final readonly class HubReport
             return null;
         }
 
-        return new self($data['pid'], $data['started_at'], $data['connections'], $data['redis'] === 'subscribed', $data['written_at']);
+        // Optional: a hub from before 0.32 does not say, and that is no reason
+        // to call it down.
+        $poller = is_string($data['poller'] ?? null) ? $data['poller'] : null;
+
+        return new self($data['pid'], $data['started_at'], $data['connections'], $data['redis'] === 'subscribed', $data['written_at'], $poller);
     }
 }

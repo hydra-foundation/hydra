@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.4', '8.5']
+        php: ['8.4', '8.5', '8.6']
 
     # The counter store the rate limiter rests on is RedisStore, and its
     # atomicity lives in a Lua script no other driver runs. Without a server
@@ -90,11 +90,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The newest PHP, so code only it can run (the hub's Io\Poll poller) is
+      # measured too. Xdebug, not PCOV: PCOV has no release that builds on 8.6.
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.6'
           extensions: pdo, pdo_sqlite, redis, sodium, gd, exif
-          coverage: pcov
+          coverage: xdebug
 
       - uses: ramsey/composer-install@v3
 
