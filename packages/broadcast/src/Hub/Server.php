@@ -110,6 +110,12 @@ final class Server
         return array_sum(array_map(static fn (Stream $s): int => strlen($s->outbox), $this->streams));
     }
 
+    /** What the hub waits through: "epoll", "select", … */
+    public function poller(): string
+    {
+        return $this->poller->name();
+    }
+
     /** Every browser connection, streams and heads still being read alike. */
     public function connections(): int
     {

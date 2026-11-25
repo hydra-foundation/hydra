@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Hydra\Broadcast\Tests\Unit\Console;
 
+use Closure;
 use Hydra\Broadcast\Console\SseServeCommand;
 use Hydra\Broadcast\Hub\HubConfig;
 use Hydra\Broadcast\Hub\HubFactory;
+use Hydra\Broadcast\Hub\Poll\Poller;
+use Hydra\Broadcast\Hub\Poll\SelectPoller;
 use Hydra\Broadcast\StreamToken;
 use Hydra\Broadcast\Tests\Unit\Hub\HandFedSubscriber;
 use Hydra\Broadcast\Testing\FakeHubStatus;
@@ -18,6 +21,7 @@ use Hydra\Core\Security\Signer;
 use Hydra\Core\Testing\FrozenClock;
 use Hydra\Log\Testing\CapturingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 
 #[CoversClass(SseServeCommand::class)]
 #[CoversClass(HubFactory::class)]
@@ -42,20 +46,61 @@ final class SseServeCommandTest extends CommandContractTestCase
         fclose($taken);
     }
 
-    public function test_it_serves_until_halted_then_cleans_up(): void
+    #[RequiresPhpExtension('pcntl')]
+    #[RequiresPhpExtension('posix')]
+    public function test_it_serves_until_told_to_stop_then_cleans_up(): void
     {
         $logger = new CapturingLogger;
         $status = new FakeHubStatus;
         $output = new FakeOutput;
-
         $port = self::freePort();
 
-        $code = self::command(new HubConfig('127.0.0.1', $port), $logger, $status, halted: true)->execute(new ArrayInput, $output);
+        $code = self::command(new HubConfig('127.0.0.1', $port), $logger, $status, stopOnFirstRound: true)->execute(new ArrayInput, $output);
 
         $this->assertSame(ExitCode::Success, $code);
         $this->assertStringStartsWith("Listening on 127.0.0.1:{$port}.", $output->linesOfKind('note')[0]);
-        $this->assertSame(["The SSE hub is listening on 127.0.0.1:{$port}.", 'The SSE hub stopped.'], $logger->messages());
+        $this->assertSame([
+            "The SSE hub is listening on 127.0.0.1:{$port} (select, up to 896 streams).",
+            'The SSE hub stopped.',
+        ], $logger->messages());
         $this->assertNull($status->read());
+    }
+
+    #[RequiresPhpExtension('pcntl')]
+    #[RequiresPhpExtension('posix')]
+    public function test_the_start_line_names_the_poller_and_the_cap_it_settled_on(): void
+    {
+        $logger = new CapturingLogger;
+        $port = self::freePort();
+
+        self::command(new HubConfig('127.0.0.1', $port), $logger, new FakeHubStatus, stopOnFirstRound: true, poller: self::unlimited(...))
+            ->execute(new ArrayInput, new FakeOutput);
+
+        $this->assertSame("The SSE hub is listening on 127.0.0.1:{$port} (epoll, up to 1000 streams).", $logger->messages()[0]);
+    }
+
+    public function test_a_cap_the_poller_cannot_watch_is_refused_before_the_port_is_bound(): void
+    {
+        $logger = new CapturingLogger;
+        $output = new FakeOutput;
+        $port = self::freePort();
+
+        $code = self::command(new HubConfig('127.0.0.1', $port, maxConnections: 1000), $logger, new FakeHubStatus)->execute(new ArrayInput, $output);
+
+        $this->assertSame(ExitCode::Failure, $code);
+        $this->assertStringStartsWith('SSE_MAX_CONNECTIONS=1000 is more than this PHP can watch with stream_select (896).', $output->linesOfKind('error')[0]);
+        $this->assertSame([], $logger->messages());
+
+        $rebound = stream_socket_server("tcp://127.0.0.1:{$port}");
+        $this->assertNotFalse($rebound, 'the port was left free');
+        fclose($rebound);
+    }
+
+    public function test_the_factory_waits_through_io_poll_where_php_has_it(): void
+    {
+        $expected = class_exists(\Io\Poll\Context::class) ? 'epoll' : 'select';
+
+        $this->assertSame($expected, HubFactory::bestPoller()->name());
     }
 
     /** A port nothing is bound to, a moment ago. */
@@ -69,27 +114,86 @@ final class SseServeCommandTest extends CommandContractTestCase
         return (int) substr($name, strrpos($name, ':') + 1);
     }
 
-    /** With $halted, the server is built already asked to stop, so run() cleans up and returns. */
-    private static function command(HubConfig $config, CapturingLogger $logger, FakeHubStatus $status, bool $halted = false): SseServeCommand
-    {
+    /**
+     * With $stopOnFirstRound, the subscriber sends the process SIGTERM on the
+     * loop's first round, so the command's own signal handling ends the run.
+     *
+     * @param (Closure(): Poller)|null $poller select unless given, so the cap is the same on every PHP
+     */
+    private static function command(
+        HubConfig $config,
+        CapturingLogger $logger,
+        FakeHubStatus $status,
+        bool $stopOnFirstRound = false,
+        ?Closure $poller = null,
+    ): SseServeCommand {
         $clock = new FrozenClock;
         $factory = new HubFactory(
-            static fn () => new HandFedSubscriber,
+            static fn () => $stopOnFirstRound ? new TerminatingSubscriber : new HandFedSubscriber,
             new StreamToken(Signer::fromHex(str_repeat('ab', 32)), $clock),
             $config,
             $clock,
             $logger,
             $status,
+            $poller ?? static fn (): Poller => new SelectPoller,
         );
 
-        return new SseServeCommand($config, static function ($listener) use ($factory, $halted) {
-            $server = $factory->server($listener);
+        return new SseServeCommand($factory, $logger);
+    }
 
-            if ($halted) {
-                $server->halt();
+    private static function unlimited(): Poller
+    {
+        return new class implements Poller {
+            private SelectPoller $inner;
+
+            public function __construct()
+            {
+                $this->inner = new SelectPoller;
             }
 
-            return $server;
-        }, $logger);
+            public function watch(mixed $socket): void
+            {
+                $this->inner->watch($socket);
+            }
+
+            public function forget(mixed $socket): void
+            {
+                $this->inner->forget($socket);
+            }
+
+            public function wantWrite(mixed $socket, bool $want): void
+            {
+                $this->inner->wantWrite($socket, $want);
+            }
+
+            public function wait(float $timeout): ?array
+            {
+                return $this->inner->wait($timeout);
+            }
+
+            public function name(): string
+            {
+                return 'epoll';
+            }
+
+            public function capacity(): ?int
+            {
+                return null;
+            }
+        };
+    }
+}
+
+/** Asks the process to stop, the way `docker stop` does, the first time the hub looks at it. */
+final class TerminatingSubscriber extends HandFedSubscriber
+{
+    private bool $sent = false;
+
+    public function maintain(): void
+    {
+        if (!$this->sent) {
+            $this->sent = true;
+            posix_kill(getmypid(), SIGTERM);
+        }
     }
 }

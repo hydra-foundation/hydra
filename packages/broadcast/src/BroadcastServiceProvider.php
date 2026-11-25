@@ -99,8 +99,7 @@ final class BroadcastServiceProvider extends ServiceProvider
         ));
 
         $container->singleton(SseServeCommand::class, fn () => new SseServeCommand(
-            $container->get(HubConfig::class),
-            $container->get(HubFactory::class)->server(...),
+            $container->get(HubFactory::class),
             $this->logger($container),
         ));
     }
