@@ -12,14 +12,6 @@ parameters:
     # an exception class that is never thrown, is exactly the defect level 6
     # catches and exactly the kind a green suite hides.
     ignoreErrors:
-        # phpstan's signature map has Io\Poll\Context::wait() from a draft of
-        # the RFC (int seconds); PHP 8.6 shipped it taking ?Time\Duration, which
-        # IoPollerTest proves on 8.6. A stub cannot override a signature-map
-        # entry's native type. Remove once phpstan's map is fixed.
-        -
-            message: '#^Parameter \#1 \$timeoutSeconds of method Io\\Poll\\Context::wait\(\) expects int\|null, Time\\Duration given\.$#'
-            path: packages/broadcast/src/Hub/Poll/IoPoller.php
-            count: 1
         # A routing or ability fixture names classes that do not exist, on
         # purpose: the framework treats these as opaque identifiers and never
         # loads them, and the alternative is 29 empty classes declared only to
