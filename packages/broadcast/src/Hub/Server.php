@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Hydra\Broadcast\Hub;
 
 use Hydra\Broadcast\Envelope;
+use Hydra\Broadcast\Hub\Poll\Poller;
+use Hydra\Broadcast\Hub\Poll\SelectPoller;
 use Hydra\Broadcast\StreamToken;
 use Hydra\Broadcast\TokenState;
 use Psr\Clock\ClockInterface;
@@ -32,6 +34,10 @@ final class Server
     private readonly int $startedAt;
     private ?int $lastStatus = null;
     private ?bool $lastSubscribed = null;
+    private readonly Poller $poller;
+
+    /** @var resource|null the Redis socket being watched, swapped when it reconnects */
+    private mixed $redis = null;
 
     /** @param resource $listener */
     public function __construct(
@@ -42,8 +48,11 @@ final class Server
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
         private readonly ?HubStatus $status = null,
+        ?Poller $poller = null,
     ) {
         stream_set_blocking($this->listener, false);
+        $this->poller = $poller ?? new SelectPoller;
+        $this->poller->watch($this->listener);
         $this->startedAt = $this->now();
     }
 
@@ -78,6 +87,7 @@ final class Server
         $this->subscriber->close();
 
         if (is_resource($this->listener)) {
+            $this->poller->forget($this->listener);
             fclose($this->listener);
         }
 
@@ -120,31 +130,15 @@ final class Server
             }
         }
 
-        $read = [$this->listener];
-        $write = [];
-        $redis = $this->subscriber->socket();
-
-        if ($redis !== null) {
-            $read[] = $redis;
-        }
-
-        foreach ($this->streams as $stream) {
-            $read[] = $stream->socket;
-
-            if ($stream->outbox !== '') {
-                $write[] = $stream->socket;
-            }
-        }
-
-        $except = null;
-        $seconds = (int) $timeout;
+        $redis = $this->watchRedis();
+        $ready = $this->poller->wait($timeout);
 
         // A signal interrupts the wait, which is not an error: the round ends early.
-        if (@stream_select($read, $write, $except, $seconds, (int) (($timeout - $seconds) * 1_000_000)) === false) {
+        if ($ready === null) {
             return;
         }
 
-        foreach ($read as $socket) {
+        foreach ($ready['read'] as $socket) {
             match (true) {
                 $socket === $this->listener => $this->accept(),
                 $socket === $redis => $this->fanOut($this->subscriber->read()),
@@ -152,7 +146,7 @@ final class Server
             };
         }
 
-        foreach ($write as $socket) {
+        foreach ($ready['write'] as $socket) {
             if (isset($this->streams[(int) $socket])) {
                 $this->flush($this->streams[(int) $socket]);
             }
@@ -180,6 +174,32 @@ final class Server
 
         stream_set_blocking($socket, false);
         $this->streams[(int) $socket] = new Stream($socket, $this->now());
+        $this->poller->watch($socket);
+    }
+
+    /**
+     * The subscriber's socket changes when it reconnects and is null while it
+     * is down; the poller follows it.
+     *
+     * @return resource|null
+     */
+    private function watchRedis(): mixed
+    {
+        $redis = $this->subscriber->socket();
+
+        if ($redis !== $this->redis) {
+            if ($this->redis !== null) {
+                $this->poller->forget($this->redis);
+            }
+
+            if ($redis !== null) {
+                $this->poller->watch($redis);
+            }
+
+            $this->redis = $redis;
+        }
+
+        return $redis;
     }
 
     private function receive(?Stream $stream): void
@@ -301,6 +321,8 @@ final class Server
             $stream->lastWrite = $this->now();
         }
 
+        $this->poller->wantWrite($stream->socket, $stream->outbox !== '');
+
         if ($stream->outbox === '' && $stream->state === Stream::CLOSING) {
             $this->close($stream);
         }
@@ -356,6 +378,7 @@ final class Server
     private function close(Stream $stream): void
     {
         unset($this->streams[(int) $stream->socket]);
+        $this->poller->forget($stream->socket);
 
         if (is_resource($stream->socket)) {
             fclose($stream->socket);
