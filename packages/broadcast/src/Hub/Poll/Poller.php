@@ -44,6 +44,7 @@ interface Poller
      * Null when a signal interrupted the wait, so the round ends early.
      *
      * @return array{read: list<resource>, write: list<resource>}|null
+     * @throws DescriptorCeilingException when a socket is numbered past what it can watch
      */
     public function wait(float $timeout): ?array;
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hydra\Broadcast\Hub;
 
 use Hydra\Broadcast\Envelope;
+use Hydra\Broadcast\Hub\Poll\DescriptorCeilingException;
 use Hydra\Broadcast\Hub\Poll\Poller;
 use Hydra\Broadcast\Hub\Poll\SelectPoller;
 use Hydra\Broadcast\StreamToken;
@@ -38,6 +39,9 @@ final class Server
 
     /** The settings with the stream cap settled for the poller: never null. */
     private readonly HubConfig $config;
+
+    /** Rounds in a row the poller has refused for a descriptor past its ceiling. */
+    private int $overCeiling = 0;
 
     /** @var resource|null the Redis socket being watched, swapped when it reconnects */
     private mixed $redis = null;
@@ -141,7 +145,16 @@ final class Server
         }
 
         $redis = $this->watchRedis();
-        $ready = $this->poller->wait($timeout);
+
+        try {
+            $ready = $this->poller->wait($timeout);
+        } catch (DescriptorCeilingException $e) {
+            $this->shed($e);
+
+            return;
+        }
+
+        $this->overCeiling = 0;
 
         // A signal interrupts the wait, which is not an error: the round ends early.
         if ($ready === null) {
@@ -164,6 +177,33 @@ final class Server
 
         $this->sweep();
         $this->report();
+    }
+
+    /**
+     * A socket is numbered past what the poller can watch, so no socket was
+     * watched at all this round. Descriptors are handed out lowest first, so
+     * the newest streams hold the high numbers: close one more of them each
+     * round until a round succeeds. With none left the high one is Redis's,
+     * reconnected while browsers held the low numbers: drop it, and it comes
+     * back on a low one.
+     */
+    private function shed(DescriptorCeilingException $e): void
+    {
+        if ($this->overCeiling++ === 0) {
+            $this->logger->error($e->getMessage() . ' Closed the newest streams to keep serving the rest. Lower SSE_MAX_CONNECTIONS, or run the hub on PHP 8.6, which has no such ceiling.');
+        }
+
+        $newest = array_slice(array_reverse($this->streams, true), 0, $this->overCeiling, true);
+
+        if ($newest === []) {
+            $this->subscriber->close();
+
+            return;
+        }
+
+        foreach ($newest as $stream) {
+            $this->close($stream);
+        }
     }
 
     private function accept(): void

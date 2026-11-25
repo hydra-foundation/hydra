@@ -70,8 +70,16 @@ final class SelectPoller implements Poller
             return ['read' => [], 'write' => []];
         }
 
-        // A signal interrupts the wait, which is not an error: the round ends early.
+        error_clear_last();
+
         if (@stream_select($read, $write, $except, $seconds, $micros) === false) {
+            // PHP says FD_SETSIZE when a descriptor is past the ceiling, and
+            // refuses the whole set; anything else is a signal, which is not
+            // an error: the round ends early.
+            if (str_contains(error_get_last()['message'] ?? '', 'FD_SETSIZE')) {
+                throw new DescriptorCeilingException('stream_select cannot watch a descriptor numbered ' . self::FD_SETSIZE . ' or higher.');
+            }
+
             return null;
         }
 
