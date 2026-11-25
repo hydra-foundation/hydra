@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 /** Who gets a stream, and who hears what on it. */
 #[CoversClass(Server::class)]
 #[CoversClass(Stream::class)]
-final class ServerTest extends TestCase
+class ServerTest extends TestCase
 {
     use HubHarness;
 

@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 /** What keeps the hub honest over hours: the cap, the heartbeat, expiry, slow browsers, Redis coming back, and stopping. */
 #[CoversClass(Server::class)]
 #[CoversClass(Stream::class)]
-final class ServerLimitsTest extends TestCase
+class ServerLimitsTest extends TestCase
 {
     use HubHarness;
 

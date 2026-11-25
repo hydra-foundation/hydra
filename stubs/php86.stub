@@ -1,0 +1,25 @@
+<?php
+
+// PHP 8.6 classes the hub's IoPoller uses that phpstan's bundled stubs do not
+// have yet, for the analysis CI runs on 8.4. Signatures copied from 8.6's own
+// reflection. Delete this file once phpstan ships them.
+
+namespace {
+    final class StreamPollHandle implements Io\Poll\Handle
+    {
+        /** @param resource $stream */
+        public function __construct($stream) {}
+
+        /** @return resource */
+        public function getStream() {}
+
+        public function isValid(): bool {}
+    }
+}
+
+namespace Time {
+    final readonly class Duration
+    {
+        public static function fromMicroseconds(int $microseconds): Duration {}
+    }
+}

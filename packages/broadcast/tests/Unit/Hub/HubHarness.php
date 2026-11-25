@@ -6,6 +6,8 @@ namespace Hydra\Broadcast\Tests\Unit\Hub;
 
 use Hydra\Broadcast\Envelope;
 use Hydra\Broadcast\Hub\HubConfig;
+use Hydra\Broadcast\Hub\Poll\Poller;
+use Hydra\Broadcast\Hub\Poll\SelectPoller;
 use Hydra\Broadcast\Hub\Server;
 use Hydra\Broadcast\Hub\Subscriber;
 use Hydra\Broadcast\StreamToken;
@@ -70,7 +72,13 @@ trait HubHarness
 
         $this->address = (string) stream_socket_get_name($listener, false);
 
-        return new Server($listener, $this->subscriber, $this->tokens, $config, $this->clock, $this->logger, $this->status);
+        return new Server($listener, $this->subscriber, $this->tokens, $config, $this->clock, $this->logger, $this->status, $this->poller());
+    }
+
+    /** What the hub waits through; the IoPoll variants of each test override it. */
+    protected function poller(): Poller
+    {
+        return new SelectPoller;
     }
 
     /**
