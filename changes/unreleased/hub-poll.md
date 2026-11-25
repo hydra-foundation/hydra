@@ -6,7 +6,7 @@ The SSE hub waits through PHP 8.6's `Io\Poll` (epoll on Linux) where PHP has it,
 
 - **On 8.6** there is no ceiling but the process's open-file limit.
 - **Below 8.6** an unset `SSE_MAX_CONNECTIONS` is 896, what `stream_select` can serve. An explicit value over that stops `sse:serve` at start, before it binds the port, with the fix in the message.
-- **If select hits the ceiling anyway**, the hub logs one error and closes the newest streams until it can watch the rest, instead of going quiet.
+- **If select hits the ceiling anyway**, the hub closes the newest stream each round until it can watch the rest, and says so in the log at most once a minute, instead of going quiet.
 - `sse:serve`'s start line names the poller and the cap (`listening on 0.0.0.0:8080 (epoll, up to 1000 streams)`), and the hub's status report carries the poller for System Health.
 
 ### Upgrading
