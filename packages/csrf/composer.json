@@ -28,10 +28,10 @@
     ],
     "require": {
         "php": ">=8.4",
-        "hydrakit/core": "^0.31",
-        "hydrakit/http": "^0.31",
-        "hydrakit/session": "^0.31",
-        "hydrakit/validation": "^0.31",
+        "hydrakit/core": "^0.32",
+        "hydrakit/http": "^0.32",
+        "hydrakit/session": "^0.32",
+        "hydrakit/validation": "^0.32",
         "psr/clock": "^1.0",
         "psr/http-message": "^2.0",
         "psr/http-server-handler": "^1.0",
@@ -45,7 +45,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "0.31.x-dev"
+            "dev-main": "0.32.x-dev"
         }
     }
 }
