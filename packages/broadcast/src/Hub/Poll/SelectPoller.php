@@ -29,7 +29,7 @@ final class SelectPoller implements Poller
     /** @var array<int, resource> keyed by socket id */
     private array $sockets = [];
 
-    /** @var array<int, true> socket ids with bytes waiting to go out */
+    /** @var array<int, resource> the watched sockets with bytes waiting to go out */
     private array $writers = [];
 
     public function watch(mixed $socket): void
@@ -45,7 +45,7 @@ final class SelectPoller implements Poller
     public function wantWrite(mixed $socket, bool $want): void
     {
         if ($want && isset($this->sockets[(int) $socket])) {
-            $this->writers[(int) $socket] = true;
+            $this->writers[(int) $socket] = $socket;
         } else {
             unset($this->writers[(int) $socket]);
         }
@@ -56,10 +56,10 @@ final class SelectPoller implements Poller
         // A socket closed by its owner without being forgotten (the Redis
         // connection dropping) would make stream_select throw.
         $this->sockets = array_filter($this->sockets, is_resource(...));
-        $this->writers = array_intersect_key($this->writers, $this->sockets);
+        $this->writers = array_filter($this->writers, is_resource(...));
 
-        $read = array_values($this->sockets);
-        $write = array_values(array_intersect_key($this->sockets, $this->writers));
+        $read = $this->sockets;
+        $write = $this->writers;
         $except = null;
         $seconds = (int) $timeout;
         $micros = (int) (($timeout - $seconds) * 1_000_000);
@@ -70,12 +70,11 @@ final class SelectPoller implements Poller
             return ['read' => [], 'write' => []];
         }
 
-        error_clear_last();
-
         if (@stream_select($read, $write, $except, $seconds, $micros) === false) {
-            // PHP says FD_SETSIZE when a descriptor is past the ceiling, and
-            // refuses the whole set; anything else is a signal, which is not
-            // an error: the round ends early.
+            // Every failure leaves its own warning: FD_SETSIZE when a
+            // descriptor is past the ceiling, which refuses the whole set;
+            // anything else is a signal, which is not an error: the round
+            // ends early.
             if (str_contains(error_get_last()['message'] ?? '', 'FD_SETSIZE')) {
                 throw new DescriptorCeilingException('stream_select cannot watch a descriptor numbered ' . self::FD_SETSIZE . ' or higher.');
             }

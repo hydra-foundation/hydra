@@ -179,6 +179,7 @@ class ServerLimitsTest extends TestCase
         $this->assertSame([getmypid(), 1790769600, true], [$report->pid, $report->startedAt, $report->subscribed]);
         $this->assertSame(30, $this->status->ttl);
         $this->assertSame($this->poller()->name(), $report->poller, 'the report says what the hub waits through');
+        $this->assertSame($this->poller()->name(), $this->server->poller());
 
         $this->clock->advance('+9 seconds');
         $this->rounds();

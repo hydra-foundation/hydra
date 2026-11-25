@@ -78,6 +78,89 @@ abstract class PollerContractTestCase extends TestCase
         $this->assertSame([], $poller->wait(0.01)['write']);
     }
 
+    public function test_wanting_to_write_does_not_stop_reads_being_reported(): void
+    {
+        $poller = $this->poller();
+        [$near, $far] = $this->pair();
+        $poller->watch($near);
+        $poller->wantWrite($near, true);
+
+        fwrite($far, 'x');
+
+        $this->assertSame([(int) $near], $this->ids($poller->wait(0.05)['read']));
+    }
+
+    public function test_only_the_ready_sockets_come_back_as_a_list(): void
+    {
+        $poller = $this->poller();
+        [$quiet] = $this->pair();
+        [$busy, $far] = $this->pair();
+        $poller->watch($quiet);
+        $poller->watch($busy);
+
+        fwrite($far, 'x');
+
+        $this->assertSame([(int) $busy], $this->ids($poller->wait(0.05)['read']));
+    }
+
+    public function test_only_the_sockets_that_can_take_bytes_come_back_as_a_list(): void
+    {
+        $poller = $this->poller();
+        [$full] = $this->pair();
+        [$free] = $this->pair();
+
+        // Fill $full's send buffer: its peer never reads.
+        while (@fwrite($full, str_repeat('x', 65536)) > 0);
+
+        $poller->watch($full);
+        $poller->watch($free);
+        $poller->wantWrite($full, true);
+        $poller->wantWrite($free, true);
+
+        $this->assertSame([(int) $free], $this->ids($poller->wait(0.05)['write']));
+    }
+
+    public function test_a_socket_closed_without_being_forgotten_is_left_out(): void
+    {
+        $poller = $this->poller();
+        [$gone] = $this->pair();
+        [$near, $far] = $this->pair();
+        $poller->watch($gone);
+        $poller->wantWrite($gone, true);
+        $poller->watch($near);
+        fclose($gone);
+
+        fwrite($far, 'x');
+        $ready = $poller->wait(0.05);
+
+        $this->assertSame([(int) $near], $this->ids($ready['read']));
+        $this->assertSame([], $ready['write']);
+    }
+
+    public function test_a_wait_longer_than_a_second_is_kept_to(): void
+    {
+        $poller = $this->poller();
+        [$near] = $this->pair();
+        $poller->watch($near);
+
+        $started = microtime(true);
+        $poller->wait(1.05);
+        $waited = microtime(true) - $started;
+
+        $this->assertGreaterThanOrEqual(1.0, $waited);
+        $this->assertLessThan(1.5, $waited);
+    }
+
+    public function test_with_nothing_watched_a_wait_longer_than_a_second_is_kept_to(): void
+    {
+        $started = microtime(true);
+        $this->poller()->wait(1.05);
+        $waited = microtime(true) - $started;
+
+        $this->assertGreaterThanOrEqual(1.0, $waited);
+        $this->assertLessThan(1.5, $waited);
+    }
+
     public function test_a_forgotten_socket_is_never_reported(): void
     {
         $poller = $this->poller();

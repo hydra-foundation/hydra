@@ -40,8 +40,11 @@ final class Server
     /** The settings with the stream cap settled for the poller: never null. */
     private readonly HubConfig $config;
 
-    /** Rounds in a row the poller has refused for a descriptor past its ceiling. */
-    private int $overCeiling = 0;
+    /** Seconds between log lines about the poller's ceiling, however often it is hit. */
+    private const CEILING_LOG_EVERY = 60;
+
+    /** When the ceiling was last logged. */
+    private ?int $ceilingLogged = null;
 
     /** @var resource|null the Redis socket being watched, swapped when it reconnects */
     private mixed $redis = null;
@@ -154,8 +157,6 @@ final class Server
             return;
         }
 
-        $this->overCeiling = 0;
-
         // A signal interrupts the wait, which is not an error: the round ends early.
         if ($ready === null) {
             return;
@@ -182,27 +183,27 @@ final class Server
     /**
      * A socket is numbered past what the poller can watch, so no socket was
      * watched at all this round. Descriptors are handed out lowest first, so
-     * the newest streams hold the high numbers: close one more of them each
-     * round until a round succeeds. With none left the high one is Redis's,
-     * reconnected while browsers held the low numbers: drop it, and it comes
-     * back on a low one.
+     * the newest stream holds the highest number: close it, one a round, until
+     * a round succeeds. A refused round returns at once, so this takes no
+     * longer than there are streams past the ceiling. With none left the high
+     * one is Redis's, reconnected while browsers held the low numbers: drop
+     * it, and it comes back on a low one.
      */
     private function shed(DescriptorCeilingException $e): void
     {
-        if ($this->overCeiling++ === 0) {
-            $this->logger->error($e->getMessage() . ' Closed the newest streams to keep serving the rest. Lower SSE_MAX_CONNECTIONS, or run the hub on PHP 8.6, which has no such ceiling.');
+        // Every connection past the ceiling refuses a round of its own; one
+        // line a minute says it without burying the log.
+        if ($this->ceilingLogged === null || $this->now() - $this->ceilingLogged >= self::CEILING_LOG_EVERY) {
+            $this->ceilingLogged = $this->now();
+            $this->logger->error($e->getMessage() . ' Closing the newest streams to keep serving the rest. Lower SSE_MAX_CONNECTIONS, or run the hub on PHP 8.6, which has no such ceiling.');
         }
 
-        $newest = array_slice(array_reverse($this->streams, true), 0, $this->overCeiling, true);
+        $newest = end($this->streams);
 
-        if ($newest === []) {
+        if ($newest instanceof Stream) {
+            $this->close($newest);
+        } else {
             $this->subscriber->close();
-
-            return;
-        }
-
-        foreach ($newest as $stream) {
-            $this->close($stream);
         }
     }
 

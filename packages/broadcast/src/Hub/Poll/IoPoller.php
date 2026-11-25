@@ -7,7 +7,6 @@ namespace Hydra\Broadcast\Hub\Poll;
 use Io\Poll\Context;
 use Io\Poll\Event;
 use Io\Poll\FailedPollWaitException;
-use Io\Poll\PollException;
 use Io\Poll\Watcher;
 use StreamPollHandle;
 use Time\Duration;
@@ -28,7 +27,7 @@ final class IoPoller implements Poller
     /** @var array<int, Watcher> keyed by socket id */
     private array $watchers = [];
 
-    /** @var array<int, true> socket ids whose watcher also asks for writes */
+    /** @var array<int, bool> whether each watcher also asks for writes */
     private array $writing = [];
 
     public function __construct()
@@ -50,15 +49,10 @@ final class IoPoller implements Poller
         $watcher = $this->watchers[(int) $socket] ?? null;
         unset($this->watchers[(int) $socket], $this->writing[(int) $socket]);
 
-        if ($watcher === null || !$watcher->isActive()) {
-            return;
-        }
-
-        try {
+        // Closed already, the watcher is inactive: the kernel dropped the
+        // descriptor from its watch list with the close.
+        if ($watcher?->isActive() === true) {
             $watcher->remove();
-        } catch (PollException) {
-            // Closed already: the kernel dropped it from the watch list with
-            // the descriptor, which is all remove() was for.
         }
     }
 
@@ -67,17 +61,12 @@ final class IoPoller implements Poller
         $id = (int) $socket;
 
         // The hub says this after every write; only a change reaches the kernel.
-        if (!isset($this->watchers[$id]) || isset($this->writing[$id]) === $want) {
+        if (!isset($this->watchers[$id]) || ($this->writing[$id] ?? false) === $want) {
             return;
         }
 
         $this->watchers[$id]->modifyEvents($want ? [Event::Read, Event::Write] : [Event::Read]);
-
-        if ($want) {
-            $this->writing[$id] = true;
-        } else {
-            unset($this->writing[$id]);
-        }
+        $this->writing[$id] = $want;
     }
 
     public function wait(float $timeout): ?array
